@@ -15,6 +15,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedStudioRouteImport } from './routes/_authenticated/studio'
 import { Route as AuthenticatedGaleriaRouteImport } from './routes/_authenticated/galeria'
+import { Route as AuthenticatedExplorarRouteImport } from './routes/_authenticated/explorar'
 import { Route as AuthenticatedCreditosRouteImport } from './routes/_authenticated/creditos'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedCConversationIdRouteImport } from './routes/_authenticated/c.$conversationId'
@@ -48,6 +49,11 @@ const AuthenticatedGaleriaRoute = AuthenticatedGaleriaRouteImport.update({
   path: '/galeria',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedExplorarRoute = AuthenticatedExplorarRouteImport.update({
+  id: '/explorar',
+  path: '/explorar',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedCreditosRoute = AuthenticatedCreditosRouteImport.update({
   id: '/creditos',
   path: '/creditos',
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/creditos': typeof AuthenticatedCreditosRoute
+  '/explorar': typeof AuthenticatedExplorarRoute
   '/galeria': typeof AuthenticatedGaleriaRoute
   '/studio': typeof AuthenticatedStudioRoute
   '/api/chat': typeof ApiChatRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/creditos': typeof AuthenticatedCreditosRoute
+  '/explorar': typeof AuthenticatedExplorarRoute
   '/galeria': typeof AuthenticatedGaleriaRoute
   '/studio': typeof AuthenticatedStudioRoute
   '/api/chat': typeof ApiChatRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/creditos': typeof AuthenticatedCreditosRoute
+  '/_authenticated/explorar': typeof AuthenticatedExplorarRoute
   '/_authenticated/galeria': typeof AuthenticatedGaleriaRoute
   '/_authenticated/studio': typeof AuthenticatedStudioRoute
   '/api/chat': typeof ApiChatRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/configuracoes'
     | '/creditos'
+    | '/explorar'
     | '/galeria'
     | '/studio'
     | '/api/chat'
@@ -114,6 +124,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/configuracoes'
     | '/creditos'
+    | '/explorar'
     | '/galeria'
     | '/studio'
     | '/api/chat'
@@ -125,6 +136,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/configuracoes'
     | '/_authenticated/creditos'
+    | '/_authenticated/explorar'
     | '/_authenticated/galeria'
     | '/_authenticated/studio'
     | '/api/chat'
@@ -182,6 +194,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGaleriaRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/explorar': {
+      id: '/_authenticated/explorar'
+      path: '/explorar'
+      fullPath: '/explorar'
+      preLoaderRoute: typeof AuthenticatedExplorarRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/creditos': {
       id: '/_authenticated/creditos'
       path: '/creditos'
@@ -209,6 +228,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedCreditosRoute: typeof AuthenticatedCreditosRoute
+  AuthenticatedExplorarRoute: typeof AuthenticatedExplorarRoute
   AuthenticatedGaleriaRoute: typeof AuthenticatedGaleriaRoute
   AuthenticatedStudioRoute: typeof AuthenticatedStudioRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -218,6 +238,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedCreditosRoute: AuthenticatedCreditosRoute,
+  AuthenticatedExplorarRoute: AuthenticatedExplorarRoute,
   AuthenticatedGaleriaRoute: AuthenticatedGaleriaRoute,
   AuthenticatedStudioRoute: AuthenticatedStudioRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
