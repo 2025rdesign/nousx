@@ -150,13 +150,13 @@ export const listPublicCharacters = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("characters")
-      .select("id, name, image_url, created_at")
+      .select("id, name, image_url, created_at, user_id")
       .eq("is_public", true)
       .not("image_url", "is", null)
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
-    return data || [];
+    return await attachCreator(supabaseAdmin, dedupeById(data || []));
   });
 
 export const listPublicProfiles = createServerFn({ method: "GET" })
@@ -164,14 +164,46 @@ export const listPublicProfiles = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("character_profiles")
-      .select("id, name, appearance, base_image_url, created_at")
+      .select("id, name, appearance, base_image_url, created_at, user_id")
       .eq("is_public", true)
       .not("base_image_url", "is", null)
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
-    return data || [];
+    return await attachCreator(supabaseAdmin, dedupeById(data || []));
   });
+
+function dedupeById<T extends { id: string }>(rows: T[]): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const r of rows) {
+    if (seen.has(r.id)) continue;
+    seen.add(r.id);
+    out.push(r);
+  }
+  return out;
+}
+
+async function attachCreator<T extends { user_id?: string | null }>(
+  admin: any,
+  rows: T[],
+): Promise<Array<T & { creator_avatar_id: string | null }>> {
+  const ids = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean))) as string[];
+  if (ids.length === 0) {
+    return rows.map((r) => ({ ...r, creator_avatar_id: null }));
+  }
+  const { data } = await admin
+    .from("profiles")
+    .select("id, avatar_id")
+    .in("id", ids);
+  const map = new Map<string, string | null>(
+    (data || []).map((p: any) => [p.id, p.avatar_id ?? null]),
+  );
+  return rows.map((r) => ({
+    ...r,
+    creator_avatar_id: r.user_id ? map.get(r.user_id) ?? null : null,
+  }));
+}
 
 export const togglePublic = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

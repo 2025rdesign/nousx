@@ -1,11 +1,20 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import * as TabsPrimitive from "@radix-ui/react-tabs";
+import { Sparkles } from "lucide-react";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { UserAvatar } from "@/components/user-avatar";
 import { listPublicCharacters, listPublicProfiles } from "@/lib/studio.functions";
 
 const AGE_KEY = "nousx-age-confirmed";
@@ -45,43 +54,42 @@ function Explore() {
         <h1 className="text-2xl font-semibold">Explorar</h1>
 
         <Tabs defaultValue="images">
-          <TabsList>
-            <TabsTrigger value="images">Imagens</TabsTrigger>
-            <TabsTrigger value="characters">Personagens</TabsTrigger>
-          </TabsList>
+          <TabsPrimitive.List className="inline-flex h-8 items-center gap-5 border-b border-border bg-transparent p-0">
+            <ThinTab value="images">Imagens</ThinTab>
+            <ThinTab value="characters">Personagens</ThinTab>
+          </TabsPrimitive.List>
 
           <TabsContent value="images" className="mt-4">
-            <div className="columns-2 md:columns-3 lg:columns-4 gap-3 space-y-3">
-              {images.map((c) => (
-                <div key={c.id} className="break-inside-avoid rounded-lg overflow-hidden bg-muted">
-                  {c.image_url && (
-                    <img src={c.image_url} alt={c.name || ""} className="w-full h-auto" loading="lazy" />
-                  )}
-                </div>
-              ))}
-            </div>
-            {images.length === 0 && (
-              <p className="text-center text-sm text-muted-foreground py-16">
-                Nada publicado ainda.
-              </p>
+            {images.length === 0 ? (
+              <EmptyExplore />
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {images.map((c: any) => (
+                  <Card
+                    key={c.id}
+                    imageUrl={c.image_url}
+                    title={c.name || ""}
+                    avatarId={c.creator_avatar_id}
+                  />
+                ))}
+              </div>
             )}
           </TabsContent>
 
           <TabsContent value="characters" className="mt-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {characters.map((p) => (
-                <div key={p.id} className="rounded-lg overflow-hidden bg-muted">
-                  {p.base_image_url && (
-                    <img src={p.base_image_url} alt={p.name} className="w-full aspect-[3/4] object-cover" />
-                  )}
-                  <div className="p-2 text-sm font-medium truncate">{p.name}</div>
-                </div>
-              ))}
-            </div>
-            {characters.length === 0 && (
-              <p className="text-center text-sm text-muted-foreground py-16">
-                Nenhum personagem público ainda.
-              </p>
+            {characters.length === 0 ? (
+              <EmptyExplore />
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {characters.map((p: any) => (
+                  <Card
+                    key={p.id}
+                    imageUrl={p.base_image_url}
+                    title={p.name}
+                    avatarId={p.creator_avatar_id}
+                  />
+                ))}
+              </div>
             )}
           </TabsContent>
         </Tabs>
@@ -105,6 +113,62 @@ function Explore() {
           </Button>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function ThinTab({ value, children }: { value: string; children: React.ReactNode }) {
+  return (
+    <TabsPrimitive.Trigger
+      value={value}
+      className="relative h-8 px-1 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:text-foreground after:absolute after:inset-x-0 after:-bottom-px after:h-[2px] after:bg-transparent data-[state=active]:after:bg-[#6C47FF] focus:outline-none"
+    >
+      {children}
+    </TabsPrimitive.Trigger>
+  );
+}
+
+function Card({
+  imageUrl,
+  title,
+  avatarId,
+}: {
+  imageUrl: string | null;
+  title: string;
+  avatarId?: string | null;
+}) {
+  return (
+    <div className="relative rounded-lg overflow-hidden bg-muted">
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt={title}
+          className="w-full aspect-[3/4] object-cover"
+          loading="lazy"
+        />
+      )}
+      <div className="absolute inset-x-0 bottom-0 p-2 flex items-center gap-2 bg-gradient-to-t from-black/70 to-transparent">
+        <UserAvatar avatarId={avatarId} size={20} className="shrink-0" />
+        <span className="text-xs font-medium text-white truncate">
+          {title || "Sem título"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function EmptyExplore() {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="rounded-full bg-secondary p-4 mb-4">
+        <Sparkles className="size-6 text-muted-foreground" />
+      </div>
+      <p className="text-sm text-muted-foreground mb-4">
+        Ainda não há publicações. Seja o primeiro!
+      </p>
+      <Button asChild>
+        <Link to="/studio">Criar no Estúdio</Link>
+      </Button>
     </div>
   );
 }
