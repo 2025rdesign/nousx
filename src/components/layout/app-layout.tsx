@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Menu, Settings, LogOut, User as UserIcon, PanelLeft } from "lucide-react";
+import { Menu, Settings, LogOut, User as UserIcon, PanelLeft, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -73,6 +73,19 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 <PanelLeft className="size-5" />
               </Button>
             </>
+          )}
+          {!showChatSidebar && (
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="hidden md:inline-flex gap-1.5"
+            >
+              <Link to="/">
+                <ArrowLeft className="size-4" />
+                Chat
+              </Link>
+            </Button>
           )}
           <Link to="/" className={showChatSidebar ? "md:hidden" : ""}>
             <NousxLogo className="text-lg" />
