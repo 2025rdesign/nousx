@@ -33,9 +33,6 @@ Today's date is ${today}. When the user asks about current events, recent news, 
   return base;
 }
 
-const SEARCH_TRIGGER =
-  /\b(hoje|agora|atual|atualizad[oa]|recente|últim[oa]|noticia|notícia|notícias|preço|cotação|clima|tempo|quando|quem é|o que é|como está|last|news|current|today|now|weather|price|latest|recent)\b/i;
-
 function extractLastUserText(messages: IncomingMessage[]): string {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
@@ -51,7 +48,11 @@ function extractLastUserText(messages: IncomingMessage[]): string {
 
 async function fetchSearchContext(query: string): Promise<string> {
   const key = process.env.TAVILY_API_KEY;
-  if (!key || !query.trim()) return "";
+  if (!key) {
+    console.log("[TAVILY] missing TAVILY_API_KEY");
+    return "";
+  }
+  if (!query.trim()) return "";
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 8000);
@@ -69,13 +70,15 @@ async function fetchSearchContext(query: string): Promise<string> {
     });
     clearTimeout(t);
     if (!res.ok) {
-      console.error("Tavily error", res.status);
+      const errText = await res.text().catch(() => "");
+      console.error("[TAVILY] HTTP error", res.status, errText);
       return "";
     }
     const data = (await res.json()) as {
       answer?: string;
       results?: Array<{ url: string; title: string; content: string }>;
     };
+    console.log("[TAVILY]", JSON.stringify(data).slice(0, 2000));
     const results = (data.results ?? []).slice(0, 3);
     const blocks = results.map(
       (r) => `Fonte: ${r.url}\n${r.title}\n${(r.content ?? "").slice(0, 300)}`,
@@ -83,7 +86,7 @@ async function fetchSearchContext(query: string): Promise<string> {
     if (data.answer) blocks.unshift(`Resumo: ${data.answer}`);
     return blocks.join("\n\n");
   } catch (e) {
-    console.error("Tavily fetch failed", e);
+    console.error("[TAVILY] fetch failed", e);
     return "";
   }
 }
@@ -143,9 +146,14 @@ export const Route = createFileRoute("/api/chat")({
         const model = body.reasoning ? "deepseek-reasoner" : "deepseek-chat";
 
         const lastUserText = extractLastUserText(body.messages);
-        const searchContext = SEARCH_TRIGGER.test(lastUserText)
-          ? await fetchSearchContext(lastUserText)
-          : "";
+        // Buscar sempre por enquanto (plano grátis Tavily = 1000/mês)
+        const searchContext = await fetchSearchContext(lastUserText);
+        console.log(
+          "[TAVILY] context length:",
+          searchContext.length,
+          "| query:",
+          lastUserText.slice(0, 100),
+        );
 
         const upstream = await fetch("https://api.deepseek.com/chat/completions", {
           method: "POST",
