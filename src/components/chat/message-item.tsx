@@ -46,10 +46,94 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
         ) : (
           <>
             {msg.reasoning && <ReasoningBlock text={msg.reasoning} />}
-            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-pre:p-0 prose-pre:bg-transparent">
+            <div
+              style={{
+                color: "#E0E0F0",
+                fontSize: "15px",
+                lineHeight: 1.7,
+              }}
+            >
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
+                p: ({ node: _n, ...props }) => (
+                  <p {...props} style={{ marginBottom: "12px" }} />
+                ),
+                strong: ({ node: _n, ...props }) => (
+                  <strong
+                    {...props}
+                    style={{ fontWeight: 600, color: "#F0F0FF" }}
+                  />
+                ),
+                h1: ({ node: _n, ...props }) => (
+                  <h2
+                    {...props}
+                    style={{
+                      fontSize: "18px",
+                      fontWeight: 600,
+                      color: "#F0F0FF",
+                      margin: "16px 0 6px",
+                    }}
+                  />
+                ),
+                h2: ({ node: _n, ...props }) => (
+                  <h2
+                    {...props}
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: 600,
+                      color: "#F0F0FF",
+                      margin: "12px 0 4px",
+                    }}
+                  />
+                ),
+                h3: ({ node: _n, ...props }) => (
+                  <h3
+                    {...props}
+                    style={{
+                      fontSize: "15px",
+                      fontWeight: 600,
+                      color: "#F0F0FF",
+                      margin: "10px 0 4px",
+                    }}
+                  />
+                ),
+                ul: ({ node: _n, ...props }) => (
+                  <ul
+                    {...props}
+                    style={{
+                      listStyle: "disc",
+                      paddingLeft: "20px",
+                      lineHeight: 1.8,
+                      marginBottom: "12px",
+                    }}
+                  />
+                ),
+                ol: ({ node: _n, ...props }) => (
+                  <ol
+                    {...props}
+                    style={{
+                      listStyle: "decimal",
+                      paddingLeft: "20px",
+                      lineHeight: 1.8,
+                      marginBottom: "12px",
+                    }}
+                  />
+                ),
+                li: ({ node: _n, ...props }) => (
+                  <li {...props} style={{ marginBottom: "4px" }} />
+                ),
+                blockquote: ({ node: _n, ...props }) => (
+                  <blockquote
+                    {...props}
+                    style={{
+                      borderLeft: "3px solid #2A2A3A",
+                      paddingLeft: "12px",
+                      color: "#A0A0B8",
+                      margin: "12px 0",
+                    }}
+                  />
+                ),
                 a: ({ node: _n, ...props }) => (
                   <a
                     {...props}
