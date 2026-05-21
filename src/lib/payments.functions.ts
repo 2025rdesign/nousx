@@ -12,6 +12,7 @@ import {
   createSubscription,
   cancelSubscription,
 } from "./asaas.server";
+import { creditUserOnce } from "./credits.server";
 import { CREDIT_PACKS, PLANS, applyDiscount, type CreditPackId, type PlanId } from "./payments-config";
 
 async function getOrCreateCustomerForUser(userId: string, email: string) {
@@ -272,31 +273,3 @@ export const cancelMySubscription = createServerFn({ method: "POST" })
       .eq("id", sub.id);
     return { ok: true };
   });
-
-// Idempotent credit helper (used both by card immediate-confirm and webhook)
-export async function creditUserOnce(paymentId: string, userId: string, amount: number) {
-  const { data: existing } = await supabaseAdmin
-    .from("payment_history")
-    .select("id, status, metadata")
-    .eq("asaas_payment_id", paymentId)
-    .maybeSingle();
-  if (existing?.metadata && (existing.metadata as any).credited === true) return;
-  const { data: current } = await supabaseAdmin
-    .from("credits")
-    .select("balance")
-    .eq("user_id", userId)
-    .maybeSingle();
-  const newBalance = (current?.balance ?? 0) + amount;
-  await supabaseAdmin
-    .from("credits")
-    .upsert({ user_id: userId, balance: newBalance }, { onConflict: "user_id" });
-  if (existing) {
-    await supabaseAdmin
-      .from("payment_history")
-      .update({
-        status: "confirmed",
-        metadata: { ...(existing.metadata as object || {}), credited: true },
-      })
-      .eq("id", existing.id);
-  }
-}
