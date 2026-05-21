@@ -82,28 +82,21 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
         }
 
         // SUBSCRIPTION PAYMENT
-        if ((ref?.kind === "subscription" || payment.subscription) && isConfirmed) {
-          const planId = ref?.planId as PlanId | undefined;
-          const userId = ref?.userId as string | undefined;
+        if (ref?.kind === "subscription" && isConfirmed) {
+          const { planId, userId, credits } = ref;
           const subId = payment.subscription;
-          if (userId && planId) {
-            const plan = PLANS[planId];
-            // Activate subscription row
-            const nextRenewal = new Date();
-            nextRenewal.setMonth(nextRenewal.getMonth() + 1);
-            await supabaseAdmin
-              .from("user_subscriptions")
-              .update({
-                status: "active",
-                expires_at: nextRenewal.toISOString(),
-              })
-              .eq("user_id", userId)
-              .eq("asaas_subscription_id", subId ?? "");
-            // Grant monthly credits (idempotent per payment id)
-            await creditUserOnce(payment.id, userId, plan.credits);
-            // creditUserOnce already inserts/updates payment_history idempotently
-            void plan;
-          }
+          const nextRenewal = new Date();
+          nextRenewal.setMonth(nextRenewal.getMonth() + 1);
+          await supabaseAdmin
+            .from("user_subscriptions")
+            .update({
+              status: "active",
+              expires_at: nextRenewal.toISOString(),
+            })
+            .eq("user_id", userId)
+            .eq("asaas_subscription_id", subId ?? "");
+          await creditUserOnce(payment.id, userId, credits);
+          void planId;
         }
 
         return new Response("ok");
