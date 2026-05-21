@@ -200,13 +200,7 @@ export const subscribePlan = createServerFn({ method: "POST" })
       }
     }
     const customer = await getOrCreateCustomerForUser(userId, email);
-    const externalRef = JSON.stringify({
-      kind: "subscription",
-      userId,
-      planId: data.planId,
-      credits: plan.credits,
-      coupon,
-    });
+    const externalRef = `s_${userId.slice(0, 60)}_${data.planId}`;
     if (data.method === "CREDIT_CARD" && (!data.card || !data.holder)) {
       throw new Error("Dados do cartão incompletos.");
     }
