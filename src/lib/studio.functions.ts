@@ -25,6 +25,16 @@ function aliveHeaders() {
   } as Record<string, string>;
 }
 
+function mapAspectRatio(ratio: string): string {
+  const map: Record<string, string> = {
+    "9:16": "DEFAULT",
+    "4:5": "PORTRAIT",
+    "16:9": "LANDSCAPE",
+    "1:1": "SQUARE",
+  };
+  return map[ratio] ?? "DEFAULT";
+}
+
 async function translateToEnglish(text: string): Promise<string> {
   if (!text.trim()) return text;
   const deepseekKey = process.env.DEEPSEEK_API_KEY;
@@ -254,7 +264,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         detailLevel: "MEDIUM",
         model: data.model,
         gender: data.gender,
-        aspectRatio: data.aspectRatio ?? "DEFAULT",
+        aspectRatio: mapAspectRatio(data.aspectRatio),
         blockExplicitContent: false,
         cfg: 7,
         faceImproveEnabled: true,
