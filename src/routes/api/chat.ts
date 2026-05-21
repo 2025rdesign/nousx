@@ -215,11 +215,36 @@ export const Route = createFileRoute("/api/chat")({
           );
         }
 
-        return new Response(upstream.body, {
+        // Pipe through a TransformStream to prevent the Worker runtime from
+        // buffering the upstream body. This forces each chunk to flush to the
+        // client immediately, enabling real-time token-by-token rendering.
+        const { readable, writable } = new TransformStream();
+        (async () => {
+          const reader = upstream.body!.getReader();
+          const writer = writable.getWriter();
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              await writer.write(value);
+            }
+          } catch (e) {
+            console.error("[CHAT STREAM] pipe error", e);
+          } finally {
+            try {
+              await writer.close();
+            } catch {
+              /* ignore */
+            }
+          }
+        })();
+
+        return new Response(readable, {
           status: 200,
           headers: {
             "content-type": "text/event-stream; charset=utf-8",
             "cache-control": "no-cache, no-transform",
+            "x-accel-buffering": "no",
             connection: "keep-alive",
           },
         });
