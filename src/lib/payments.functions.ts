@@ -102,13 +102,7 @@ export const buyCredits = createServerFn({ method: "POST" })
       }
     }
     const customer = await getOrCreateCustomerForUser(userId, email);
-    const externalRef = JSON.stringify({
-      kind: "credits",
-      userId,
-      packId: data.packId,
-      credits: pack.credits,
-      coupon,
-    });
+    const externalRef = `c_${userId.slice(0, 60)}_${data.packId}`;
     if (data.method === "PIX") {
       const payment = await createPixPayment({
         customerId: customer.id,
