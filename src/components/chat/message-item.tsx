@@ -1,7 +1,7 @@
 import { memo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, Copy, PanelRightOpen } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Copy, PanelRightOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCodeCanvas } from "./code-canvas";
 
@@ -145,6 +145,33 @@ export function TypingIndicator() {
         <span className="typing-dot size-1.5 rounded-full bg-muted-foreground" />
         <span className="typing-dot size-1.5 rounded-full bg-muted-foreground" />
       </div>
+    </div>
+  );
+}
+
+function ReasoningBlock({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      className="my-2 rounded-lg border text-xs"
+      style={{ background: "#1C1C26", borderColor: "#2A2A3A", color: "#8888AA" }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-1 px-3 py-2 font-medium"
+      >
+        {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+        Ver raciocínio
+      </button>
+      {open && (
+        <pre
+          className="px-3 pb-3 whitespace-pre-wrap font-sans leading-relaxed"
+          style={{ color: "#8888AA" }}
+        >
+          {text}
+        </pre>
+      )}
     </div>
   );
 }
