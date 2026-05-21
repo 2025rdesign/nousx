@@ -33,9 +33,6 @@ Today's date is ${today}. When the user asks about current events, recent news, 
   return base;
 }
 
-const SEARCH_TRIGGER =
-  /\b(hoje|agora|atual|atualizad[oa]|recente|últim[oa]|noticia|notícia|notícias|preço|cotação|clima|tempo|quando|quem é|o que é|como está|last|news|current|today|now|weather|price|latest|recent)\b/i;
-
 function extractLastUserText(messages: IncomingMessage[]): string {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
