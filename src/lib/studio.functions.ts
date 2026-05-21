@@ -269,8 +269,8 @@ export const generateCharacter = createServerFn({ method: "POST" })
         aspectRatio: mapAspectRatio(data.aspectRatio),
         blockExplicitContent: false,
         cfg: 7,
-        faceImproveEnabled: true,
-        faceImproveStrength: 7.5,
+        faceImproveEnabled: false,
+        faceImproveStrength: 5.0,
         improveBreasts: false,
         improveVagina: false,
         negativeDetails:
@@ -341,18 +341,24 @@ export const generateCharacter = createServerFn({ method: "POST" })
     }
 
     const { mediaId, mediaUrl } = await pollPrompt(promptId);
+    console.log("[DEBUG] Poll completed", { mediaId, mediaUrl });
 
     let profileId: string | null = data.mode === "variation" ? data.profileId! : null;
 
     if (data.mode === "new" && data.createProfile && data.name) {
-      const { data: existing } = await supabase
+      console.log("[DEBUG] Persisting character_profile", { name: data.name });
+      const { data: existing, error: selErr } = await supabase
         .from("character_profiles")
         .select("id")
         .eq("user_id", userId)
         .ilike("name", data.name)
         .maybeSingle();
+      if (selErr) {
+        console.error("[DEBUG] profile select error", selErr);
+        throw new Error(`profile select: ${selErr.message}`);
+      }
       if (existing) {
-        await supabase
+        const { error: updErr } = await supabase
           .from("character_profiles")
           .update({
             appearance: data.appearance,
@@ -361,6 +367,10 @@ export const generateCharacter = createServerFn({ method: "POST" })
             updated_at: new Date().toISOString(),
           })
           .eq("id", existing.id);
+        if (updErr) {
+          console.error("[DEBUG] profile update error", updErr);
+          throw new Error(`profile update: ${updErr.message}`);
+        }
         profileId = existing.id;
       } else {
         const { data: inserted, error: insErr } = await supabase
@@ -374,12 +384,16 @@ export const generateCharacter = createServerFn({ method: "POST" })
           })
           .select("id")
           .single();
-        if (insErr) throw new Error(insErr.message);
+        if (insErr) {
+          console.error("[DEBUG] profile insert error", insErr);
+          throw new Error(`profile insert: ${insErr.message}`);
+        }
         profileId = inserted.id;
       }
     }
 
-    await supabase.from("characters").insert({
+    console.log("[DEBUG] Inserting character row", { profileId });
+    const { error: charErr } = await supabase.from("characters").insert({
       user_id: userId,
       profile_id: profileId,
       name: data.name || null,
@@ -388,8 +402,13 @@ export const generateCharacter = createServerFn({ method: "POST" })
       prompt_id: promptId,
       status: "completed",
     });
+    if (charErr) {
+      console.error("[DEBUG] character insert error", charErr);
+      throw new Error(`character insert: ${charErr.message}`);
+    }
 
     await decrementCredit(supabase, userId, balance);
+    console.log("[DEBUG] generateCharacter done", { mediaId });
 
     return { mediaUrl, mediaId, promptId };
     } catch (error) {
