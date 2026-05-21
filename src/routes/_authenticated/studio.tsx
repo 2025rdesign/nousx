@@ -74,6 +74,14 @@ function StudioInner() {
   const genFn = useServerFn(generateCharacter);
   const toggleFn = useServerFn(togglePublic);
   const deleteFn = useServerFn(deleteCharacter);
+  const fetchCredits = useServerFn(getCredits);
+  const { data: creditsData } = useQuery({
+    queryKey: ["credits"],
+    queryFn: () => fetchCredits(),
+    staleTime: 30_000,
+  });
+  const balance = creditsData?.balance ?? 0;
+  const [creditsOpen, setCreditsOpen] = useState(false);
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["my-profiles"],
