@@ -1,9 +1,17 @@
 import { memo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, ChevronDown, ChevronRight, Copy, PanelRightOpen } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  Download,
+  PanelRightOpen,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCodeCanvas } from "./code-canvas";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export interface ChatMsg {
   id: string;
@@ -17,6 +25,7 @@ export interface ChatMsg {
 function MessageItemInner({ msg }: { msg: ChatMsg }) {
   const isUser = msg.role === "user";
   const [copied, setCopied] = useState(false);
+  const [zoom, setZoom] = useState(false);
   const { open: openCanvas } = useCodeCanvas();
 
   const onCopy = async () => {
@@ -36,11 +45,46 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
         )}
       >
         {msg.image_url && (
-          <img
-            src={msg.image_url}
-            alt=""
-            className="rounded-lg mb-2 max-h-72 object-cover"
-          />
+          isUser ? (
+            <img
+              src={msg.image_url}
+              alt=""
+              className="rounded-lg mb-2 max-h-72 object-cover"
+            />
+          ) : (
+            <div className="mb-2">
+              <button
+                type="button"
+                onClick={() => setZoom(true)}
+                className="block rounded-2xl overflow-hidden border border-border hover:opacity-90 transition-opacity"
+              >
+                <img
+                  src={msg.image_url}
+                  alt=""
+                  className="max-h-[420px] w-auto object-contain"
+                />
+              </button>
+              <a
+                href={msg.image_url}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Download className="size-3" />
+                Baixar imagem
+              </a>
+              <Dialog open={zoom} onOpenChange={setZoom}>
+                <DialogContent className="max-w-4xl p-2 bg-background">
+                  <img
+                    src={msg.image_url}
+                    alt=""
+                    className="w-full h-auto rounded-lg"
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
+          )
         )}
         {isUser ? (
           <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
