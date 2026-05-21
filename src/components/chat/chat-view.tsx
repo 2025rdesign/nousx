@@ -13,6 +13,7 @@ import {
 import { EmptyState } from "./empty-state";
 import { ChatInput } from "./chat-input";
 import { MessageItem, TypingIndicator, type ChatMsg } from "./message-item";
+import { CodeCanvasProvider } from "./code-canvas";
 import { toast } from "sonner";
 
 interface Props {
@@ -36,6 +37,8 @@ export function ChatView({ conversationId }: Props) {
 
   const [streaming, setStreaming] = useState<ChatMsg | null>(null);
   const [sending, setSending] = useState(false);
+  const [awaitingReply, setAwaitingReply] = useState(false);
+  const [optimisticUser, setOptimisticUser] = useState<ChatMsg | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const messages: ChatMsg[] = (dbMessages as ChatMsg[] | undefined) ?? [];
@@ -46,6 +49,13 @@ export function ChatView({ conversationId }: Props) {
 
   async function handleSend(text: string, image: string | null, reasoning: boolean) {
     setSending(true);
+    const tempUser: ChatMsg = {
+      id: `tmp-u-${Date.now()}`,
+      role: "user",
+      content: text,
+      image_url: image,
+    };
+    setOptimisticUser(tempUser);
     try {
       let convId = conversationId;
       let isNew = false;
@@ -67,13 +77,9 @@ export function ChatView({ conversationId }: Props) {
       });
       queryClient.setQueryData<ChatMsg[]>(["messages", convId], (prev) => [
         ...(prev ?? []),
-        {
-          id: `tmp-u-${Date.now()}`,
-          role: "user",
-          content: text,
-          image_url: image,
-        },
+        tempUser,
       ]);
+      setOptimisticUser(null);
 
       if (isNew) {
         navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
@@ -108,6 +114,7 @@ export function ChatView({ conversationId }: Props) {
         },
         body: JSON.stringify({ messages: history, reasoning }),
       });
+      setAwaitingReply(true);
 
       if (!res.ok || !res.body) {
         const err = await res.json().catch(() => ({ error: "Falha ao responder." }));
@@ -160,29 +167,34 @@ export function ChatView({ conversationId }: Props) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Algo deu errado.");
       setStreaming(null);
+      setOptimisticUser(null);
     } finally {
       setSending(false);
+      setAwaitingReply(false);
     }
   }
 
-  const hasContent = messages.length > 0 || streaming;
+  const hasContent = messages.length > 0 || streaming || optimisticUser;
 
   return (
-    <div className="h-full flex flex-col">
-      {hasContent ? (
-        <div ref={scrollRef as any} className="flex-1 overflow-y-auto">
-          <div className="w-full max-w-3xl mx-auto px-3 md:px-4 py-6 space-y-4">
-            {messages.map((m) => (
-              <MessageItem key={m.id} msg={m} />
-            ))}
-            {streaming && streaming.content && <MessageItem msg={streaming} />}
-            {sending && !streaming?.content && <TypingIndicator />}
+    <CodeCanvasProvider>
+      <div className="h-full flex flex-col">
+        {hasContent ? (
+          <div ref={scrollRef as any} className="flex-1 overflow-y-auto">
+            <div className="w-full max-w-3xl mx-auto px-3 md:px-4 py-6 space-y-4">
+              {messages.map((m) => (
+                <MessageItem key={m.id} msg={m} />
+              ))}
+              {optimisticUser && <MessageItem msg={optimisticUser} />}
+              {streaming && streaming.content && <MessageItem msg={streaming} />}
+              {awaitingReply && !streaming?.content && <TypingIndicator />}
+            </div>
           </div>
-        </div>
-      ) : (
-        <EmptyState onPick={(s) => handleSend(s, null, false)} />
-      )}
-      <ChatInput onSend={handleSend} disabled={sending} />
-    </div>
+        ) : (
+          <EmptyState onPick={(s) => handleSend(s, null, false)} />
+        )}
+        <ChatInput onSend={handleSend} disabled={sending} />
+      </div>
+    </CodeCanvasProvider>
   );
 }
