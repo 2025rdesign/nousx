@@ -194,10 +194,10 @@ async function attachCreator<T extends { user_id?: string | null }>(
   }
   const { data } = await admin
     .from("profiles")
-    .select("user_id, avatar_id")
-    .in("user_id", ids);
+    .select("id, avatar_id")
+    .in("id", ids);
   const map = new Map<string, string | null>(
-    (data || []).map((p: any) => [p.user_id, p.avatar_id ?? null]),
+    (data || []).map((p: any) => [p.id, p.avatar_id ?? null]),
   );
   return rows.map((r) => ({
     ...r,
