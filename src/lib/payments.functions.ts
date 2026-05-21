@@ -145,7 +145,7 @@ export const buyCredits = createServerFn({ method: "POST" })
       type: "credit",
       status: payment.status.toLowerCase(),
       asaas_payment_id: payment.id,
-      metadata: { packId: data.packId, credits: pack.credits, method: "CARD" },
+      metadata: { packId: data.packId, credits: pack.credits, method: "CARD", coupon },
     });
     // If immediately confirmed, credit now (idempotent — webhook may repeat)
     if (["CONFIRMED", "RECEIVED"].includes(payment.status)) {
