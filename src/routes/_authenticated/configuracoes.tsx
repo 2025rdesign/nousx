@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,10 +10,12 @@ import { Sparkles, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/components/theme-provider";
 import { getCredits } from "@/lib/credits.functions";
+import { getProfile, updateProfile } from "@/lib/chat.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { notify } from "@/lib/notify";
 import { translateAuthError } from "@/lib/i18n-errors";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AvatarGrid, UserAvatar, AVATAR_PRESETS } from "@/components/user-avatar";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações — NOUSX" }] }),
@@ -26,13 +28,15 @@ function SettingsPage() {
       <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
         <h1 className="text-2xl font-bold mb-6">Configurações</h1>
         <Tabs defaultValue="geral">
-          <TabsList className="grid grid-cols-3 w-full mb-6">
+          <TabsList className="grid grid-cols-4 w-full mb-6">
             <TabsTrigger value="geral">Geral</TabsTrigger>
             <TabsTrigger value="aparencia">Aparência</TabsTrigger>
+            <TabsTrigger value="seguranca">Segurança</TabsTrigger>
             <TabsTrigger value="assinatura">Assinatura</TabsTrigger>
           </TabsList>
           <TabsContent value="geral"><GeneralTab /></TabsContent>
           <TabsContent value="aparencia"><AppearanceTab /></TabsContent>
+          <TabsContent value="seguranca"><SecurityTab /></TabsContent>
           <TabsContent value="assinatura"><SubscriptionTab /></TabsContent>
         </Tabs>
       </div>
@@ -41,6 +45,91 @@ function SettingsPage() {
 }
 
 function GeneralTab() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const fetchProfile = useServerFn(getProfile);
+  const saveProfile = useServerFn(updateProfile);
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
+    queryFn: () => fetchProfile(),
+  });
+
+  const [name, setName] = useState("");
+  const [avatarId, setAvatarId] = useState<string>(AVATAR_PRESETS[0].id);
+
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name ?? "");
+      setAvatarId(profile.avatar_id ?? AVATAR_PRESETS[0].id);
+    }
+  }, [profile]);
+
+  const saveName = useMutation({
+    mutationFn: () => saveProfile({ data: { name } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      notify.success("Nome atualizado.");
+    },
+    onError: () => notify.error("Não foi possível salvar."),
+  });
+
+  const saveAvatar = useMutation({
+    mutationFn: (id: string) => saveProfile({ data: { avatarId: id } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["profile"] }),
+    onError: () => notify.error("Não foi possível salvar o avatar."),
+  });
+
+  function pickAvatar(id: string) {
+    setAvatarId(id);
+    saveAvatar.mutate(id);
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card className="border-border bg-card shadow-sm">
+        <CardContent className="pt-8 pb-8 space-y-6">
+          <div className="flex flex-col items-center gap-4">
+            <UserAvatar avatarId={avatarId} size={80} />
+            <p className="text-sm text-muted-foreground">Escolha seu avatar</p>
+          </div>
+          <AvatarGrid selected={avatarId} onSelect={pickAvatar} />
+        </CardContent>
+      </Card>
+
+      <Card className="border-border bg-card shadow-sm">
+        <CardContent className="pt-6 pb-6 space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="name">Nome</Label>
+            <div className="flex gap-2">
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={80}
+                placeholder="Seu nome"
+              />
+              <Button
+                onClick={() => saveName.mutate()}
+                disabled={
+                  saveName.isPending || !name.trim() || name === (profile?.name ?? "")
+                }
+              >
+                {saveName.isPending ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>E-mail</Label>
+            <Input value={user?.email ?? ""} disabled />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function SecurityTab() {
   const { user } = useAuth();
   const [resetting, setResetting] = useState(false);
 
@@ -56,21 +145,17 @@ function GeneralTab() {
   }
 
   return (
-    <Card className="border-border bg-card">
-      <CardContent className="pt-6 space-y-4">
-        <div className="space-y-2">
-          <Label>Nome</Label>
-          <Input defaultValue={(user?.user_metadata?.name as string) || ""} disabled />
+    <Card className="border-border bg-card shadow-sm">
+      <CardContent className="pt-6 pb-6 space-y-4">
+        <div>
+          <h3 className="font-semibold mb-1">Senha</h3>
+          <p className="text-sm text-muted-foreground">
+            Enviaremos um link por e-mail para você redefinir sua senha com segurança.
+          </p>
         </div>
-        <div className="space-y-2">
-          <Label>E-mail</Label>
-          <Input value={user?.email ?? ""} disabled />
-        </div>
-        <div className="pt-2">
-          <Button variant="outline" onClick={resetPassword} disabled={resetting}>
-            {resetting ? "Enviando..." : "Redefinir senha por e-mail"}
-          </Button>
-        </div>
+        <Button variant="outline" onClick={resetPassword} disabled={resetting}>
+          {resetting ? "Enviando..." : "Redefinir senha por e-mail"}
+        </Button>
       </CardContent>
     </Card>
   );
