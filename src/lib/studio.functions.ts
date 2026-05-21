@@ -249,14 +249,20 @@ export const generateCharacter = createServerFn({ method: "POST" })
         throw new Error("Preencha nome, estilo e gênero.");
       }
       body = {
+        name: data.name,
+        appearance: translated,
+        detailLevel: "MEDIUM",
         model: data.model,
         gender: data.gender,
-        prompt: translated,
-        aspectRatio: data.aspectRatio,
-        poseId: data.poseId || undefined,
+        aspectRatio: data.aspectRatio ?? "DEFAULT",
         blockExplicitContent: false,
+        cfg: 7,
+        faceImproveEnabled: true,
+        faceImproveStrength: 7.5,
         improveBreasts: false,
         improveVagina: false,
+        negativeDetails:
+          "deformed, bad anatomy, extra fingers, missing fingers, bad hands, blurry, low quality, watermark, text",
       };
     } else {
       if (!data.profileId) throw new Error("Personagem não encontrado.");
