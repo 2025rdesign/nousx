@@ -213,7 +213,7 @@ export const Route = createFileRoute("/api/chat")({
         let upstream: Response | null = null;
         let lastErr: { status: number; text: string; provider: string } | null = null;
         for (const p of providers) {
-          console.log("[CHAT API]", p.name, p.model);
+          console.log("[CHAT API]", p.name, p.model, "keyLen=", p.key?.length ?? 0);
           try {
             const res = await fetch(p.endpoint, {
               method: "POST",
@@ -233,7 +233,13 @@ export const Route = createFileRoute("/api/chat")({
               break;
             }
             const errText = await res.text().catch(() => "");
-            console.error(`[CHAT API] ${p.name} status=${res.status} msg=${errText.slice(0, 500)}`);
+            const hdrs: Record<string, string> = {};
+            res.headers.forEach((v, k) => { hdrs[k] = v; });
+            console.error(
+              `[CHAT API] ${p.name} FAILED status=${res.status}`,
+              "headers=", JSON.stringify(hdrs),
+              "body=", errText.slice(0, 2000),
+            );
             lastErr = { status: res.status, text: errText, provider: p.name };
           } catch (e) {
             console.error(`[CHAT API] ${p.name} network error`, e);
@@ -242,24 +248,17 @@ export const Route = createFileRoute("/api/chat")({
         }
 
         if (!upstream || !upstream.body) {
-          if (hasImage) {
-            return new Response(
-              JSON.stringify({
-                error:
-                  "Não consegui analisar a imagem desta vez. Tente novamente ou descreva o que quer saber sobre ela.",
-              }),
-              { status: 502, headers: { "content-type": "application/json" } },
-            );
-          }
-          if (hasFile) {
-            return new Response(
-              JSON.stringify({ error: "Não consegui ler o arquivo desta vez. Tente novamente." }),
-              { status: 502, headers: { "content-type": "application/json" } },
-            );
-          }
           console.error("[CHAT API] all providers failed", lastErr);
+          const baseMsg = hasImage
+            ? "Não consegui analisar a imagem desta vez."
+            : hasFile
+              ? "Não consegui ler o arquivo desta vez."
+              : "Falha ao gerar resposta.";
+          const detail = lastErr
+            ? ` [${lastErr.provider} ${lastErr.status}] ${lastErr.text.slice(0, 300)}`
+            : "";
           return new Response(
-            JSON.stringify({ error: "Falha ao gerar resposta. Tente novamente." }),
+            JSON.stringify({ error: `${baseMsg}${detail}` }),
             { status: 502, headers: { "content-type": "application/json" } },
           );
         }
