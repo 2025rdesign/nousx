@@ -69,7 +69,7 @@ function Explore() {
                     key={c.id}
                     imageUrl={c.image_url}
                     title={c.name || ""}
-                    avatarId={c.creator_avatar_id}
+                    creatorName={c.creator_name}
                   />
                 ))}
               </div>
@@ -86,7 +86,7 @@ function Explore() {
                     key={p.id}
                     imageUrl={p.base_image_url}
                     title={p.name}
-                    avatarId={p.creator_avatar_id}
+                    creatorName={p.creator_name}
                   />
                 ))}
               </div>
@@ -131,11 +131,11 @@ function ThinTab({ value, children }: { value: string; children: React.ReactNode
 function Card({
   imageUrl,
   title,
-  avatarId,
+  creatorName,
 }: {
   imageUrl: string | null;
   title: string;
-  avatarId?: string | null;
+  creatorName?: string | null;
 }) {
   return (
     <div className="relative rounded-lg overflow-hidden bg-muted">
@@ -148,7 +148,7 @@ function Card({
         />
       )}
       <div className="absolute inset-x-0 bottom-0 p-2 flex items-center gap-2 bg-gradient-to-t from-black/70 to-transparent">
-        <UserAvatar avatarId={avatarId} size={20} className="shrink-0" />
+        <UserAvatar name={creatorName} size={20} className="shrink-0" />
         <span className="text-xs font-medium text-white truncate">
           {title || "Sem título"}
         </span>
