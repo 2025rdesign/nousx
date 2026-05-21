@@ -6,16 +6,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Sun, Moon } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/components/theme-provider";
-import { getCredits } from "@/lib/credits.functions";
 import { getProfile, updateProfile } from "@/lib/chat.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { notify } from "@/lib/notify";
 import { translateAuthError } from "@/lib/i18n-errors";
 import { useEffect, useState } from "react";
 import { AvatarGrid, UserAvatar, AVATAR_PRESETS } from "@/components/user-avatar";
+import { SubscriptionTab } from "@/components/payments/subscription-tab";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações — NOUSX" }] }),
