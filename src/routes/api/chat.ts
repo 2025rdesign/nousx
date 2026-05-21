@@ -191,7 +191,7 @@ export const Route = createFileRoute("/api/chat")({
               { status: 500, headers: { "content-type": "application/json" } },
             );
           }
-          providers.push({ name: "zai-vision", endpoint: ZAI_ENDPOINT, key: zaiKey, model: "glm-4.6v-flash" });
+          providers.push({ name: "zai-vision", endpoint: ZAI_ENDPOINT, key: zaiKey, model: "glm-4.5v" });
         } else if (hasFile) {
           if (!zaiKey) {
             return new Response(
@@ -199,21 +199,29 @@ export const Route = createFileRoute("/api/chat")({
               { status: 500, headers: { "content-type": "application/json" } },
             );
           }
-          providers.push({ name: "zai-file", endpoint: ZAI_ENDPOINT, key: zaiKey, model: "glm-4.7-flash" });
+          providers.push({ name: "zai-file", endpoint: ZAI_ENDPOINT, key: zaiKey, model: "glm-4.6" });
         } else {
           if (apiKey) {
             const dsModel = body.reasoning ? "deepseek-reasoner" : "deepseek-chat";
             providers.push({ name: "deepseek", endpoint: DEEPSEEK_ENDPOINT, key: apiKey, model: dsModel });
           }
           if (zaiKey) {
-            providers.push({ name: "zai-fallback", endpoint: ZAI_ENDPOINT, key: zaiKey, model: "glm-4.7-flash" });
+            providers.push({ name: "zai-fallback", endpoint: ZAI_ENDPOINT, key: zaiKey, model: "glm-4.6" });
           }
         }
 
         let upstream: Response | null = null;
         let lastErr: { status: number; text: string; provider: string } | null = null;
         for (const p of providers) {
-          console.log("[CHAT API]", { provider: p.name, model: p.model, hasImage, hasFile });
+          console.log("[CHAT API] →", {
+            provider: p.name,
+            model: p.model,
+            endpoint: p.endpoint,
+            hasImage,
+            hasFile,
+            messages: payloadMessages.length,
+            keyLen: p.key?.length ?? 0,
+          });
           try {
             const res = await fetch(p.endpoint, {
               method: "POST",
@@ -233,7 +241,8 @@ export const Route = createFileRoute("/api/chat")({
               break;
             }
             const errText = await res.text().catch(() => "");
-            console.error(`[CHAT API] ${p.name} failed`, res.status, errText.slice(0, 500));
+            console.error(`[CHAT API] ${p.name} FAILED status=${res.status}`);
+            console.error(`[CHAT API] ${p.name} body:`, errText.slice(0, 1500));
             lastErr = { status: res.status, text: errText, provider: p.name };
           } catch (e) {
             console.error(`[CHAT API] ${p.name} network error`, e);
