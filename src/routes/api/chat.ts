@@ -16,6 +16,7 @@ interface ChatBody {
   messages: IncomingMessage[];
   reasoning?: boolean;
   webSearch?: boolean;
+  hasFile?: boolean;
 }
 
 function buildSystemPrompt(searchContext?: string) {
@@ -129,7 +130,8 @@ export const Route = createFileRoute("/api/chat")({
         }
 
         const apiKey = process.env.DEEPSEEK_API_KEY;
-        if (!apiKey) {
+        const zaiKey = process.env.Z_AI_API_KEY;
+        if (!apiKey && !zaiKey) {
           return new Response(
             JSON.stringify({ error: "Serviço indisponível no momento." }),
             { status: 500, headers: { "content-type": "application/json" } },
@@ -143,12 +145,7 @@ export const Route = createFileRoute("/api/chat")({
             Array.isArray(m.content) &&
             m.content.some((p) => p.type === "image_url"),
         );
-        // deepseek-reasoner does not support vision — force deepseek-chat when image is present
-        const model = hasImage
-          ? "deepseek-chat"
-          : body.reasoning
-            ? "deepseek-reasoner"
-            : "deepseek-chat";
+        const hasFile = body.hasFile === true;
 
         const lastUserText = extractLastUserText(body.messages);
         const SEARCH_TRIGGER =
@@ -169,38 +166,83 @@ export const Route = createFileRoute("/api/chat")({
           );
         }
 
-        const endpoint = "https://api.deepseek.com/chat/completions";
-        console.log("[CHAT API]", {
-          url: endpoint,
-          model,
-          hasImage,
-          reasoning: !!body.reasoning,
-          webSearch: !!body.webSearch,
-        });
-        console.log("[CHAT MODEL]", model);
+        const systemMsg = { role: "system", content: buildSystemPrompt(searchContext) };
+        const payloadMessages = [systemMsg, ...body.messages];
 
-        const upstream = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model,
-            stream: true,
-            max_tokens: 4096,
-            messages: [
-              { role: "system", content: buildSystemPrompt(searchContext) },
-              ...body.messages,
-            ],
-          }),
-        });
+        type Provider = {
+          name: string;
+          endpoint: string;
+          key: string;
+          model: string;
+        };
 
-        if (!upstream.ok || !upstream.body) {
-          const text = await upstream.text().catch(() => "");
-          console.error("NOUSX upstream error", upstream.status, text);
+        const ZAI_ENDPOINT = "https://open.z.ai/api/paas/v4/chat/completions";
+        const DEEPSEEK_ENDPOINT = "https://api.deepseek.com/chat/completions";
+
+        // Routing:
+        //  - image  -> Z.AI vision model
+        //  - file   -> Z.AI text model
+        //  - text   -> DeepSeek (with Z.AI text fallback on failure)
+        const providers: Provider[] = [];
+        if (hasImage) {
+          if (!zaiKey) {
+            return new Response(
+              JSON.stringify({ error: "Não consegui analisar a imagem agora." }),
+              { status: 500, headers: { "content-type": "application/json" } },
+            );
+          }
+          providers.push({ name: "zai-vision", endpoint: ZAI_ENDPOINT, key: zaiKey, model: "glm-4.6v-flash" });
+        } else if (hasFile) {
+          if (!zaiKey) {
+            return new Response(
+              JSON.stringify({ error: "Não consegui ler o arquivo agora." }),
+              { status: 500, headers: { "content-type": "application/json" } },
+            );
+          }
+          providers.push({ name: "zai-file", endpoint: ZAI_ENDPOINT, key: zaiKey, model: "glm-4.7-flash" });
+        } else {
+          if (apiKey) {
+            const dsModel = body.reasoning ? "deepseek-reasoner" : "deepseek-chat";
+            providers.push({ name: "deepseek", endpoint: DEEPSEEK_ENDPOINT, key: apiKey, model: dsModel });
+          }
+          if (zaiKey) {
+            providers.push({ name: "zai-fallback", endpoint: ZAI_ENDPOINT, key: zaiKey, model: "glm-4.7-flash" });
+          }
+        }
+
+        let upstream: Response | null = null;
+        let lastErr: { status: number; text: string; provider: string } | null = null;
+        for (const p of providers) {
+          console.log("[CHAT API]", { provider: p.name, model: p.model, hasImage, hasFile });
+          try {
+            const res = await fetch(p.endpoint, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${p.key}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: p.model,
+                stream: true,
+                max_tokens: 4096,
+                messages: payloadMessages,
+              }),
+            });
+            if (res.ok && res.body) {
+              upstream = res;
+              break;
+            }
+            const errText = await res.text().catch(() => "");
+            console.error(`[CHAT API] ${p.name} failed`, res.status, errText.slice(0, 500));
+            lastErr = { status: res.status, text: errText, provider: p.name };
+          } catch (e) {
+            console.error(`[CHAT API] ${p.name} network error`, e);
+            lastErr = { status: 0, text: String(e), provider: p.name };
+          }
+        }
+
+        if (!upstream || !upstream.body) {
           if (hasImage) {
-            console.error("[IMAGE VISION]", { status: upstream.status, body: text });
             return new Response(
               JSON.stringify({
                 error:
@@ -209,6 +251,13 @@ export const Route = createFileRoute("/api/chat")({
               { status: 502, headers: { "content-type": "application/json" } },
             );
           }
+          if (hasFile) {
+            return new Response(
+              JSON.stringify({ error: "Não consegui ler o arquivo desta vez. Tente novamente." }),
+              { status: 502, headers: { "content-type": "application/json" } },
+            );
+          }
+          console.error("[CHAT API] all providers failed", lastErr);
           return new Response(
             JSON.stringify({ error: "Falha ao gerar resposta. Tente novamente." }),
             { status: 502, headers: { "content-type": "application/json" } },

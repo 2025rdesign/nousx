@@ -15,6 +15,7 @@ import { ChatInput } from "./chat-input";
 import { MessageItem, TypingIndicator, type ChatMsg } from "./message-item";
 import { CodeCanvasProvider } from "./code-canvas";
 import { notify } from "@/lib/notify";
+import type { ExtractedFile } from "@/lib/file-extract";
 
 interface Props {
   conversationId: string | null;
@@ -51,16 +52,18 @@ export function ChatView({ conversationId }: Props) {
   async function handleSend(
     text: string,
     image: string | null,
+    file: ExtractedFile | null,
     reasoning: boolean,
     webSearch: boolean = false,
   ) {
     setSending(true);
     setInflightMode(webSearch ? "web" : reasoning ? "reasoning" : "default");
     setAwaitingReply(true);
+    const displayText = file ? `📎 ${file.name}\n\n${text}` : text;
     const tempUser: ChatMsg = {
       id: `tmp-u-${Date.now()}`,
       role: "user",
-      content: text,
+      content: displayText,
       image_url: image,
     };
     setOptimisticUser(tempUser);
@@ -79,7 +82,7 @@ export function ChatView({ conversationId }: Props) {
         data: {
           conversationId: convId,
           role: "user",
-          content: text,
+          content: displayText,
           imageUrl: image,
         },
       });
@@ -93,10 +96,12 @@ export function ChatView({ conversationId }: Props) {
         navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
       }
 
-      // Build messages payload
+      // Build messages payload. For the current turn, if a file was attached,
+      // inline its extracted text as context for the model.
       const history = (
         queryClient.getQueryData<ChatMsg[]>(["messages", convId]) ?? []
-      ).map((m) => {
+      ).map((m, idx, arr) => {
+        const isLast = idx === arr.length - 1;
         if (m.role === "user" && m.image_url) {
           return {
             role: "user" as const,
@@ -104,6 +109,12 @@ export function ChatView({ conversationId }: Props) {
               { type: "image_url" as const, image_url: { url: m.image_url } },
               { type: "text" as const, text: m.content },
             ],
+          };
+        }
+        if (isLast && file) {
+          return {
+            role: m.role,
+            content: `Arquivo anexado: ${file.name}\n---\n${file.text}\n---\n\nPergunta do usuário: ${text}`,
           };
         }
         return { role: m.role, content: m.content };
@@ -120,7 +131,12 @@ export function ChatView({ conversationId }: Props) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ messages: history, reasoning, webSearch }),
+        body: JSON.stringify({
+          messages: history,
+          reasoning,
+          webSearch,
+          hasFile: !!file,
+        }),
       });
       if (!res.ok || !res.body) {
         const err = await res.json().catch(() => ({ error: "Falha ao responder." }));
@@ -210,7 +226,7 @@ export function ChatView({ conversationId }: Props) {
             </div>
           </div>
         ) : (
-          <EmptyState onPick={(s) => handleSend(s, null, false)} />
+          <EmptyState onPick={(s) => handleSend(s, null, null, false)} />
         )}
         <ChatInput onSend={handleSend} disabled={sending} />
       </div>
