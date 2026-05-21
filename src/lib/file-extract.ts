@@ -4,6 +4,7 @@ const PDF_WORKER_URL =
   "https://cdn.jsdelivr.net/npm/pdfjs-dist@5.7.284/build/pdf.worker.min.mjs";
 
 async function extractPdf(file: File): Promise<string> {
+  // @ts-expect-error - no types for subpath
   const pdfjs: any = await import("pdfjs-dist/build/pdf.mjs");
   pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL;
   const buf = await file.arrayBuffer();
