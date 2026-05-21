@@ -104,6 +104,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          pinned: boolean
           title: string | null
           updated_at: string
           user_id: string
@@ -111,6 +112,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          pinned?: boolean
           title?: string | null
           updated_at?: string
           user_id: string
@@ -118,6 +120,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          pinned?: boolean
           title?: string | null
           updated_at?: string
           user_id?: string
@@ -182,6 +185,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_id: string | null
           avatar_url: string | null
           created_at: string
           id: string
@@ -189,6 +193,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_id?: string | null
           avatar_url?: string | null
           created_at?: string
           id: string
@@ -196,6 +201,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_id?: string | null
           avatar_url?: string | null
           created_at?: string
           id?: string

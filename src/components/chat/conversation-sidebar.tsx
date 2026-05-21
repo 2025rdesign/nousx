@@ -1,13 +1,28 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Plus, Trash2, Settings, Sparkles, Image as ImageIcon, Compass } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Settings,
+  Wand2,
+  Image as ImageIcon,
+  Compass,
+  Pin,
+  PinOff,
+  Pencil,
+  Check,
+  X,
+} from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { NousxLogo } from "@/components/nousx-logo";
 import {
   listConversations,
   deleteConversation,
+  togglePinConversation,
+  renameConversation,
 } from "@/lib/chat.functions";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
@@ -17,6 +32,7 @@ type Conv = {
   title: string | null;
   created_at: string;
   updated_at: string;
+  pinned?: boolean;
 };
 
 function groupByDate(rows: Conv[]) {
@@ -51,6 +67,9 @@ export function ConversationSidebar({
   const queryClient = useQueryClient();
   const fetchList = useServerFn(listConversations);
   const deleteFn = useServerFn(deleteConversation);
+  const pinFn = useServerFn(togglePinConversation);
+  const renameFn = useServerFn(renameConversation);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const currentId = useRouterState({
     select: (s) => {
@@ -75,13 +94,93 @@ export function ConversationSidebar({
     onError: () => notify.error("Não foi possível excluir."),
   });
 
-  const groups = groupByDate(conversations as Conv[]);
+  const pin = useMutation({
+    mutationFn: (v: { id: string; pinned: boolean }) =>
+      pinFn({ data: v }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["conversations"] }),
+    onError: () => notify.error("Não foi possível fixar."),
+  });
+
+  const rename = useMutation({
+    mutationFn: (v: { id: string; title: string }) => renameFn({ data: v }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      setEditingId(null);
+    },
+    onError: () => notify.error("Não foi possível renomear."),
+  });
+
+  const all = conversations as Conv[];
+  const pinned = all.filter((c) => c.pinned);
+  const unpinned = all.filter((c) => !c.pinned);
+  const groups = groupByDate(unpinned);
 
   const navItems: Array<{ to: "/studio" | "/galeria" | "/explorar"; label: string; icon: any }> = [
-    { to: "/studio", label: "Estúdio", icon: Sparkles },
+    { to: "/studio", label: "Estúdio", icon: Wand2 },
     { to: "/galeria", label: "Galeria", icon: ImageIcon },
     { to: "/explorar", label: "Explorar", icon: Compass },
   ];
+
+  function renderItem(c: Conv) {
+    const active = currentId === c.id;
+    const isEditing = editingId === c.id;
+    return (
+      <li key={c.id} className="group relative">
+        {isEditing ? (
+          <RenameInput
+            initial={c.title || ""}
+            onCancel={() => setEditingId(null)}
+            onSave={(val) => {
+              const trimmed = val.trim();
+              if (!trimmed) return setEditingId(null);
+              rename.mutate({ id: c.id, title: trimmed.slice(0, 80) });
+            }}
+          />
+        ) : (
+          <>
+            <Link
+              to="/c/$conversationId"
+              params={{ conversationId: c.id }}
+              onClick={onNavigate}
+              className={cn(
+                "block truncate rounded-md px-2 py-2 pr-20 text-sm transition-colors",
+                active
+                  ? "bg-secondary text-foreground"
+                  : "text-foreground/80 hover:bg-secondary/60",
+              )}
+            >
+              {(c.title || "Nova conversa").slice(0, 40)}
+            </Link>
+            <div className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5">
+              <ActionBtn
+                label={c.pinned ? "Desafixar" : "Fixar"}
+                onClick={() =>
+                  pin.mutate({ id: c.id, pinned: !c.pinned })
+                }
+              >
+                {c.pinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
+              </ActionBtn>
+              <ActionBtn
+                label="Renomear"
+                onClick={() => setEditingId(c.id)}
+              >
+                <Pencil className="size-3.5" />
+              </ActionBtn>
+              <ActionBtn
+                label="Excluir"
+                danger
+                onClick={() => {
+                  if (confirm("Excluir esta conversa?")) del.mutate(c.id);
+                }}
+              >
+                <Trash2 className="size-3.5" />
+              </ActionBtn>
+            </div>
+          </>
+        )}
+      </li>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full w-full bg-sidebar">
@@ -126,46 +225,21 @@ export function ConversationSidebar({
 
       <ScrollArea className="flex-1 px-2">
         <div className="space-y-4 py-2">
+          {pinned.length > 0 && (
+            <div>
+              <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Pin className="size-3" /> Fixados
+              </div>
+              <ul className="space-y-0.5">{pinned.map(renderItem)}</ul>
+            </div>
+          )}
           {Object.entries(groups).map(([label, items]) =>
             items.length === 0 ? null : (
               <div key={label}>
                 <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   {label}
                 </div>
-                <ul className="space-y-0.5">
-                  {items.map((c) => {
-                    const active = currentId === c.id;
-                    return (
-                      <li key={c.id} className="group relative">
-                        <Link
-                          to="/c/$conversationId"
-                          params={{ conversationId: c.id }}
-                          onClick={onNavigate}
-                          className={cn(
-                            "block truncate rounded-md px-2 py-2 text-sm transition-colors",
-                            active
-                              ? "bg-secondary text-foreground"
-                              : "text-foreground/80 hover:bg-secondary/60",
-                          )}
-                        >
-                          {(c.title || "Nova conversa").slice(0, 30)}
-                        </Link>
-                        <button
-                          type="button"
-                          aria-label="Excluir conversa"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (confirm("Excluir esta conversa?")) del.mutate(c.id);
-                          }}
-                          className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center justify-center size-7 rounded-md text-muted-foreground hover:text-destructive hover:bg-background"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
+                <ul className="space-y-0.5">{items.map(renderItem)}</ul>
               </div>
             ),
           )}
@@ -187,6 +261,85 @@ export function ConversationSidebar({
           Configurações
         </Link>
       </div>
+    </div>
+  );
+}
+
+function ActionBtn({
+  children,
+  label,
+  onClick,
+  danger,
+}: {
+  children: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClick();
+      }}
+      className={cn(
+        "flex items-center justify-center size-6 rounded-md text-muted-foreground hover:bg-background transition-colors",
+        danger ? "hover:text-destructive" : "hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function RenameInput({
+  initial,
+  onSave,
+  onCancel,
+}: {
+  initial: string;
+  onSave: (v: string) => void;
+  onCancel: () => void;
+}) {
+  const [v, setV] = useState(initial);
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    ref.current?.focus();
+    ref.current?.select();
+  }, []);
+  return (
+    <div className="flex items-center gap-1 px-1 py-1">
+      <input
+        ref={ref}
+        value={v}
+        onChange={(e) => setV(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") onSave(v);
+          else if (e.key === "Escape") onCancel();
+        }}
+        className="flex-1 min-w-0 rounded-md bg-background border border-border px-2 py-1 text-sm focus:outline-none focus:border-accent"
+        maxLength={80}
+      />
+      <button
+        type="button"
+        onClick={() => onSave(v)}
+        className="flex items-center justify-center size-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-background"
+        aria-label="Salvar"
+      >
+        <Check className="size-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="flex items-center justify-center size-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-background"
+        aria-label="Cancelar"
+      >
+        <X className="size-3.5" />
+      </button>
     </div>
   );
 }
