@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as AuthenticatedStudioRouteImport } from './routes/_authenticated/studio'
 import { Route as AuthenticatedCreditosRouteImport } from './routes/_authenticated/creditos'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedCConversationIdRouteImport } from './routes/_authenticated/c.$conversationId'
@@ -35,6 +36,11 @@ const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedStudioRoute = AuthenticatedStudioRouteImport.update({
+  id: '/studio',
+  path: '/studio',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedCreditosRoute = AuthenticatedCreditosRouteImport.update({
   id: '/creditos',
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/creditos': typeof AuthenticatedCreditosRoute
+  '/studio': typeof AuthenticatedStudioRoute
   '/api/chat': typeof ApiChatRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
 }
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/creditos': typeof AuthenticatedCreditosRoute
+  '/studio': typeof AuthenticatedStudioRoute
   '/api/chat': typeof ApiChatRoute
   '/': typeof AuthenticatedIndexRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/creditos': typeof AuthenticatedCreditosRoute
+  '/_authenticated/studio': typeof AuthenticatedStudioRoute
   '/api/chat': typeof ApiChatRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/c/$conversationId': typeof AuthenticatedCConversationIdRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/configuracoes'
     | '/creditos'
+    | '/studio'
     | '/api/chat'
     | '/c/$conversationId'
   fileRoutesByTo: FileRoutesByTo
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/configuracoes'
     | '/creditos'
+    | '/studio'
     | '/api/chat'
     | '/'
     | '/c/$conversationId'
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/configuracoes'
     | '/_authenticated/creditos'
+    | '/_authenticated/studio'
     | '/api/chat'
     | '/_authenticated/'
     | '/_authenticated/c/$conversationId'
@@ -144,6 +156,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/studio': {
+      id: '/_authenticated/studio'
+      path: '/studio'
+      fullPath: '/studio'
+      preLoaderRoute: typeof AuthenticatedStudioRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/creditos': {
       id: '/_authenticated/creditos'
       path: '/creditos'
@@ -171,6 +190,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedCreditosRoute: typeof AuthenticatedCreditosRoute
+  AuthenticatedStudioRoute: typeof AuthenticatedStudioRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedCConversationIdRoute: typeof AuthenticatedCConversationIdRoute
 }
@@ -178,6 +198,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedCreditosRoute: AuthenticatedCreditosRoute,
+  AuthenticatedStudioRoute: AuthenticatedStudioRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedCConversationIdRoute: AuthenticatedCConversationIdRoute,
 }
@@ -194,3 +215,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
