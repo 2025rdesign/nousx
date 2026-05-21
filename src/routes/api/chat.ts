@@ -259,7 +259,7 @@ export const Route = createFileRoute("/api/chat")({
             : "";
           return new Response(
             JSON.stringify({ error: `${baseMsg}${detail}` }),
-            { status: 200, headers: { "content-type": "application/json" } },
+            { status: 502, headers: { "content-type": "application/json" } },
           );
         }
 
