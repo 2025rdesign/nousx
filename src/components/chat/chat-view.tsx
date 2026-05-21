@@ -171,12 +171,7 @@ export function ChatView({ conversationId }: Props) {
 
       if (accum) {
         await saveMsg({
-          data: {
-            conversationId: convId,
-            role: "assistant",
-            content: accum,
-            reasoning: reasoningAccum || null,
-          },
+          data: { conversationId: convId, role: "assistant", content: accum },
         });
       }
       setStreaming(null);
