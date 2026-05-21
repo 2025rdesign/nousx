@@ -102,13 +102,7 @@ export const buyCredits = createServerFn({ method: "POST" })
       }
     }
     const customer = await getOrCreateCustomerForUser(userId, email);
-    const externalRef = JSON.stringify({
-      kind: "credits",
-      userId,
-      packId: data.packId,
-      credits: pack.credits,
-      coupon,
-    });
+    const externalRef = `c_${userId.slice(0, 60)}_${data.packId}`;
     if (data.method === "PIX") {
       const payment = await createPixPayment({
         customerId: customer.id,
@@ -123,7 +117,7 @@ export const buyCredits = createServerFn({ method: "POST" })
         type: "credit",
         status: "pending",
         asaas_payment_id: payment.id,
-        metadata: { packId: data.packId, credits: pack.credits, method: "PIX" },
+        metadata: { packId: data.packId, credits: pack.credits, method: "PIX", coupon },
       });
       return {
         method: "PIX" as const,
@@ -151,7 +145,7 @@ export const buyCredits = createServerFn({ method: "POST" })
       type: "credit",
       status: payment.status.toLowerCase(),
       asaas_payment_id: payment.id,
-      metadata: { packId: data.packId, credits: pack.credits, method: "CARD" },
+      metadata: { packId: data.packId, credits: pack.credits, method: "CARD", coupon },
     });
     // If immediately confirmed, credit now (idempotent — webhook may repeat)
     if (["CONFIRMED", "RECEIVED"].includes(payment.status)) {
@@ -206,13 +200,7 @@ export const subscribePlan = createServerFn({ method: "POST" })
       }
     }
     const customer = await getOrCreateCustomerForUser(userId, email);
-    const externalRef = JSON.stringify({
-      kind: "subscription",
-      userId,
-      planId: data.planId,
-      credits: plan.credits,
-      coupon,
-    });
+    const externalRef = `s_${userId.slice(0, 60)}_${data.planId}`;
     if (data.method === "CREDIT_CARD" && (!data.card || !data.holder)) {
       throw new Error("Dados do cartão incompletos.");
     }
@@ -227,6 +215,7 @@ export const subscribePlan = createServerFn({ method: "POST" })
       holder: data.holder,
       remoteIp,
     });
+    void coupon;
     await supabaseAdmin.from("user_subscriptions").insert({
       user_id: userId,
       plan_id: data.planId,

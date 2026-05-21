@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { creditUserOnce } from "@/lib/credits.server";
-import { PLANS, type PlanId } from "@/lib/payments-config";
+import { PLANS, CREDIT_PACKS, type PlanId, type CreditPackId } from "@/lib/payments-config";
 
 type AsaasEvent = {
   event: string;
@@ -15,9 +15,39 @@ type AsaasEvent = {
   };
 };
 
-function parseRef(ref: string | undefined) {
+type ParsedRef =
+  | { kind: "credits"; userId: string; packId: CreditPackId; credits: number }
+  | { kind: "subscription"; userId: string; planId: PlanId; credits: number }
+  | null;
+
+function parseRef(ref: string | undefined): ParsedRef {
   if (!ref) return null;
-  try { return JSON.parse(ref); } catch { return null; }
+  // New compact format: c_<userId>_<packId> or s_<userId>_<planId>
+  const m = /^([cs])_(.+)_([^_]+)$/.exec(ref);
+  if (m) {
+    const [, k, userId, id] = m;
+    if (k === "c") {
+      const pack = CREDIT_PACKS[id as CreditPackId];
+      if (!pack) return null;
+      return { kind: "credits", userId, packId: id as CreditPackId, credits: pack.credits };
+    }
+    const plan = PLANS[id as PlanId];
+    if (!plan) return null;
+    return { kind: "subscription", userId, planId: id as PlanId, credits: plan.credits };
+  }
+  // Legacy JSON format (backward compatibility)
+  try {
+    const j = JSON.parse(ref);
+    if (j?.kind === "credits" && j.userId && j.credits) {
+      return { kind: "credits", userId: j.userId, packId: j.packId, credits: j.credits };
+    }
+    if (j?.kind === "subscription" && j.userId && j.planId) {
+      return { kind: "subscription", userId: j.userId, planId: j.planId, credits: j.credits };
+    }
+  } catch {
+    // ignore
+  }
+  return null;
 }
 
 export const Route = createFileRoute("/api/public/asaas-webhook")({
@@ -52,28 +82,21 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
         }
 
         // SUBSCRIPTION PAYMENT
-        if ((ref?.kind === "subscription" || payment.subscription) && isConfirmed) {
-          const planId = ref?.planId as PlanId | undefined;
-          const userId = ref?.userId as string | undefined;
+        if (ref?.kind === "subscription" && isConfirmed) {
+          const { planId, userId, credits } = ref;
           const subId = payment.subscription;
-          if (userId && planId) {
-            const plan = PLANS[planId];
-            // Activate subscription row
-            const nextRenewal = new Date();
-            nextRenewal.setMonth(nextRenewal.getMonth() + 1);
-            await supabaseAdmin
-              .from("user_subscriptions")
-              .update({
-                status: "active",
-                expires_at: nextRenewal.toISOString(),
-              })
-              .eq("user_id", userId)
-              .eq("asaas_subscription_id", subId ?? "");
-            // Grant monthly credits (idempotent per payment id)
-            await creditUserOnce(payment.id, userId, plan.credits);
-            // creditUserOnce already inserts/updates payment_history idempotently
-            void plan;
-          }
+          const nextRenewal = new Date();
+          nextRenewal.setMonth(nextRenewal.getMonth() + 1);
+          await supabaseAdmin
+            .from("user_subscriptions")
+            .update({
+              status: "active",
+              expires_at: nextRenewal.toISOString(),
+            })
+            .eq("user_id", userId)
+            .eq("asaas_subscription_id", subId ?? "");
+          await creditUserOnce(payment.id, userId, credits);
+          void planId;
         }
 
         return new Response("ok");
