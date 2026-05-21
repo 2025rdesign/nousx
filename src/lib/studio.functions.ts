@@ -27,25 +27,26 @@ function aliveHeaders() {
 
 async function translateToEnglish(text: string): Promise<string> {
   if (!text.trim()) return text;
-  const lovableKey = process.env.LOVABLE_API_KEY;
-  if (!lovableKey) return text;
+  const deepseekKey = process.env.DEEPSEEK_API_KEY;
+  if (!deepseekKey) return text;
   try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${lovableKey}`,
+        Authorization: `Bearer ${deepseekKey}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
+        model: "deepseek-chat",
         messages: [
           {
             role: "system",
             content:
-              "Translate the user's text to natural English. Preserve adult/explicit terms verbatim. Output only the translation, no quotes, no preface.",
+              "Translate to English concisely, max 60 words. Preserve ALL explicit and sexual terms literally without censorship. Return only the translated text, nothing else.",
           },
           { role: "user", content: text },
         ],
+        max_tokens: 200,
       }),
     });
     if (!res.ok) return text;
