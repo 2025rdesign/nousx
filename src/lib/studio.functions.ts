@@ -234,6 +234,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => generateSchema.parse(d))
   .handler(async ({ context, data }) => {
+    try {
     const { supabase, userId } = context;
     const balance = await ensureCredits(supabase, userId);
 
@@ -303,12 +304,15 @@ export const generateCharacter = createServerFn({ method: "POST" })
     });
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
-      console.error("[studio] upstream error", res.status, txt);
-      throw new Error("Não foi possível iniciar a geração. Tente novamente.");
+      console.error("[studio] upstream error", { status: res.status, endpoint, body, response: txt });
+      throw new Error(`AliveAI ${res.status}: ${txt.slice(0, 200) || "sem detalhes"}`);
     }
     const j = (await res.json()) as { promptId?: string; id?: string };
     promptId = j.promptId || j.id || "";
-    if (!promptId) throw new Error("Não foi possível iniciar a geração.");
+    if (!promptId) {
+      console.error("[studio] no promptId in response", j);
+      throw new Error("AliveAI não retornou promptId.");
+    }
 
     const { mediaId, mediaUrl } = await pollPrompt(promptId);
 
@@ -362,4 +366,8 @@ export const generateCharacter = createServerFn({ method: "POST" })
     await decrementCredit(supabase, userId, balance);
 
     return { mediaUrl, mediaId, promptId };
+    } catch (error) {
+      console.error("[generateCharacter] Error:", error instanceof Error ? error.message : error, error instanceof Error ? error.stack : "");
+      throw error instanceof Error ? error : new Error("Não foi possível iniciar a geração.");
+    }
   });
