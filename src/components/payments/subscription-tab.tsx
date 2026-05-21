@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,10 +19,12 @@ import {
   subscribePlan,
   cancelMySubscription,
   getMySubscription,
+  getCheckoutProfile,
+  saveCheckoutProfile,
 } from "@/lib/payments.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { CouponField, type AppliedCoupon } from "./coupon-field";
-import { CardFields, useCardForm } from "./payment-forms";
+import { CardFields, CustomerDataStep, useCardForm } from "./payment-forms";
 
 export function SubscriptionTab() {
   const qc = useQueryClient();
@@ -182,6 +184,39 @@ function PlanCheckoutDialog({
   const [coupon, setCoupon] = useState<AppliedCoupon>(null);
   const [method, setMethod] = useState<"PIX" | "CREDIT_CARD">("CREDIT_CARD");
   const { card, setCard, holder, setHolder, sanitized } = useCardForm(user?.email ?? "");
+  const [stage, setStage] = useState<"customer" | "checkout">("customer");
+
+  const fetchProfile = useServerFn(getCheckoutProfile);
+  const saveProfile = useServerFn(saveCheckoutProfile);
+  const profileQ = useQuery({
+    queryKey: ["checkout-profile"],
+    queryFn: () => fetchProfile(),
+    enabled: open,
+  });
+
+  useEffect(() => {
+    if (profileQ.data) {
+      if (profileQ.data.ready) setStage("checkout");
+      setHolder((h) => ({
+        ...h,
+        name: h.name || profileQ.data!.name,
+        cpfCnpj: h.cpfCnpj || profileQ.data!.cpf,
+        email: profileQ.data!.email,
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileQ.data]);
+
+  const saveProfileM = useMutation({
+    mutationFn: (vars: { name: string; cpf: string }) =>
+      saveProfile({ data: vars }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["checkout-profile"] });
+      setStage("checkout");
+    },
+    onError: (e) =>
+      notify.error(e instanceof Error ? e.message : "Erro ao salvar dados."),
+  });
 
   const finalPrice = useMemo(
     () => (coupon ? applyDiscount(plan.price, coupon.discountPercent) : plan.price),
@@ -214,8 +249,22 @@ function PlanCheckoutDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Assinar {plan.name}</DialogTitle>
+          <DialogTitle>
+            {stage === "customer" ? "Seus dados" : `Assinar ${plan.name}`}
+          </DialogTitle>
         </DialogHeader>
+        {stage === "customer" ? (
+          <CustomerDataStep
+            initial={{
+              name: profileQ.data?.name ?? "",
+              cpf: profileQ.data?.cpf ?? "",
+            }}
+            email={profileQ.data?.email ?? user?.email ?? ""}
+            isPending={saveProfileM.isPending}
+            onSubmit={(d) => saveProfileM.mutate(d)}
+            submitLabel="Salvar e continuar"
+          />
+        ) : (
         <div className="space-y-4">
           <div className="rounded-lg bg-muted/40 p-3 flex items-center justify-between">
             <p className="text-sm">{plan.credits} créditos/mês</p>
@@ -255,6 +304,7 @@ function PlanCheckoutDialog({
             )}
           </Button>
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );

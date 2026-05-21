@@ -18,12 +18,16 @@ import { CREDIT_PACKS, PLANS, applyDiscount, type CreditPackId, type PlanId } fr
 async function getOrCreateCustomerForUser(userId: string, email: string) {
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("asaas_customer_id, name")
+    .select("asaas_customer_id, name, cpf")
     .eq("id", userId)
     .maybeSingle();
+  if (!profile?.cpf || !profile?.name) {
+    throw new Error("Preencha seus dados de cobrança antes de continuar.");
+  }
   const customer = await findOrCreateCustomer({
     email,
     name: profile?.name ?? null,
+    cpfCnpj: profile?.cpf ?? null,
     existingId: profile?.asaas_customer_id ?? null,
   });
   if (profile?.asaas_customer_id !== customer.id) {
@@ -34,6 +38,66 @@ async function getOrCreateCustomerForUser(userId: string, email: string) {
   }
   return customer;
 }
+
+// CPF validation (only length + digits; full DV check optional)
+const cpfRegex = /^\d{11}$/;
+
+export const getCheckoutProfile = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId, claims } = context;
+    const email = (claims.email as string | undefined) ?? "";
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("name, cpf, asaas_customer_id")
+      .eq("id", userId)
+      .maybeSingle();
+    return {
+      email,
+      name: profile?.name ?? "",
+      cpf: profile?.cpf ?? "",
+      ready: Boolean(profile?.name && profile?.cpf && profile?.asaas_customer_id),
+    };
+  });
+
+export const saveCheckoutProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        name: z.string().trim().min(2).max(100),
+        cpf: z
+          .string()
+          .transform((v) => v.replace(/\D/g, ""))
+          .refine((v) => cpfRegex.test(v), "CPF inválido"),
+      })
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { userId, claims } = context;
+    const email = claims.email as string | undefined;
+    if (!email) throw new Error("Email não encontrado.");
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("asaas_customer_id")
+      .eq("id", userId)
+      .maybeSingle();
+    const customer = await findOrCreateCustomer({
+      email,
+      name: data.name,
+      cpfCnpj: data.cpf,
+      existingId: profile?.asaas_customer_id ?? null,
+    });
+    await supabaseAdmin
+      .from("profiles")
+      .update({
+        name: data.name,
+        cpf: data.cpf,
+        asaas_customer_id: customer.id,
+      })
+      .eq("id", userId);
+    return { ok: true, customerId: customer.id };
+  });
 
 export const validateCoupon = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -102,7 +166,7 @@ export const buyCredits = createServerFn({ method: "POST" })
       }
     }
     const customer = await getOrCreateCustomerForUser(userId, email);
-    const externalRef = `c_${userId.slice(0, 60)}_${data.packId}`;
+    const externalRef = `c_${userId.slice(0, 50)}_${data.packId}`;
     if (data.method === "PIX") {
       const payment = await createPixPayment({
         customerId: customer.id,
@@ -200,7 +264,7 @@ export const subscribePlan = createServerFn({ method: "POST" })
       }
     }
     const customer = await getOrCreateCustomerForUser(userId, email);
-    const externalRef = `s_${userId.slice(0, 60)}_${data.planId}`;
+    const externalRef = `s_${userId.slice(0, 50)}_${data.planId}`;
     if (data.method === "CREDIT_CARD" && (!data.card || !data.holder)) {
       throw new Error("Dados do cartão incompletos.");
     }

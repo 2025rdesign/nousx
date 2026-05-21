@@ -47,11 +47,29 @@ export type AsaasSubscription = {
 export async function findOrCreateCustomer(args: {
   email: string;
   name?: string | null;
+  cpfCnpj?: string | null;
   existingId?: string | null;
 }): Promise<AsaasCustomer> {
+  const cpf = args.cpfCnpj?.replace(/\D/g, "") || undefined;
   if (args.existingId) {
     try {
-      return await asaas<AsaasCustomer>(`/customers/${args.existingId}`);
+      const existing = await asaas<AsaasCustomer>(`/customers/${args.existingId}`);
+      // If we have fresh name/cpf, sync them upstream
+      if (args.name || cpf) {
+        try {
+          return await asaas<AsaasCustomer>(`/customers/${existing.id}`, {
+            method: "POST",
+            body: {
+              name: args.name || existing.name,
+              email: args.email,
+              cpfCnpj: cpf,
+            },
+          });
+        } catch {
+          return existing;
+        }
+      }
+      return existing;
     } catch {
       // fall through and create
     }
@@ -60,10 +78,27 @@ export async function findOrCreateCustomer(args: {
   const list = await asaas<{ data: AsaasCustomer[] }>(
     `/customers?email=${encodeURIComponent(args.email)}`,
   );
-  if (list?.data?.length) return list.data[0];
+  if (list?.data?.length) {
+    const found = list.data[0];
+    if (args.name || cpf) {
+      try {
+        return await asaas<AsaasCustomer>(`/customers/${found.id}`, {
+          method: "POST",
+          body: { name: args.name || found.name, email: args.email, cpfCnpj: cpf },
+        });
+      } catch {
+        return found;
+      }
+    }
+    return found;
+  }
   return asaas<AsaasCustomer>("/customers", {
     method: "POST",
-    body: { name: args.name || args.email.split("@")[0], email: args.email },
+    body: {
+      name: args.name || args.email.split("@")[0],
+      email: args.email,
+      cpfCnpj: cpf,
+    },
   });
 }
 
