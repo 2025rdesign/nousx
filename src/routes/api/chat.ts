@@ -130,8 +130,8 @@ export const Route = createFileRoute("/api/chat")({
         }
 
         const apiKey = process.env.DEEPSEEK_API_KEY;
-        const zaiKey = process.env.Z_AI_API_KEY;
-        if (!apiKey && !zaiKey) {
+        const geminiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey && !geminiKey) {
           return new Response(
             JSON.stringify({ error: "Serviço indisponível no momento." }),
             { status: 500, headers: { "content-type": "application/json" } },
@@ -166,63 +166,100 @@ export const Route = createFileRoute("/api/chat")({
           );
         }
 
-        const systemMsg = { role: "system", content: buildSystemPrompt(searchContext) };
-        const payloadMessages = [systemMsg, ...body.messages];
+        const systemPrompt = buildSystemPrompt(searchContext);
+        const useGemini = hasImage || hasFile;
 
-        type Provider = {
-          name: string;
-          endpoint: string;
-          key: string;
-          model: string;
-        };
-
-        const ZAI_ENDPOINT = "https://api.z.ai/api/paas/v4/chat/completions";
         const DEEPSEEK_ENDPOINT = "https://api.deepseek.com/chat/completions";
-
-        // Routing:
-        //  - image  -> Z.AI vision model
-        //  - file   -> Z.AI text model
-        //  - text   -> DeepSeek (with Z.AI text fallback on failure)
-        const providers: Provider[] = [];
-        if (hasImage) {
-          if (!zaiKey) {
-            return new Response(
-              JSON.stringify({ error: "Não consegui analisar a imagem agora." }),
-              { status: 500, headers: { "content-type": "application/json" } },
-            );
-          }
-          providers.push({ name: "zai-vision", endpoint: ZAI_ENDPOINT, key: zaiKey, model: "glm-4.6v-flash" });
-        } else if (hasFile) {
-          if (!zaiKey) {
-            return new Response(
-              JSON.stringify({ error: "Não consegui ler o arquivo agora." }),
-              { status: 500, headers: { "content-type": "application/json" } },
-            );
-          }
-          providers.push({ name: "zai-file", endpoint: ZAI_ENDPOINT, key: zaiKey, model: "glm-4.7-flash" });
-        } else {
-          if (apiKey) {
-            const dsModel = body.reasoning ? "deepseek-reasoner" : "deepseek-chat";
-            providers.push({ name: "deepseek", endpoint: DEEPSEEK_ENDPOINT, key: apiKey, model: dsModel });
-          }
-          if (zaiKey) {
-            providers.push({ name: "zai-fallback", endpoint: ZAI_ENDPOINT, key: zaiKey, model: "glm-4.7-flash" });
-          }
-        }
+        const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${geminiKey ?? ""}`;
 
         let upstream: Response | null = null;
         let lastErr: { status: number; text: string; provider: string } | null = null;
-        for (const p of providers) {
-          console.log("[CHAT API]", p.name, p.model, "keyLen=", p.key?.length ?? 0);
+        let upstreamKind: "openai" | "gemini" = "openai";
+
+        if (useGemini) {
+          if (!geminiKey) {
+            return new Response(
+              JSON.stringify({
+                error: hasImage
+                  ? "Não consegui analisar a imagem agora."
+                  : "Não consegui ler o arquivo agora.",
+              }),
+              { status: 500, headers: { "content-type": "application/json" } },
+            );
+          }
+          // Convert OpenAI-style messages to Gemini contents
+          const contents = body.messages
+            .filter((m) => m.role === "user" || m.role === "assistant")
+            .map((m) => {
+              const role = m.role === "assistant" ? "model" : "user";
+              const parts: Array<
+                | { text: string }
+                | { inline_data: { mime_type: string; data: string } }
+              > = [];
+              if (typeof m.content === "string") {
+                if (m.content) parts.push({ text: m.content });
+              } else {
+                for (const p of m.content) {
+                  if (p.type === "text") {
+                    if (p.text) parts.push({ text: p.text });
+                  } else if (p.type === "image_url") {
+                    const url = p.image_url.url;
+                    const match = /^data:([^;]+);base64,(.+)$/.exec(url);
+                    if (match) {
+                      parts.push({
+                        inline_data: { mime_type: match[1], data: match[2] },
+                      });
+                    }
+                  }
+                }
+              }
+              if (parts.length === 0) parts.push({ text: "" });
+              return { role, parts };
+            });
+
+          upstreamKind = "gemini";
           try {
-            const res = await fetch(p.endpoint, {
+            const res = await fetch(GEMINI_ENDPOINT, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents,
+                system_instruction: { parts: [{ text: systemPrompt }] },
+              }),
+            });
+            if (res.ok && res.body) {
+              upstream = res;
+            } else {
+              const errText = await res.text().catch(() => "");
+              console.error(
+                "[CHAT API] gemini FAILED status=" + res.status,
+                "body=", errText.slice(0, 2000),
+              );
+              lastErr = { status: res.status, text: errText, provider: "gemini" };
+            }
+          } catch (e) {
+            console.error("[CHAT API] gemini network error", e);
+            lastErr = { status: 0, text: String(e), provider: "gemini" };
+          }
+        } else {
+          if (!apiKey) {
+            return new Response(
+              JSON.stringify({ error: "Serviço indisponível no momento." }),
+              { status: 500, headers: { "content-type": "application/json" } },
+            );
+          }
+          const systemMsg = { role: "system", content: systemPrompt };
+          const payloadMessages = [systemMsg, ...body.messages];
+          const dsModel = body.reasoning ? "deepseek-reasoner" : "deepseek-chat";
+          try {
+            const res = await fetch(DEEPSEEK_ENDPOINT, {
               method: "POST",
               headers: {
-                Authorization: `Bearer ${p.key}`,
+                Authorization: `Bearer ${apiKey}`,
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                model: p.model,
+                model: dsModel,
                 stream: true,
                 max_tokens: 4096,
                 messages: payloadMessages,
@@ -230,20 +267,17 @@ export const Route = createFileRoute("/api/chat")({
             });
             if (res.ok && res.body) {
               upstream = res;
-              break;
+            } else {
+              const errText = await res.text().catch(() => "");
+              console.error(
+                "[CHAT API] deepseek FAILED status=" + res.status,
+                "body=", errText.slice(0, 2000),
+              );
+              lastErr = { status: res.status, text: errText, provider: "deepseek" };
             }
-            const errText = await res.text().catch(() => "");
-            const hdrs: Record<string, string> = {};
-            res.headers.forEach((v, k) => { hdrs[k] = v; });
-            console.error(
-              `[CHAT API] ${p.name} FAILED status=${res.status}`,
-              "headers=", JSON.stringify(hdrs),
-              "body=", errText.slice(0, 2000),
-            );
-            lastErr = { status: res.status, text: errText, provider: p.name };
           } catch (e) {
-            console.error(`[CHAT API] ${p.name} network error`, e);
-            lastErr = { status: 0, text: String(e), provider: p.name };
+            console.error("[CHAT API] deepseek network error", e);
+            lastErr = { status: 0, text: String(e), provider: "deepseek" };
           }
         }
 
@@ -263,18 +297,55 @@ export const Route = createFileRoute("/api/chat")({
           );
         }
 
-        // Pipe through a TransformStream to prevent the Worker runtime from
-        // buffering the upstream body. This forces each chunk to flush to the
-        // client immediately, enabling real-time token-by-token rendering.
+        // Pipe through a TransformStream so chunks flush immediately.
+        // For Gemini, also translate its SSE shape to OpenAI's delta shape so
+        // the frontend parser works unchanged.
         const { readable, writable } = new TransformStream();
         (async () => {
           const reader = upstream.body!.getReader();
           const writer = writable.getWriter();
+          const encoder = new TextEncoder();
+          const decoder = new TextDecoder();
+          let buf = "";
           try {
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
-              await writer.write(value);
+              if (upstreamKind === "openai") {
+                await writer.write(value);
+                continue;
+              }
+              // Gemini: parse SSE, extract text, re-emit OpenAI delta frames
+              buf += decoder.decode(value, { stream: true });
+              const lines = buf.split("\n");
+              buf = lines.pop() ?? "";
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed.startsWith("data:")) continue;
+                const payload = trimmed.slice(5).trim();
+                if (!payload || payload === "[DONE]") continue;
+                try {
+                  const json = JSON.parse(payload);
+                  const parts = json?.candidates?.[0]?.content?.parts;
+                  if (Array.isArray(parts)) {
+                    let text = "";
+                    for (const p of parts) {
+                      if (typeof p?.text === "string") text += p.text;
+                    }
+                    if (text) {
+                      const frame = `data: ${JSON.stringify({
+                        choices: [{ delta: { content: text } }],
+                      })}\n\n`;
+                      await writer.write(encoder.encode(frame));
+                    }
+                  }
+                } catch {
+                  /* ignore */
+                }
+              }
+            }
+            if (upstreamKind === "gemini") {
+              await writer.write(encoder.encode("data: [DONE]\n\n"));
             }
           } catch (e) {
             console.error("[CHAT STREAM] pipe error", e);
