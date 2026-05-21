@@ -47,7 +47,12 @@ export function ChatView({ conversationId }: Props) {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, streaming]);
 
-  async function handleSend(text: string, image: string | null, reasoning: boolean) {
+  async function handleSend(
+    text: string,
+    image: string | null,
+    reasoning: boolean,
+    webSearch: boolean = false,
+  ) {
     setSending(true);
     const tempUser: ChatMsg = {
       id: `tmp-u-${Date.now()}`,
@@ -112,7 +117,7 @@ export function ChatView({ conversationId }: Props) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ messages: history, reasoning }),
+        body: JSON.stringify({ messages: history, reasoning, webSearch }),
       });
       setAwaitingReply(true);
 
