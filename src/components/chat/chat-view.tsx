@@ -129,6 +129,7 @@ export function ChatView({ conversationId }: Props) {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let accum = "";
+      let reasoningAccum = "";
       let buf = "";
       setStreaming({ id: "stream", role: "assistant", content: "" });
 
@@ -145,10 +146,22 @@ export function ChatView({ conversationId }: Props) {
           if (payload === "[DONE]") continue;
           try {
             const json = JSON.parse(payload);
-            const delta = json.choices?.[0]?.delta?.content;
+            const d = json.choices?.[0]?.delta ?? {};
+            const delta = d.content;
+            const rdelta = d.reasoning_content;
+            if (typeof rdelta === "string" && rdelta.length > 0) {
+              reasoningAccum += rdelta;
+            }
             if (typeof delta === "string" && delta.length > 0) {
               accum += delta;
-              setStreaming({ id: "stream", role: "assistant", content: accum });
+            }
+            if (delta || rdelta) {
+              setStreaming({
+                id: "stream",
+                role: "assistant",
+                content: accum,
+                reasoning: reasoningAccum || null,
+              });
             }
           } catch {
             /* ignore */

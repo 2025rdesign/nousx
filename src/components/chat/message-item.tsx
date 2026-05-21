@@ -1,7 +1,7 @@
 import { memo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, Copy, PanelRightOpen } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Copy, PanelRightOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCodeCanvas } from "./code-canvas";
 
@@ -10,6 +10,7 @@ export interface ChatMsg {
   role: "user" | "assistant";
   content: string;
   image_url?: string | null;
+  reasoning?: string | null;
 }
 
 function MessageItemInner({ msg }: { msg: ChatMsg }) {
@@ -43,7 +44,9 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
         {isUser ? (
           <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
         ) : (
-          <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-pre:p-0 prose-pre:bg-transparent">
+          <>
+            {msg.reasoning && <ReasoningBlock text={msg.reasoning} />}
+            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-pre:p-0 prose-pre:bg-transparent">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -107,7 +110,8 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
             >
               {msg.content || "​"}
             </ReactMarkdown>
-          </div>
+            </div>
+          </>
         )}
         {!isUser && msg.content && (
           <button
@@ -141,6 +145,33 @@ export function TypingIndicator() {
         <span className="typing-dot size-1.5 rounded-full bg-muted-foreground" />
         <span className="typing-dot size-1.5 rounded-full bg-muted-foreground" />
       </div>
+    </div>
+  );
+}
+
+function ReasoningBlock({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      className="my-2 rounded-lg border text-xs"
+      style={{ background: "#1C1C26", borderColor: "#2A2A3A", color: "#8888AA" }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-1 px-3 py-2 font-medium"
+      >
+        {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+        Ver raciocínio
+      </button>
+      {open && (
+        <pre
+          className="px-3 pb-3 whitespace-pre-wrap font-sans leading-relaxed"
+          style={{ color: "#8888AA" }}
+        >
+          {text}
+        </pre>
+      )}
     </div>
   );
 }

@@ -153,8 +153,10 @@ export const Route = createFileRoute("/api/chat")({
         const lastUserText = extractLastUserText(body.messages);
         const SEARCH_TRIGGER =
           /hoje|agora|atual|recente|últim|notícia|quando foi|quem ganhou|quem é|resultado|placar|preço|cotação|lançou|morreu|nasceu|convocou|eleição|copa|campeonato|\d{4}/;
+        // Image has absolute priority: ignore reasoning + websearch toggles
         const needsSearch =
-          body.webSearch === true || SEARCH_TRIGGER.test(lastUserText.toLowerCase());
+          !hasImage &&
+          (body.webSearch === true || SEARCH_TRIGGER.test(lastUserText.toLowerCase()));
         const searchContext = needsSearch ? await fetchSearchContext(lastUserText) : "";
         if (needsSearch) {
           console.log(
@@ -167,7 +169,17 @@ export const Route = createFileRoute("/api/chat")({
           );
         }
 
-        const upstream = await fetch("https://api.deepseek.com/chat/completions", {
+        const endpoint = "https://api.deepseek.com/chat/completions";
+        console.log("[CHAT API]", {
+          url: endpoint,
+          model,
+          hasImage,
+          reasoning: !!body.reasoning,
+          webSearch: !!body.webSearch,
+        });
+        console.log("[CHAT MODEL]", model);
+
+        const upstream = await fetch(endpoint, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${apiKey}`,
