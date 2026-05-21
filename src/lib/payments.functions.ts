@@ -221,6 +221,7 @@ export const subscribePlan = createServerFn({ method: "POST" })
       status: "pending",
       asaas_subscription_id: sub.id,
       expires_at: sub.nextDueDate ? new Date(sub.nextDueDate).toISOString() : null,
+      coupon,
     });
     return { subscriptionId: sub.id, status: sub.status };
   });
