@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 export type CardForm = {
   holderName: string;
@@ -17,6 +19,85 @@ export type HolderForm = {
   addressNumber: string;
   phone: string;
 };
+
+function maskCpf(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  return d
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+}
+
+export function CustomerDataStep({
+  initial,
+  email,
+  isPending,
+  onSubmit,
+  submitLabel = "Continuar",
+}: {
+  initial: { name: string; cpf: string };
+  email: string;
+  isPending: boolean;
+  onSubmit: (data: { name: string; cpf: string }) => void;
+  submitLabel?: string;
+}) {
+  const [name, setName] = useState(initial.name);
+  const [cpf, setCpf] = useState(initial.cpf ? maskCpf(initial.cpf) : "");
+  const [error, setError] = useState<string | null>(null);
+
+  function submit() {
+    const trimmedName = name.trim();
+    const digits = cpf.replace(/\D/g, "");
+    if (trimmedName.length < 2) {
+      setError("Informe seu nome completo.");
+      return;
+    }
+    if (digits.length !== 11) {
+      setError("Informe um CPF válido (11 dígitos).");
+      return;
+    }
+    setError(null);
+    onSubmit({ name: trimmedName, cpf: digits });
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <Label>Nome completo</Label>
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Seu nome como no documento"
+          maxLength={100}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label>CPF</Label>
+        <Input
+          inputMode="numeric"
+          placeholder="000.000.000-00"
+          value={cpf}
+          onChange={(e) => setCpf(maskCpf(e.target.value))}
+          maxLength={14}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label>E-mail</Label>
+        <Input value={email} readOnly disabled />
+      </div>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+      <Button className="w-full" onClick={submit} disabled={isPending}>
+        {isPending ? (
+          <>
+            <Loader2 className="size-4 animate-spin" /> Salvando...
+          </>
+        ) : (
+          submitLabel
+        )}
+      </Button>
+    </div>
+  );
+}
 
 export function useCardForm(defaultEmail = "") {
   const [card, setCard] = useState<CardForm>({
