@@ -4,7 +4,7 @@ import { Globe, Paperclip, Send, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 interface Props {
   onSend: (
@@ -43,11 +43,11 @@ export function ChatInput({ onSend, disabled }: Props) {
     e.target.value = "";
     if (!f) return;
     if (!/image\/(jpeg|jpg|png)/.test(f.type)) {
-      toast.error("Envie uma imagem JPG ou PNG.");
+      notify.error("Envie uma imagem JPG ou PNG.");
       return;
     }
     if (f.size > 4 * 1024 * 1024) {
-      toast.error("Imagem muito grande (máx 4MB).");
+      notify.error("Imagem muito grande (máx 4MB).");
       return;
     }
     const reader = new FileReader();

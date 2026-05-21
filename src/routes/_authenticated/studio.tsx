@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { ArrowLeft, Download, Globe, Lock, Loader2, Maximize2, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -155,10 +155,10 @@ function StudioInner() {
       qc.invalidateQueries({ queryKey: ["my-characters"] });
       qc.invalidateQueries({ queryKey: ["my-profiles"] });
       qc.invalidateQueries({ queryKey: ["credits"] });
-      toast.success("Imagem pronta.");
+      notify.success("Imagem pronta.");
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : "Algo deu errado.");
+      notify.error(err instanceof Error ? err.message : "Algo deu errado.");
     },
     onSettled: (_d, _e, _v, ctx) => {
       if (ctx?.iv) clearInterval(ctx.iv);
@@ -530,7 +530,7 @@ function StudioInner() {
                           e.stopPropagation();
                           await toggleFn({ data: { id: c.id, isPublic: !c.is_public } });
                           qc.invalidateQueries({ queryKey: ["my-characters"] });
-                          toast.success(c.is_public ? "Tornada privada." : "Publicada.");
+                          notify.success(c.is_public ? "Tornada privada." : "Publicada.");
                         }}
                       >
                         {c.is_public ? <Lock className="size-3.5" /> : <Globe className="size-3.5" />}

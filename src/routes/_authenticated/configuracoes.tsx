@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/components/theme-provider";
 import { getCredits } from "@/lib/credits.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { translateAuthError } from "@/lib/i18n-errors";
 import { useState } from "react";
 
@@ -51,8 +51,8 @@ function GeneralTab() {
       redirectTo: window.location.origin + "/auth",
     });
     setResetting(false);
-    if (error) toast.error(translateAuthError(error.message));
-    else toast.success("Enviamos um link para o seu e-mail.");
+    if (error) notify.error(translateAuthError(error.message));
+    else notify.success("Enviamos um link para o seu e-mail.");
   }
 
   return (
