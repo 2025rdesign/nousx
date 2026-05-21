@@ -26,7 +26,6 @@ export function ChatInput({ onSend, disabled }: Props) {
   const [reasoning, setReasoning] = useState(false);
   const [webSearch, setWebSearch] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const docRef = useRef<HTMLInputElement>(null);
 
   function handleSubmit() {
     const t = text.trim();
@@ -44,30 +43,25 @@ export function ChatInput({ onSend, disabled }: Props) {
     }
   }
 
-  function onFile(e: ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    if (!f) return;
-    if (!/image\/(jpeg|jpg|png)/.test(f.type)) {
-      notify.error("Envie uma imagem JPG ou PNG.");
-      return;
-    }
-    if (f.size > 4 * 1024 * 1024) {
-      notify.error("Imagem muito grande (máx 4MB).");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setImage(reader.result as string);
-    reader.readAsDataURL(f);
-  }
-
-  async function onDoc(e: ChangeEvent<HTMLInputElement>) {
+  async function onAttach(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
     const lower = f.name.toLowerCase();
-    if (!(lower.endsWith(".pdf") || lower.endsWith(".docx") || lower.endsWith(".txt"))) {
-      notify.error("Envie PDF, DOCX ou TXT.");
+    const isImage = /^image\/(jpeg|jpg|png|webp)$/.test(f.type) || /\.(jpe?g|png|webp)$/.test(lower);
+    const isDoc = /\.(pdf|docx|txt)$/.test(lower);
+    if (!isImage && !isDoc) {
+      notify.error("Envie imagem, PDF, DOCX ou TXT.");
+      return;
+    }
+    if (isImage) {
+      if (f.size > 4 * 1024 * 1024) {
+        notify.error("Imagem muito grande (máx 4MB).");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => setImage(reader.result as string);
+      reader.readAsDataURL(f);
       return;
     }
     if (f.size > 10 * 1024 * 1024) {
@@ -142,34 +136,18 @@ export function ChatInput({ onSend, disabled }: Props) {
           <input
             ref={fileRef}
             type="file"
-            accept="image/jpeg,image/png"
+            accept="image/jpeg,image/png,image/webp,.pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
             className="hidden"
-            onChange={onFile}
-          />
-          <input
-            ref={docRef}
-            type="file"
-            accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-            className="hidden"
-            onChange={onDoc}
+            onChange={onAttach}
           />
           <Button
             type="button"
             variant="ghost"
             size="icon"
             onClick={() => fileRef.current?.click()}
-            aria-label="Anexar imagem"
+            aria-label="Anexar arquivo"
           >
             <Paperclip className="size-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => docRef.current?.click()}
-            aria-label="Anexar documento"
-          >
-            <FileText className="size-4" />
           </Button>
           <Toggle
             pressed={reasoning}
