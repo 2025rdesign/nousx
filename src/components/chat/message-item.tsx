@@ -137,13 +137,37 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
 
 export const MessageItem = memo(MessageItemInner);
 
-export function TypingIndicator() {
+export function TypingIndicator({ mode = "default" }: { mode?: "default" | "web" | "reasoning" }) {
+  if (mode === "web") {
+    return (
+      <div className="flex justify-start">
+        <div
+          className="px-4 py-3 text-sm animate-pulse"
+          style={{ color: "#6C47FF" }}
+        >
+          🌐 Buscando na web...
+        </div>
+      </div>
+    );
+  }
+  if (mode === "reasoning") {
+    return (
+      <div className="flex justify-start">
+        <div
+          className="px-4 py-3 text-sm animate-pulse"
+          style={{ color: "#6C47FF" }}
+        >
+          💭 Analisando...
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="flex justify-start">
-      <div className="bg-card border border-border rounded-2xl px-4 py-3 flex items-center gap-1.5">
-        <span className="typing-dot size-1.5 rounded-full bg-muted-foreground" />
-        <span className="typing-dot size-1.5 rounded-full bg-muted-foreground" />
-        <span className="typing-dot size-1.5 rounded-full bg-muted-foreground" />
+      <div className="px-4 py-3 flex items-center gap-1.5">
+        <span className="typing-dot size-2 rounded-full" style={{ background: "#6C47FF" }} />
+        <span className="typing-dot size-2 rounded-full" style={{ background: "#6C47FF" }} />
+        <span className="typing-dot size-2 rounded-full" style={{ background: "#6C47FF" }} />
       </div>
     </div>
   );
