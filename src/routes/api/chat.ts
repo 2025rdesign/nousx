@@ -199,6 +199,16 @@ export const Route = createFileRoute("/api/chat")({
         if (!upstream.ok || !upstream.body) {
           const text = await upstream.text().catch(() => "");
           console.error("NOUSX upstream error", upstream.status, text);
+          if (hasImage) {
+            console.error("[IMAGE VISION]", { status: upstream.status, body: text });
+            return new Response(
+              JSON.stringify({
+                error:
+                  "Não consegui analisar a imagem desta vez. Tente novamente ou descreva o que quer saber sobre ela.",
+              }),
+              { status: 502, headers: { "content-type": "application/json" } },
+            );
+          }
           return new Response(
             JSON.stringify({ error: "Falha ao gerar resposta. Tente novamente." }),
             { status: 502, headers: { "content-type": "application/json" } },
