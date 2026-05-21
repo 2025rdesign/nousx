@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -173,11 +174,14 @@ export function ChatView({ conversationId }: Props) {
               accum += delta;
             }
             if (delta || rdelta) {
-              setStreaming({
-                id: "stream",
-                role: "assistant",
-                content: accum,
-                reasoning: reasoningAccum || null,
+              flushSync(() => {
+                setStreaming({
+                  id: "stream",
+                  role: "assistant",
+                  content: accum,
+                  reasoning: reasoningAccum || null,
+                  streaming: true,
+                });
               });
             }
           } catch {
