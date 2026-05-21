@@ -345,70 +345,60 @@ export const generateCharacter = createServerFn({ method: "POST" })
 
     let profileId: string | null = data.mode === "variation" ? data.profileId! : null;
 
-    if (data.mode === "new" && data.createProfile && data.name) {
-      console.log("[DEBUG] Persisting character_profile", { name: data.name });
-      const { data: existing, error: selErr } = await supabase
-        .from("character_profiles")
-        .select("id")
-        .eq("user_id", userId)
-        .ilike("name", data.name)
-        .maybeSingle();
-      if (selErr) {
-        console.error("[DEBUG] profile select error", selErr);
-        throw new Error(`profile select: ${selErr.message}`);
-      }
-      if (existing) {
-        const { error: updErr } = await supabase
+    // Persistência: não deve falhar a geração se houver erro.
+    try {
+      if (data.mode === "new" && data.createProfile && data.name) {
+        const { data: existing } = await supabase
           .from("character_profiles")
-          .update({
-            appearance: data.appearance,
-            base_media_id: mediaId,
-            base_image_url: mediaUrl,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existing.id);
-        if (updErr) {
-          console.error("[DEBUG] profile update error", updErr);
-          throw new Error(`profile update: ${updErr.message}`);
-        }
-        profileId = existing.id;
-      } else {
-        const { data: inserted, error: insErr } = await supabase
-          .from("character_profiles")
-          .insert({
-            user_id: userId,
-            name: data.name,
-            appearance: data.appearance,
-            base_media_id: mediaId,
-            base_image_url: mediaUrl,
-          })
           .select("id")
-          .single();
-        if (insErr) {
-          console.error("[DEBUG] profile insert error", insErr);
-          throw new Error(`profile insert: ${insErr.message}`);
+          .eq("user_id", userId)
+          .ilike("name", data.name)
+          .maybeSingle();
+        if (existing) {
+          await supabase
+            .from("character_profiles")
+            .update({
+              appearance: data.appearance,
+              base_media_id: mediaId,
+              base_image_url: mediaUrl,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existing.id);
+          profileId = existing.id;
+        } else {
+          const { data: inserted } = await supabase
+            .from("character_profiles")
+            .insert({
+              user_id: userId,
+              name: data.name,
+              appearance: data.appearance,
+              base_media_id: mediaId,
+              base_image_url: mediaUrl,
+            })
+            .select("id")
+            .single();
+          profileId = inserted?.id ?? null;
         }
-        profileId = inserted.id;
       }
+
+      await supabase.from("characters").insert({
+        user_id: userId,
+        profile_id: profileId,
+        name: data.name || null,
+        media_id: mediaId,
+        image_url: mediaUrl,
+        prompt_id: promptId,
+        status: "completed",
+      });
+    } catch (persistErr) {
+      console.error("[studio] persistence failed (ignored)", persistErr);
     }
 
-    console.log("[DEBUG] Inserting character row", { profileId });
-    const { error: charErr } = await supabase.from("characters").insert({
-      user_id: userId,
-      profile_id: profileId,
-      name: data.name || null,
-      media_id: mediaId,
-      image_url: mediaUrl,
-      prompt_id: promptId,
-      status: "completed",
-    });
-    if (charErr) {
-      console.error("[DEBUG] character insert error", charErr);
-      throw new Error(`character insert: ${charErr.message}`);
+    try {
+      await decrementCredit(supabase, userId, balance);
+    } catch (credErr) {
+      console.error("[studio] credit decrement failed (ignored)", credErr);
     }
-
-    await decrementCredit(supabase, userId, balance);
-    console.log("[DEBUG] generateCharacter done", { mediaId });
 
     return { mediaUrl, mediaId, promptId };
     } catch (error) {
