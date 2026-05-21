@@ -215,13 +215,13 @@ export const subscribePlan = createServerFn({ method: "POST" })
       holder: data.holder,
       remoteIp,
     });
+    void coupon;
     await supabaseAdmin.from("user_subscriptions").insert({
       user_id: userId,
       plan_id: data.planId,
       status: "pending",
       asaas_subscription_id: sub.id,
       expires_at: sub.nextDueDate ? new Date(sub.nextDueDate).toISOString() : null,
-      coupon,
     });
     return { subscriptionId: sub.id, status: sub.status };
   });
