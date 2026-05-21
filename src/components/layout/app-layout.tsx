@@ -9,12 +9,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { NousxLogo } from "@/components/nousx-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ConversationSidebar } from "@/components/chat/conversation-sidebar";
 import { useAuth } from "@/hooks/use-auth";
+import { UserAvatar } from "@/components/user-avatar";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getProfile } from "@/lib/chat.functions";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
@@ -26,10 +29,17 @@ export function AppLayout({ children }: { children: ReactNode }) {
   // Sidebar de conversas só aparece em rotas de chat.
   const showChatSidebar = pathname === "/" || pathname.startsWith("/c/");
 
-  const initial = (user?.user_metadata?.name || user?.email || "?")
-    .toString()
-    .charAt(0)
-    .toUpperCase();
+  const fetchProfile = useServerFn(getProfile);
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
+    queryFn: () => fetchProfile(),
+    enabled: !!user,
+  });
+  const displayName =
+    (profile?.name as string | undefined) ||
+    (user?.user_metadata?.name as string | undefined) ||
+    user?.email ||
+    "?";
 
   return (
     <div className="h-screen w-full flex bg-background text-foreground overflow-hidden">
@@ -99,11 +109,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 className="rounded-full"
                 aria-label="Menu do usuário"
               >
-                <Avatar className="size-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                    {initial}
-                  </AvatarFallback>
-                </Avatar>
+                <UserAvatar name={displayName} size={32} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">

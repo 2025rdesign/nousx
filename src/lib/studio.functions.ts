@@ -187,21 +187,21 @@ function dedupeById<T extends { id: string }>(rows: T[]): T[] {
 async function attachCreator<T extends { user_id?: string | null }>(
   admin: any,
   rows: T[],
-): Promise<Array<T & { creator_avatar_id: string | null }>> {
+): Promise<Array<T & { creator_name: string | null }>> {
   const ids = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean))) as string[];
   if (ids.length === 0) {
-    return rows.map((r) => ({ ...r, creator_avatar_id: null }));
+    return rows.map((r) => ({ ...r, creator_name: null }));
   }
   const { data } = await admin
     .from("profiles")
-    .select("id, avatar_id")
+    .select("id, name")
     .in("id", ids);
   const map = new Map<string, string | null>(
-    (data || []).map((p: any) => [p.id, p.avatar_id ?? null]),
+    (data || []).map((p: any) => [p.id, p.name ?? null]),
   );
   return rows.map((r) => ({
     ...r,
-    creator_avatar_id: r.user_id ? map.get(r.user_id) ?? null : null,
+    creator_name: r.user_id ? map.get(r.user_id) ?? null : null,
   }));
 }
 

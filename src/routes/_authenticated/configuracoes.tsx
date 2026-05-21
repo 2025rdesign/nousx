@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { notify } from "@/lib/notify";
 import { translateAuthError } from "@/lib/i18n-errors";
 import { useEffect, useState } from "react";
-import { AvatarGrid, UserAvatar, AVATAR_PRESETS } from "@/components/user-avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { SubscriptionTab } from "@/components/payments/subscription-tab";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
@@ -56,12 +56,10 @@ function GeneralTab() {
   });
 
   const [name, setName] = useState("");
-  const [avatarId, setAvatarId] = useState<string>(AVATAR_PRESETS[0].id);
 
   useEffect(() => {
     if (profile) {
       setName(profile.name ?? "");
-      setAvatarId(profile.avatar_id ?? AVATAR_PRESETS[0].id);
     }
   }, [profile]);
 
@@ -74,26 +72,16 @@ function GeneralTab() {
     onError: () => notify.error("Não foi possível salvar."),
   });
 
-  const saveAvatar = useMutation({
-    mutationFn: (id: string) => saveProfile({ data: { avatarId: id } }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["profile"] }),
-    onError: () => notify.error("Não foi possível salvar o avatar."),
-  });
-
-  function pickAvatar(id: string) {
-    setAvatarId(id);
-    saveAvatar.mutate(id);
-  }
-
   return (
     <div className="space-y-6">
       <Card className="border-border bg-card shadow-sm">
         <CardContent className="pt-8 pb-8 space-y-6">
           <div className="flex flex-col items-center gap-4">
-            <UserAvatar avatarId={avatarId} size={80} />
-            <p className="text-sm text-muted-foreground">Escolha seu avatar</p>
+            <UserAvatar name={name || user?.email} size={80} />
+            <p className="text-sm text-muted-foreground">
+              Seu avatar é gerado a partir do seu nome.
+            </p>
           </div>
-          <AvatarGrid selected={avatarId} onSelect={pickAvatar} />
         </CardContent>
       </Card>
 
