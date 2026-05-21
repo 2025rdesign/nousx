@@ -8,8 +8,9 @@ export const listConversations = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data, error } = await supabase
       .from("conversations")
-      .select("id, title, created_at, updated_at")
+      .select("id, title, created_at, updated_at, pinned")
       .eq("user_id", userId)
+      .order("pinned", { ascending: false })
       .order("updated_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
@@ -57,6 +58,55 @@ export const renameConversation = createServerFn({ method: "POST" })
       .from("conversations")
       .update({ title: data.title })
       .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const togglePinConversation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ id: z.string().uuid(), pinned: z.boolean() }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase } = context;
+    const { error } = await supabase
+      .from("conversations")
+      .update({ pinned: data.pinned })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const getProfile = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, name, avatar_id, avatar_url")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data;
+  });
+
+export const updateProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        name: z.string().min(1).max(80).optional(),
+        avatarId: z.string().min(1).max(40).nullable().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const patch: Record<string, unknown> = {};
+    if (data.name !== undefined) patch.name = data.name;
+    if (data.avatarId !== undefined) patch.avatar_id = data.avatarId;
+    if (Object.keys(patch).length === 0) return { ok: true };
+    const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
