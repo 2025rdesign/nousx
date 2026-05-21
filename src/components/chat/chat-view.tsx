@@ -18,6 +18,15 @@ import { CodeCanvasProvider } from "./code-canvas";
 import { notify } from "@/lib/notify";
 import type { ExtractedFile } from "@/lib/file-extract";
 
+const IMAGE_INTENT_RE =
+  /\b(ger(a|e|ar)|cri(a|e|ar)|fa[zç]a?|fa[zç]er|desenh(a|e|ar)|me\s+(d[êe]|d[áa])|quero|preciso\s+de)\b[\s\S]{0,60}\b(uma?\s+|umas?\s+)?(imagens?|fotos?|figuras?|desenhos?|ilustra[cç][aã]o(es)?|artes?|pinturas?|wallpapers?|capas?|logos?|logotipos?|[íi]cones?|avatares?|retratos?|posters?|p[ôo]steres?)\b/i;
+
+function detectImageIntent(text: string): boolean {
+  if (!text) return false;
+  if (text.length > 600) return false;
+  return IMAGE_INTENT_RE.test(text);
+}
+
 interface Props {
   conversationId: string | null;
 }
