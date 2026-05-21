@@ -1,9 +1,17 @@
 import { memo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, ChevronDown, ChevronRight, Copy, PanelRightOpen } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  Download,
+  PanelRightOpen,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCodeCanvas } from "./code-canvas";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export interface ChatMsg {
   id: string;
@@ -17,6 +25,7 @@ export interface ChatMsg {
 function MessageItemInner({ msg }: { msg: ChatMsg }) {
   const isUser = msg.role === "user";
   const [copied, setCopied] = useState(false);
+  const [zoom, setZoom] = useState(false);
   const { open: openCanvas } = useCodeCanvas();
 
   const onCopy = async () => {
@@ -36,11 +45,46 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
         )}
       >
         {msg.image_url && (
-          <img
-            src={msg.image_url}
-            alt=""
-            className="rounded-lg mb-2 max-h-72 object-cover"
-          />
+          isUser ? (
+            <img
+              src={msg.image_url}
+              alt=""
+              className="rounded-lg mb-2 max-h-72 object-cover"
+            />
+          ) : (
+            <div className="mb-2">
+              <button
+                type="button"
+                onClick={() => setZoom(true)}
+                className="block rounded-2xl overflow-hidden border border-border hover:opacity-90 transition-opacity"
+              >
+                <img
+                  src={msg.image_url}
+                  alt=""
+                  className="max-h-[420px] w-auto object-contain"
+                />
+              </button>
+              <a
+                href={msg.image_url}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Download className="size-3" />
+                Baixar imagem
+              </a>
+              <Dialog open={zoom} onOpenChange={setZoom}>
+                <DialogContent className="max-w-4xl p-2 bg-background">
+                  <img
+                    src={msg.image_url}
+                    alt=""
+                    className="w-full h-auto rounded-lg"
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
+          )
         )}
         {isUser ? (
           <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
@@ -229,7 +273,30 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
 
 export const MessageItem = memo(MessageItemInner);
 
-export function TypingIndicator({ mode = "default" }: { mode?: "default" | "web" | "reasoning" }) {
+export function TypingIndicator({
+  mode = "default",
+}: {
+  mode?: "default" | "web" | "reasoning" | "image";
+}) {
+  if (mode === "image") {
+    return (
+      <div className="flex justify-start w-full">
+        <div className="px-4 w-full max-w-sm">
+          <div className="text-sm mb-2" style={{ color: "#6C47FF" }}>
+            ✨ Gerando imagem...
+          </div>
+          <div
+            className="rounded-2xl border border-border animate-pulse"
+            style={{
+              aspectRatio: "1 / 1",
+              background:
+                "linear-gradient(135deg, #1C1C26 0%, #2A2A3A 50%, #1C1C26 100%)",
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
   if (mode === "web") {
     return (
       <div className="flex justify-start">

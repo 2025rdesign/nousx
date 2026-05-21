@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedStudioRouteImport } from './routes/_authenticated/studio'
 import { Route as AuthenticatedGaleriaRouteImport } from './routes/_authenticated/galeria'
@@ -34,6 +35,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
+} as any)
+const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
+  id: '/api/generate-image',
+  path: '/api/generate-image',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/galeria': typeof AuthenticatedGaleriaRoute
   '/studio': typeof AuthenticatedStudioRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/generate-image': typeof ApiGenerateImageRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
 }
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/galeria': typeof AuthenticatedGaleriaRoute
   '/studio': typeof AuthenticatedStudioRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/generate-image': typeof ApiGenerateImageRoute
   '/': typeof AuthenticatedIndexRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   '/_authenticated/galeria': typeof AuthenticatedGaleriaRoute
   '/_authenticated/studio': typeof AuthenticatedStudioRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/generate-image': typeof ApiGenerateImageRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/galeria'
     | '/studio'
     | '/api/chat'
+    | '/api/generate-image'
     | '/c/$conversationId'
     | '/api/public/asaas-webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/galeria'
     | '/studio'
     | '/api/chat'
+    | '/api/generate-image'
     | '/'
     | '/c/$conversationId'
     | '/api/public/asaas-webhook'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/_authenticated/galeria'
     | '/_authenticated/studio'
     | '/api/chat'
+    | '/api/generate-image'
     | '/_authenticated/'
     | '/_authenticated/c/$conversationId'
     | '/api/public/asaas-webhook'
@@ -160,6 +172,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
 }
 
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/generate-image': {
+      id: '/api/generate-image'
+      path: '/api/generate-image'
+      fullPath: '/api/generate-image'
+      preLoaderRoute: typeof ApiGenerateImageRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/chat': {
       id: '/api/chat'
@@ -273,6 +293,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
 }
 export const routeTree = rootRouteImport

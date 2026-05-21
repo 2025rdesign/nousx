@@ -18,6 +18,15 @@ import { CodeCanvasProvider } from "./code-canvas";
 import { notify } from "@/lib/notify";
 import type { ExtractedFile } from "@/lib/file-extract";
 
+const IMAGE_INTENT_RE =
+  /\b(ger(a|e|ar)|cri(a|e|ar)|fa[zç]a?|fa[zç]er|desenh(a|e|ar)|me\s+(d[êe]|d[áa])|quero|preciso\s+de)\b[\s\S]{0,60}\b(uma?\s+|umas?\s+)?(imagens?|fotos?|figuras?|desenhos?|ilustra[cç][aã]o(es)?|artes?|pinturas?|wallpapers?|capas?|logos?|logotipos?|[íi]cones?|avatares?|retratos?|posters?|p[ôo]steres?)\b/i;
+
+function detectImageIntent(text: string): boolean {
+  if (!text) return false;
+  if (text.length > 600) return false;
+  return IMAGE_INTENT_RE.test(text);
+}
+
 interface Props {
   conversationId: string | null;
 }
@@ -40,7 +49,9 @@ export function ChatView({ conversationId }: Props) {
   const [streaming, setStreaming] = useState<ChatMsg | null>(null);
   const [sending, setSending] = useState(false);
   const [awaitingReply, setAwaitingReply] = useState(false);
-  const [inflightMode, setInflightMode] = useState<"default" | "web" | "reasoning">("default");
+  const [inflightMode, setInflightMode] = useState<
+    "default" | "web" | "reasoning" | "image"
+  >("default");
   const [optimisticUser, setOptimisticUser] = useState<ChatMsg | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +69,10 @@ export function ChatView({ conversationId }: Props) {
     webSearch: boolean = false,
   ) {
     setSending(true);
-    setInflightMode(webSearch ? "web" : reasoning ? "reasoning" : "default");
+    const wantsImage = !image && !file && detectImageIntent(text);
+    setInflightMode(
+      wantsImage ? "image" : webSearch ? "web" : reasoning ? "reasoning" : "default",
+    );
     setAwaitingReply(true);
     const displayText = file ? `📎 ${file.name}\n\n${text}` : text;
     const tempUser: ChatMsg = {
@@ -95,6 +109,56 @@ export function ChatView({ conversationId }: Props) {
 
       if (isNew) {
         navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
+      }
+
+      // ── Image generation branch ──────────────────────────────────────────
+      if (wantsImage) {
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess.session?.access_token;
+        if (!token) throw new Error("Sessão expirada.");
+        const res = await fetch("/api/generate-image", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ prompt: text }),
+        });
+        if (res.status === 402) {
+          const msg =
+            "Geração de imagem no chat é exclusiva do plano **Plus** ou **Ultra**.\n\n" +
+            "Você ainda pode gerar imagens no **Estúdio** usando seus créditos avulsos.\n\n" +
+            "[Ver Planos](/configuracoes)";
+          await saveMsg({
+            data: { conversationId: convId, role: "assistant", content: msg },
+          });
+          queryClient.invalidateQueries({ queryKey: ["messages", convId] });
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          return;
+        }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "Falha ao gerar imagem." }));
+          throw new Error(err.error || "Falha ao gerar imagem.");
+        }
+        const data = (await res.json()) as { url: string };
+        await saveMsg({
+          data: {
+            conversationId: convId,
+            role: "assistant",
+            content: "Aqui está sua imagem ✨",
+            imageUrl: data.url,
+          },
+        });
+        queryClient.invalidateQueries({ queryKey: ["messages", convId] });
+        queryClient.invalidateQueries({ queryKey: ["conversations"] });
+        if (isNew) {
+          try {
+            await rename({ data: { id: convId, title: text.slice(0, 30) } });
+          } catch (e) {
+            console.warn("rename failed", e);
+          }
+        }
+        return;
       }
 
       // Build messages payload. For the current turn, if a file was attached,
