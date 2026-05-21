@@ -176,7 +176,7 @@ export const Route = createFileRoute("/api/chat")({
           model: string;
         };
 
-        const ZAI_ENDPOINT = "https://open.z.ai/api/paas/v4/chat/completions";
+        const ZAI_ENDPOINT = "https://api.z.ai/v1/chat/completions";
         const DEEPSEEK_ENDPOINT = "https://api.deepseek.com/chat/completions";
 
         // Routing:
