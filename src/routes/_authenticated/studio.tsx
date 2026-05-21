@@ -21,6 +21,9 @@ import {
   deleteCharacter,
 } from "@/lib/studio.functions";
 import { cn } from "@/lib/utils";
+import { CreditPurchaseModal } from "@/components/payments/credit-purchase-modal";
+import { Sparkles } from "lucide-react";
+import { getCredits } from "@/lib/credits.functions";
 
 export const Route = createFileRoute("/_authenticated/studio")({
   head: () => ({
@@ -71,6 +74,14 @@ function StudioInner() {
   const genFn = useServerFn(generateCharacter);
   const toggleFn = useServerFn(togglePublic);
   const deleteFn = useServerFn(deleteCharacter);
+  const fetchCredits = useServerFn(getCredits);
+  const { data: creditsData } = useQuery({
+    queryKey: ["credits"],
+    queryFn: () => fetchCredits(),
+    staleTime: 30_000,
+  });
+  const balance = creditsData?.balance ?? 0;
+  const [creditsOpen, setCreditsOpen] = useState(false);
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["my-profiles"],
@@ -213,6 +224,7 @@ function StudioInner() {
 
   return (
     <div className="h-full flex flex-col md:flex-row">
+      <CreditPurchaseModal open={creditsOpen} onOpenChange={setCreditsOpen} />
       {/* Studio sidebar (desktop) */}
       <aside className="hidden lg:flex w-60 shrink-0 border-r border-border">{Sidebar}</aside>
       <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
@@ -231,6 +243,15 @@ function StudioInner() {
             </Link>
           </Button>
           <span className="text-sm font-semibold">Estúdio</span>
+          <div className="flex-1" />
+          <button
+            type="button"
+            onClick={() => setCreditsOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium hover:border-accent hover:text-accent transition-colors"
+          >
+            <Sparkles className="size-3.5 text-accent" />
+            {balance}
+          </button>
         </div>
         <div className="grid grid-cols-3">
           {([
@@ -269,6 +290,16 @@ function StudioInner() {
               <Button variant="outline" size="sm" onClick={() => setMobileSidebarOpen(true)}>
                 Personagens
               </Button>
+            </div>
+            <div className="hidden md:flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setCreditsOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium hover:border-accent hover:text-accent transition-colors"
+              >
+                <Sparkles className="size-3.5 text-accent" />
+                {balance} créditos
+              </button>
             </div>
 
             {activeProfile ? (

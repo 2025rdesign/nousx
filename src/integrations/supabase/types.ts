@@ -127,6 +127,33 @@ export type Database = {
         }
         Relationships: []
       }
+      coupons: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          discount_percent: number
+          expires_at: string | null
+          id: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          discount_percent: number
+          expires_at?: string | null
+          id?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          discount_percent?: number
+          expires_at?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       credits: {
         Row: {
           balance: number
@@ -183,8 +210,42 @@ export type Database = {
           },
         ]
       }
+      payment_history: {
+        Row: {
+          amount: number
+          asaas_payment_id: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          asaas_payment_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          status: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          asaas_payment_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          asaas_customer_id: string | null
           avatar_id: string | null
           avatar_url: string | null
           created_at: string
@@ -193,6 +254,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          asaas_customer_id?: string | null
           avatar_id?: string | null
           avatar_url?: string | null
           created_at?: string
@@ -201,12 +263,46 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          asaas_customer_id?: string | null
           avatar_id?: string | null
           avatar_url?: string | null
           created_at?: string
           id?: string
           name?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          asaas_subscription_id: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          plan_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asaas_subscription_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asaas_subscription_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

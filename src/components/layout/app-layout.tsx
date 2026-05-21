@@ -13,7 +13,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { NousxLogo } from "@/components/nousx-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { CreditsBadge } from "@/components/layout/credits-badge";
 import { ConversationSidebar } from "@/components/chat/conversation-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -91,7 +90,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <NousxLogo className="text-lg" />
           </Link>
           <div className="flex-1" />
-          <CreditsBadge />
           <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

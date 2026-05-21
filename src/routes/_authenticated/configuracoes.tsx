@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,16 +6,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Sun, Moon } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/components/theme-provider";
-import { getCredits } from "@/lib/credits.functions";
 import { getProfile, updateProfile } from "@/lib/chat.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { notify } from "@/lib/notify";
 import { translateAuthError } from "@/lib/i18n-errors";
 import { useEffect, useState } from "react";
 import { AvatarGrid, UserAvatar, AVATAR_PRESETS } from "@/components/user-avatar";
+import { SubscriptionTab } from "@/components/payments/subscription-tab";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações — NOUSX" }] }),
@@ -187,28 +187,6 @@ function AppearanceTab() {
             <Sun className="size-4" /> Claro
           </button>
         </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function SubscriptionTab() {
-  const fetchCredits = useServerFn(getCredits);
-  const { data } = useQuery({ queryKey: ["credits"], queryFn: () => fetchCredits() });
-  return (
-    <Card className="border-border bg-card">
-      <CardContent className="pt-6 space-y-4">
-        <div>
-          <Label className="text-muted-foreground">Saldo atual</Label>
-          <p className="mt-1 flex items-center gap-2 text-3xl font-bold">
-            <Sparkles className="size-6 text-accent" />
-            {data?.balance ?? 0}
-            <span className="text-sm font-normal text-muted-foreground">créditos</span>
-          </p>
-        </div>
-        <Button asChild>
-          <Link to="/creditos">Comprar mais créditos</Link>
-        </Button>
       </CardContent>
     </Card>
   );
