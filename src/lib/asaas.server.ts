@@ -1,4 +1,4 @@
-const BASE_URL = "https://sandbox.asaas.com/api/v3";
+const BASE_URL = "https://api.asaas.com/v3";
 
 function apiKey() {
   const k = process.env.ASAAS_API_KEY;
