@@ -196,11 +196,18 @@ export function ChatView({ conversationId }: Props) {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
 
       if (isNew) {
-        await rename({ data: { id: convId, title: text.slice(0, 30) } });
+        try {
+          await rename({ data: { id: convId, title: text.slice(0, 30) } });
+        } catch (e) {
+          console.warn("rename failed", e);
+        }
       }
     } catch (err) {
+      const isAbort = err instanceof Error && err.name === "AbortError";
       console.error(err);
-      notify.error(err instanceof Error ? err.message : "Algo deu errado.");
+      if (!isAbort) {
+        notify.error(err instanceof Error ? err.message : "Algo deu errado.");
+      }
       setStreaming(null);
       setOptimisticUser(null);
     } finally {
