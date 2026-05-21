@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { creditUserOnce } from "@/lib/payments.functions";
+import { creditUserOnce } from "@/lib/credits.server";
 import { PLANS, type PlanId } from "@/lib/payments-config";
 
 type AsaasEvent = {
@@ -71,18 +71,8 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
               .eq("asaas_subscription_id", subId ?? "");
             // Grant monthly credits (idempotent per payment id)
             await creditUserOnce(payment.id, userId, plan.credits);
-            // Record payment history
-            await supabaseAdmin.from("payment_history").upsert(
-              {
-                user_id: userId,
-                amount: payment.value,
-                type: "subscription",
-                status: "confirmed",
-                asaas_payment_id: payment.id,
-                metadata: { planId, credits: plan.credits, credited: true },
-              },
-              { onConflict: "asaas_payment_id" },
-            );
+            // creditUserOnce already inserts/updates payment_history idempotently
+            void plan;
           }
         }
 
