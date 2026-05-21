@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter, redirect } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -69,6 +69,8 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const navigate = useNavigate();
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -80,6 +82,8 @@ function LoginForm() {
       return;
     }
     toast.success("Bem-vindo de volta.");
+    router.invalidate();
+    navigate({ to: "/" });
   }
 
   return (
@@ -120,6 +124,8 @@ function SignupForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const navigate = useNavigate();
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -143,6 +149,8 @@ function SignupForm() {
     }
     console.log("[signUp] success:", signUpData);
     toast.success("Conta criada. Você ganhou 5 créditos grátis.");
+    router.invalidate();
+    navigate({ to: "/" });
   }
 
   return (
