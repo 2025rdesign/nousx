@@ -14,7 +14,7 @@ import { EmptyState } from "./empty-state";
 import { ChatInput } from "./chat-input";
 import { MessageItem, TypingIndicator, type ChatMsg } from "./message-item";
 import { CodeCanvasProvider } from "./code-canvas";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 interface Props {
   conversationId: string | null;
@@ -184,7 +184,7 @@ export function ChatView({ conversationId }: Props) {
       }
     } catch (err) {
       console.error(err);
-      toast.error(err instanceof Error ? err.message : "Algo deu errado.");
+      notify.error(err instanceof Error ? err.message : "Algo deu errado.");
       setStreaming(null);
       setOptimisticUser(null);
     } finally {

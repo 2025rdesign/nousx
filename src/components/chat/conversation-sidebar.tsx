@@ -10,7 +10,7 @@ import {
   deleteConversation,
 } from "@/lib/chat.functions";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 type Conv = {
   id: string;
@@ -70,9 +70,9 @@ export function ConversationSidebar({
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       if (currentId === id) navigate({ to: "/" });
-      toast.success("Conversa excluída.");
+      notify.success("Conversa excluída.");
     },
-    onError: () => toast.error("Não foi possível excluir."),
+    onError: () => notify.error("Não foi possível excluir."),
   });
 
   const groups = groupByDate(conversations as Conv[]);

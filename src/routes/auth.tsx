@@ -9,7 +9,7 @@ import { NousxLogo } from "@/components/nousx-logo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { translateAuthError } from "@/lib/i18n-errors";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
@@ -78,10 +78,10 @@ function LoginForm() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      toast.error(translateAuthError(error.message));
+      notify.error(translateAuthError(error.message));
       return;
     }
-    toast.success("Bem-vindo de volta.");
+    notify.success("Bem-vindo de volta.");
     router.invalidate();
     navigate({ to: "/" });
   }
@@ -130,7 +130,7 @@ function SignupForm() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (password.length < 6) {
-      toast.error("A senha deve ter pelo menos 6 caracteres.");
+      notify.error("A senha deve ter pelo menos 6 caracteres.");
       return;
     }
     setLoading(true);
@@ -144,11 +144,11 @@ function SignupForm() {
     setLoading(false);
     if (error) {
       console.error("[signUp] error:", error);
-      toast.error(translateAuthError(error.message));
+      notify.error(translateAuthError(error.message));
       return;
     }
     console.log("[signUp] success:", signUpData);
-    toast.success("Conta criada. Você ganhou 5 créditos grátis.");
+    notify.success("Conta criada. Você ganhou 5 créditos grátis.");
     router.invalidate();
     navigate({ to: "/" });
   }
