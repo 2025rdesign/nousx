@@ -159,15 +159,16 @@ function ReasoningBlock({ text }: { text: string }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-1 px-3 py-2 font-medium"
+        className="w-full flex items-center gap-1.5 px-3 py-2 font-medium"
+        style={{ color: "#8888AA", fontSize: "13px" }}
       >
         {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
-        Ver raciocínio
+        <span>💭 Raciocínio</span>
       </button>
       {open && (
         <pre
-          className="px-3 pb-3 whitespace-pre-wrap font-sans leading-relaxed"
-          style={{ color: "#8888AA" }}
+          className="px-3 pb-3 whitespace-pre-wrap font-sans leading-relaxed italic"
+          style={{ color: "#8888AA", fontSize: "13px" }}
         >
           {text}
         </pre>
