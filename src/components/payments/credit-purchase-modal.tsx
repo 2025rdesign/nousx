@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Dialog,
@@ -14,17 +14,23 @@ import { Sparkles, Loader2, Check, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
 import { CREDIT_PACKS, applyDiscount, type CreditPackId } from "@/lib/payments-config";
-import { buyCredits, checkPayment } from "@/lib/payments.functions";
+import {
+  buyCredits,
+  checkPayment,
+  getCheckoutProfile,
+  saveCheckoutProfile,
+} from "@/lib/payments.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { CouponField, type AppliedCoupon } from "./coupon-field";
 import {
   CardFields,
+  CustomerDataStep,
   PixDisplay,
   CountdownTimer,
   useCardForm,
 } from "./payment-forms";
 
-type Step = "select" | "checkout" | "pix" | "success";
+type Step = "select" | "customer" | "checkout" | "pix" | "success";
 
 export function CreditPurchaseModal({
   open,
@@ -54,6 +60,46 @@ export function CreditPurchaseModal({
 
   const buy = useServerFn(buyCredits);
   const check = useServerFn(checkPayment);
+  const fetchProfile = useServerFn(getCheckoutProfile);
+  const saveProfile = useServerFn(saveCheckoutProfile);
+
+  const profileQ = useQuery({
+    queryKey: ["checkout-profile"],
+    queryFn: () => fetchProfile(),
+    enabled: open,
+  });
+
+  // When user prefills holder data for card, sync from profile
+  useEffect(() => {
+    if (profileQ.data) {
+      setHolder((h) => ({
+        ...h,
+        name: h.name || profileQ.data!.name,
+        cpfCnpj: h.cpfCnpj || profileQ.data!.cpf,
+        email: profileQ.data!.email,
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileQ.data]);
+
+  const saveProfileM = useMutation({
+    mutationFn: (vars: { name: string; cpf: string }) =>
+      saveProfile({ data: vars }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["checkout-profile"] });
+      setStep("checkout");
+    },
+    onError: (e) =>
+      notify.error(e instanceof Error ? e.message : "Erro ao salvar dados."),
+  });
+
+  function goToCheckout() {
+    if (profileQ.data?.ready) {
+      setStep("checkout");
+    } else {
+      setStep("customer");
+    }
+  }
 
   const purchase = useMutation({
     mutationFn: async () => {
@@ -144,12 +190,18 @@ export function CreditPurchaseModal({
                 variant="ghost"
                 size="icon"
                 className="size-7"
-                onClick={() => setStep("select")}
+                onClick={() => {
+                  if (step === "checkout" && !profileQ.data?.ready) setStep("customer");
+                  else if (step === "customer") setStep("select");
+                  else if (step === "checkout") setStep("select");
+                  else if (step === "pix") setStep("checkout");
+                }}
               >
                 <ArrowLeft className="size-4" />
               </Button>
             )}
             {step === "select" && "Comprar créditos"}
+            {step === "customer" && "Seus dados"}
             {step === "checkout" && "Finalizar pagamento"}
             {step === "pix" && "Pague com PIX"}
             {step === "success" && "Tudo certo!"}
@@ -193,10 +245,23 @@ export function CreditPurchaseModal({
                 </button>
               );
             })}
-            <Button className="w-full" onClick={() => setStep("checkout")}>
+            <Button className="w-full" onClick={goToCheckout}>
               Continuar
             </Button>
           </div>
+        )}
+
+        {step === "customer" && (
+          <CustomerDataStep
+            initial={{
+              name: profileQ.data?.name ?? "",
+              cpf: profileQ.data?.cpf ?? "",
+            }}
+            email={profileQ.data?.email ?? user?.email ?? ""}
+            isPending={saveProfileM.isPending}
+            onSubmit={(d) => saveProfileM.mutate(d)}
+            submitLabel="Salvar e continuar"
+          />
         )}
 
         {step === "checkout" && (
