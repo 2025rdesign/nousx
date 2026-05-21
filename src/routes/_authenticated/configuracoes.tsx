@@ -191,25 +191,3 @@ function AppearanceTab() {
     </Card>
   );
 }
-
-function SubscriptionTab() {
-  const fetchCredits = useServerFn(getCredits);
-  const { data } = useQuery({ queryKey: ["credits"], queryFn: () => fetchCredits() });
-  return (
-    <Card className="border-border bg-card">
-      <CardContent className="pt-6 space-y-4">
-        <div>
-          <Label className="text-muted-foreground">Saldo atual</Label>
-          <p className="mt-1 flex items-center gap-2 text-3xl font-bold">
-            <Sparkles className="size-6 text-accent" />
-            {data?.balance ?? 0}
-            <span className="text-sm font-normal text-muted-foreground">créditos</span>
-          </p>
-        </div>
-        <Button asChild>
-          <Link to="/creditos">Comprar mais créditos</Link>
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
