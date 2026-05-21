@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Link, useNavigate, useParams, useRouterState } from "@tanstack/react-router";
-import { Plus, Trash2, Settings } from "lucide-react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Plus, Trash2, Settings, Sparkles, Image as ImageIcon, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { NousxLogo } from "@/components/nousx-logo";
@@ -77,6 +77,12 @@ export function ConversationSidebar({
 
   const groups = groupByDate(conversations as Conv[]);
 
+  const navItems: Array<{ to: "/studio" | "/galeria" | "/explorar"; label: string; icon: any }> = [
+    { to: "/studio", label: "Estúdio", icon: Sparkles },
+    { to: "/galeria", label: "Galeria", icon: ImageIcon },
+    { to: "/explorar", label: "Explorar", icon: Compass },
+  ];
+
   return (
     <div className="flex flex-col h-full w-full bg-sidebar">
       <div className="p-3 border-b border-border">
@@ -102,6 +108,21 @@ export function ConversationSidebar({
           Nova conversa
         </Button>
       </div>
+
+      <nav className="px-2 pb-2 space-y-0.5">
+        {navItems.map((it) => (
+          <Link
+            key={it.to}
+            to={it.to}
+            onClick={onNavigate}
+            activeProps={{ className: "bg-secondary text-foreground" }}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground/80 hover:bg-secondary/60 hover:text-foreground transition-colors"
+          >
+            <it.icon className="size-4" />
+            {it.label}
+          </Link>
+        ))}
+      </nav>
 
       <ScrollArea className="flex-1 px-2">
         <div className="space-y-4 py-2">
