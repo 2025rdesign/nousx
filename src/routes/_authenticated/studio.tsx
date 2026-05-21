@@ -291,6 +291,16 @@ function StudioInner() {
                 Personagens
               </Button>
             </div>
+            <div className="hidden md:flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setCreditsOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium hover:border-accent hover:text-accent transition-colors"
+              >
+                <Sparkles className="size-3.5 text-accent" />
+                {balance} créditos
+              </button>
+            </div>
 
             {activeProfile ? (
               <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
