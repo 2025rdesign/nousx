@@ -90,6 +90,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "NOUSX — IA sem censura" },
+      { name: "description", content: "Nousx: AI chat and image generation without censorship." },
+      { property: "og:description", content: "Nousx: AI chat and image generation without censorship." },
+      { name: "twitter:description", content: "Nousx: AI chat and image generation without censorship." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a8470638-82ac-4557-ab1b-94f54d466865/id-preview-0b593ce3--3ad60df5-a0cc-4c62-93ef-0c15cbff0153.lovable.app-1779400534210.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a8470638-82ac-4557-ab1b-94f54d466865/id-preview-0b593ce3--3ad60df5-a0cc-4c62-93ef-0c15cbff0153.lovable.app-1779400534210.png" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
