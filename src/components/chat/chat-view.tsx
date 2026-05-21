@@ -237,7 +237,7 @@ export function ChatView({ conversationId }: Props) {
             </div>
           </div>
         ) : (
-          <EmptyState onPick={(s) => handleSend(s, null, null, false)} />
+          <EmptyState />
         )}
         <ChatInput onSend={handleSend} disabled={sending} />
       </div>
