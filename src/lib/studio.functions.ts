@@ -303,6 +303,14 @@ export const generateCharacter = createServerFn({ method: "POST" })
       }
     }
 
+    console.log("[DEBUG] About to call AliveAI", {
+      endpoint,
+      method: "POST",
+      apiKeyExists: !!process.env.ALIVEAI_API_KEY,
+      apiKeyPrefix: process.env.ALIVEAI_API_KEY?.substring(0, 8),
+      bodyKeys: Object.keys(body),
+    });
+
     const res = await fetch(endpoint, {
       method: "POST",
       headers: aliveHeaders(),
