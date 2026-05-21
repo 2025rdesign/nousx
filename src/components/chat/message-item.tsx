@@ -11,6 +11,7 @@ export interface ChatMsg {
   content: string;
   image_url?: string | null;
   reasoning?: string | null;
+  streaming?: boolean;
 }
 
 function MessageItemInner({ msg }: { msg: ChatMsg }) {
@@ -194,6 +195,13 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
             >
               {msg.content || "​"}
             </ReactMarkdown>
+            {msg.streaming && (
+              <span
+                aria-hidden
+                className="inline-block w-[2px] h-[1em] align-[-0.15em] ml-[1px] bg-current animate-pulse"
+                style={{ background: "#8B6FFF" }}
+              />
+            )}
             </div>
           </>
         )}
