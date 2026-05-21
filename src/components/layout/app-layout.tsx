@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { Menu, Settings, LogOut, User as UserIcon } from "lucide-react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Menu, Settings, LogOut, User as UserIcon, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,6 +21,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Sidebar de conversas só aparece em rotas de chat.
+  const showChatSidebar = pathname === "/" || pathname.startsWith("/c/");
 
   const initial = (user?.user_metadata?.name || user?.email || "?")
     .toString()
@@ -29,30 +34,47 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="h-screen w-full flex bg-background text-foreground overflow-hidden">
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-64 shrink-0 border-r border-border bg-sidebar">
-        <ConversationSidebar onNavigate={() => undefined} />
-      </aside>
+      {/* Desktop sidebar (apenas em rotas de chat) */}
+      {showChatSidebar && !collapsed && (
+        <aside className="hidden md:flex w-64 shrink-0 border-r border-border bg-sidebar">
+          <ConversationSidebar onNavigate={() => undefined} />
+        </aside>
+      )}
 
-      {/* Mobile sidebar */}
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="p-0 w-72 bg-sidebar border-border">
-          <ConversationSidebar onNavigate={() => setMobileOpen(false)} />
-        </SheetContent>
-      </Sheet>
+      {/* Mobile sidebar (apenas em rotas de chat) */}
+      {showChatSidebar && (
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetContent side="left" className="p-0 w-72 bg-sidebar border-border">
+            <ConversationSidebar onNavigate={() => setMobileOpen(false)} />
+          </SheetContent>
+        </Sheet>
+      )}
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 shrink-0 flex items-center gap-2 px-3 md:px-4 border-b border-border bg-background/80 backdrop-blur">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={() => setMobileOpen(true)}
-            aria-label="Abrir menu"
-          >
-            <Menu className="size-5" />
-          </Button>
-          <Link to="/" className="md:hidden">
+          {showChatSidebar && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden"
+                onClick={() => setMobileOpen(true)}
+                aria-label="Abrir menu"
+              >
+                <Menu className="size-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hidden md:inline-flex"
+                onClick={() => setCollapsed((v) => !v)}
+                aria-label={collapsed ? "Mostrar sidebar" : "Esconder sidebar"}
+              >
+                <PanelLeft className="size-5" />
+              </Button>
+            </>
+          )}
+          <Link to="/" className={showChatSidebar ? "md:hidden" : ""}>
             <NousxLogo className="text-lg" />
           </Link>
           <div className="flex-1" />
