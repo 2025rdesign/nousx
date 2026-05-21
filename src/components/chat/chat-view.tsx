@@ -170,7 +170,7 @@ export function ChatView({ conversationId }: Props) {
   return (
     <div className="h-full flex flex-col">
       {hasContent ? (
-        <ScrollArea className="flex-1" viewportRef={scrollRef as any}>
+        <div ref={scrollRef as any} className="flex-1 overflow-y-auto">
           <div className="w-full max-w-3xl mx-auto px-3 md:px-4 py-6 space-y-4">
             {messages.map((m) => (
               <MessageItem key={m.id} msg={m} />
@@ -178,7 +178,7 @@ export function ChatView({ conversationId }: Props) {
             {streaming && streaming.content && <MessageItem msg={streaming} />}
             {sending && !streaming?.content && <TypingIndicator />}
           </div>
-        </ScrollArea>
+        </div>
       ) : (
         <EmptyState onPick={(s) => handleSend(s, null, false)} />
       )}
