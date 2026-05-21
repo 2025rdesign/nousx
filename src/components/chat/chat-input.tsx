@@ -1,13 +1,18 @@
 import { useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import TextareaAutosize from "react-textarea-autosize";
-import { Paperclip, Send, Sparkles, X } from "lucide-react";
+import { Globe, Paperclip, Send, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface Props {
-  onSend: (text: string, image: string | null, reasoning: boolean) => void;
+  onSend: (
+    text: string,
+    image: string | null,
+    reasoning: boolean,
+    webSearch: boolean,
+  ) => void;
   disabled?: boolean;
 }
 
@@ -15,12 +20,13 @@ export function ChatInput({ onSend, disabled }: Props) {
   const [text, setText] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [reasoning, setReasoning] = useState(false);
+  const [webSearch, setWebSearch] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function handleSubmit() {
     const t = text.trim();
     if (!t || disabled) return;
-    onSend(t, image, reasoning);
+    onSend(t, image, reasoning, webSearch);
     setText("");
     setImage(null);
   }
@@ -102,6 +108,16 @@ export function ChatInput({ onSend, disabled }: Props) {
           >
             <Sparkles className="size-3.5" />
             Raciocínio
+          </Toggle>
+          <Toggle
+            pressed={webSearch}
+            onPressedChange={setWebSearch}
+            size="sm"
+            aria-label="Busca web"
+            className="gap-1 text-xs data-[state=on]:bg-accent/15 data-[state=on]:text-accent"
+          >
+            <Globe className="size-3.5" />
+            Busca web
           </Toggle>
           <div className="flex-1" />
           <Button
