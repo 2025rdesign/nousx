@@ -273,7 +273,30 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
 
 export const MessageItem = memo(MessageItemInner);
 
-export function TypingIndicator({ mode = "default" }: { mode?: "default" | "web" | "reasoning" }) {
+export function TypingIndicator({
+  mode = "default",
+}: {
+  mode?: "default" | "web" | "reasoning" | "image";
+}) {
+  if (mode === "image") {
+    return (
+      <div className="flex justify-start w-full">
+        <div className="px-4 w-full max-w-sm">
+          <div className="text-sm mb-2" style={{ color: "#6C47FF" }}>
+            ✨ Gerando imagem...
+          </div>
+          <div
+            className="rounded-2xl border border-border animate-pulse"
+            style={{
+              aspectRatio: "1 / 1",
+              background:
+                "linear-gradient(135deg, #1C1C26 0%, #2A2A3A 50%, #1C1C26 100%)",
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
   if (mode === "web") {
     return (
       <div className="flex justify-start">
