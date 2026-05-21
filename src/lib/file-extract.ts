@@ -1,5 +1,3 @@
-import mammoth from "mammoth";
-
 const PDF_WORKER_URL =
   "https://cdn.jsdelivr.net/npm/pdfjs-dist@5.7.284/build/pdf.worker.min.mjs";
 
@@ -24,6 +22,7 @@ async function extractPdf(file: File): Promise<string> {
 }
 
 async function extractDocx(file: File): Promise<string> {
+  const mammoth = await import("mammoth");
   const buf = await file.arrayBuffer();
   const res = await mammoth.extractRawText({ arrayBuffer: buf });
   return res.value;
