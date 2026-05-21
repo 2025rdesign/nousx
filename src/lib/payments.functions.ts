@@ -117,7 +117,7 @@ export const buyCredits = createServerFn({ method: "POST" })
         type: "credit",
         status: "pending",
         asaas_payment_id: payment.id,
-        metadata: { packId: data.packId, credits: pack.credits, method: "PIX" },
+        metadata: { packId: data.packId, credits: pack.credits, method: "PIX", coupon },
       });
       return {
         method: "PIX" as const,
