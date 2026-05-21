@@ -128,19 +128,20 @@ function SignupForm() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
         data: { name: name || email.split("@")[0] },
       },
     });
     setLoading(false);
     if (error) {
+      console.error("[signUp] error:", error);
       toast.error(translateAuthError(error.message));
       return;
     }
+    console.log("[signUp] success:", signUpData);
     toast.success("Conta criada. Você ganhou 5 créditos grátis.");
   }
 
