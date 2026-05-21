@@ -241,7 +241,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
     const translated = await translateToEnglish(data.appearance);
 
     let promptId: string;
-    let endpoint = `${ALIVEAI_BASE}/prompts/generate-character`;
+    let endpoint = `${ALIVEAI_BASE}/prompts`;
     let body: Record<string, unknown> = {};
 
     if (data.mode === "new") {
