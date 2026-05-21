@@ -67,30 +67,32 @@ async function translateToEnglish(text: string): Promise<string> {
   }
 }
 
-async function pollPrompt(promptId: string, timeoutMs = 120_000): Promise<{ mediaId: string; mediaUrl: string }> {
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
-    await new Promise((r) => setTimeout(r, 2500));
-    try {
-      const res = await fetch(`${ALIVEAI_BASE}/prompts/${promptId}`, {
-        headers: aliveHeaders(),
-      });
-      if (!res.ok) continue;
-      const j = (await res.json()) as AliveStatus;
-      const status = (j.status || j.state || "").toLowerCase();
-      const mediaId = j.mediaId || j.media_id;
-      const mediaUrl = j.mediaUrl || j.media_url || j.url;
-      if ((status === "completed" || status === "done" || status === "success") && mediaId && mediaUrl) {
-        return { mediaId, mediaUrl };
-      }
-      if (status === "failed" || status === "error") {
-        throw new Error(j.error || j.message || "Não foi possível gerar a imagem.");
-      }
-    } catch (err) {
-      if (err instanceof Error && err.message.includes("Não foi possível")) throw err;
+async function pollPrompt(promptId: string): Promise<{ mediaId: string; mediaUrl: string }> {
+  const maxAttempts = 60;
+  const interval = 2500;
+
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((r) => setTimeout(r, interval));
+
+    const res = await fetch(`${ALIVEAI_BASE}/prompts/${promptId}`, {
+      headers: aliveHeaders(),
+    });
+
+    if (!res.ok) continue;
+
+    const data = (await res.json()) as any;
+    const container = data.promptContainer ?? data;
+    const medias = container.medias ?? [];
+
+    if (medias.length > 0 && medias[0].mediaUrl) {
+      return {
+        mediaId: medias[0].id ?? medias[0].mediaId ?? "",
+        mediaUrl: medias[0].mediaUrl,
+      };
     }
   }
-  throw new Error("A geração demorou demais. Tente novamente.");
+
+  throw new Error("Tempo limite de geração atingido. Tente novamente.");
 }
 
 async function ensureCredits(supabase: any, userId: string) {
