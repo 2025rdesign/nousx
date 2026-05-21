@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const ALIVEAI_BASE = "https://api.aliveai.app";
+const ALIVEAI_BASE = "https://api-server.aliveai.app";
 
 type AliveStatus = {
   status?: string;
