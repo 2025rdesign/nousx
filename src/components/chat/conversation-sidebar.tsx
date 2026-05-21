@@ -70,7 +70,6 @@ export function ConversationSidebar({
   const pinFn = useServerFn(togglePinConversation);
   const renameFn = useServerFn(renameConversation);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState("");
 
   const currentId = useRouterState({
     select: (s) => {
@@ -163,10 +162,7 @@ export function ConversationSidebar({
               </ActionBtn>
               <ActionBtn
                 label="Renomear"
-                onClick={() => {
-                  setEditingId(c.id);
-                  setEditValue(c.title || "");
-                }}
+                onClick={() => setEditingId(c.id)}
               >
                 <Pencil className="size-3.5" />
               </ActionBtn>
