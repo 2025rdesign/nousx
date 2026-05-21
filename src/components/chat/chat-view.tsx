@@ -38,6 +38,7 @@ export function ChatView({ conversationId }: Props) {
   const [streaming, setStreaming] = useState<ChatMsg | null>(null);
   const [sending, setSending] = useState(false);
   const [awaitingReply, setAwaitingReply] = useState(false);
+  const [inflightMode, setInflightMode] = useState<"default" | "web" | "reasoning">("default");
   const [optimisticUser, setOptimisticUser] = useState<ChatMsg | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -54,6 +55,8 @@ export function ChatView({ conversationId }: Props) {
     webSearch: boolean = false,
   ) {
     setSending(true);
+    setInflightMode(webSearch ? "web" : reasoning ? "reasoning" : "default");
+    setAwaitingReply(true);
     const tempUser: ChatMsg = {
       id: `tmp-u-${Date.now()}`,
       role: "user",
@@ -119,8 +122,6 @@ export function ChatView({ conversationId }: Props) {
         },
         body: JSON.stringify({ messages: history, reasoning, webSearch }),
       });
-      setAwaitingReply(true);
-
       if (!res.ok || !res.body) {
         const err = await res.json().catch(() => ({ error: "Falha ao responder." }));
         throw new Error(err.error || "Falha ao responder.");
@@ -205,7 +206,7 @@ export function ChatView({ conversationId }: Props) {
               ))}
               {optimisticUser && <MessageItem msg={optimisticUser} />}
               {streaming && streaming.content && <MessageItem msg={streaming} />}
-              {awaitingReply && !streaming?.content && <TypingIndicator />}
+              {awaitingReply && !streaming?.content && <TypingIndicator mode={inflightMode} />}
             </div>
           </div>
         ) : (
