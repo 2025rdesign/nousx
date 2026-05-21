@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Download, Globe, Lock, Loader2, Plus, Trash2, X } from "lucide-react";
-import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,11 +61,7 @@ const LOADING_TEXTS = [
 ];
 
 function StudioPage() {
-  return (
-    <AppLayout>
-      <StudioInner />
-    </AppLayout>
-  );
+  return <StudioInner />;
 }
 
 function StudioInner() {
@@ -110,6 +105,7 @@ function StudioInner() {
   const [resultId, setResultId] = useState<string | null>(null);
   const [loadingTextIdx, setLoadingTextIdx] = useState(0);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileTab, setMobileTab] = useState<"criar" | "resultado" | "personagens">("criar");
 
   const insertChip = (chip: string) => {
     setAppearance((prev) => (prev ? `${prev}, ${chip.toLowerCase()}` : chip));
@@ -215,21 +211,52 @@ function StudioInner() {
   );
 
   return (
-    <div className="h-full flex">
-      {/* Studio sidebar */}
-      <aside className="hidden lg:flex w-64 shrink-0 border-r border-border">{Sidebar}</aside>
+    <div className="h-full flex flex-col md:flex-row">
+      {/* Studio sidebar (desktop) */}
+      <aside className="hidden lg:flex w-60 shrink-0 border-r border-border">{Sidebar}</aside>
       <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
-        <SheetContent side="left" className="p-0 w-72 lg:hidden">
+        <SheetContent side="left" className="p-0 w-72 hidden md:block lg:hidden">
           <SheetTitle className="sr-only">Personagens</SheetTitle>
           {Sidebar}
         </SheetContent>
       </Sheet>
 
-      <div className="flex-1 min-w-0 flex flex-col xl:flex-row">
+      {/* Mobile tabs */}
+      <div className="md:hidden border-b border-border bg-background sticky top-0 z-10">
+        <div className="grid grid-cols-3">
+          {([
+            ["criar", "Criar"],
+            ["resultado", "Resultado"],
+            ["personagens", "Personagens"],
+          ] as const).map(([v, l]) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setMobileTab(v)}
+              className={cn(
+                "py-3 text-sm font-medium border-b-2 transition-colors",
+                mobileTab === v
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground",
+              )}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 min-w-0 flex flex-col xl:flex-row min-h-0">
         {/* Center panel */}
-        <section className="flex-1 min-w-0 overflow-auto">
-          <div className="max-w-2xl mx-auto p-4 md:p-6 space-y-5">
-            <div className="flex items-center justify-between lg:hidden">
+        <section
+          className={cn(
+            "flex-1 min-w-0 overflow-auto",
+            "md:block",
+            mobileTab === "criar" ? "block" : "hidden",
+          )}
+        >
+          <div className="w-full max-w-2xl mx-auto p-3 md:p-6 space-y-5">
+            <div className="hidden md:flex lg:hidden items-center justify-between">
               <Button variant="outline" size="sm" onClick={() => setMobileSidebarOpen(true)}>
                 Personagens
               </Button>
@@ -316,7 +343,7 @@ function StudioInner() {
                 value={appearance}
                 onChange={(e) => setAppearance(e.target.value)}
                 rows={4}
-                className="resize-none"
+                className="resize-none min-h-[80px] w-full"
               />
               {activeProfile && (
                 <ScrollArea className="w-full">
@@ -338,7 +365,7 @@ function StudioInner() {
 
             <div className="space-y-2">
               <Label>Proporção</Label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {RATIOS.map((r) => (
                   <Button
                     key={r.value}
@@ -389,7 +416,10 @@ function StudioInner() {
             <Button
               className="w-full"
               disabled={!appearance.trim() || isLoading}
-              onClick={() => gen.mutate()}
+              onClick={() => {
+                gen.mutate();
+                setMobileTab("resultado");
+              }}
             >
               {isLoading ? (
                 <>
@@ -408,12 +438,18 @@ function StudioInner() {
         </section>
 
         {/* Result panel */}
-        <section className="xl:w-[420px] shrink-0 border-t xl:border-t-0 xl:border-l border-border bg-sidebar/40 overflow-auto">
-          <div className="p-4 md:p-6 space-y-4">
+        <section
+          className={cn(
+            "xl:w-[380px] shrink-0 border-t xl:border-t-0 xl:border-l border-border bg-sidebar/40 overflow-auto",
+            "md:block",
+            mobileTab === "resultado" ? "block" : "hidden",
+          )}
+        >
+          <div className="p-3 md:p-6 space-y-4">
             <h3 className="text-sm font-semibold">Resultado</h3>
             <div
               className={cn(
-                "w-full rounded-lg overflow-hidden bg-muted relative",
+                "w-full max-w-sm mx-auto rounded-lg overflow-hidden bg-muted relative",
                 RATIOS.find((r) => r.value === aspect)!.classes,
               )}
             >
@@ -495,6 +531,16 @@ function StudioInner() {
               </div>
             </div>
           </div>
+        </section>
+
+        {/* Personagens panel (mobile only as tab) */}
+        <section
+          className={cn(
+            "flex-1 min-w-0 overflow-auto md:hidden",
+            mobileTab === "personagens" ? "block" : "hidden",
+          )}
+        >
+          {Sidebar}
         </section>
       </div>
     </div>
