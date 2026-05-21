@@ -10,6 +10,7 @@ export interface ChatMsg {
   role: "user" | "assistant";
   content: string;
   image_url?: string | null;
+  reasoning?: string | null;
 }
 
 function MessageItemInner({ msg }: { msg: ChatMsg }) {
@@ -43,7 +44,9 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
         {isUser ? (
           <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
         ) : (
-          <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-pre:p-0 prose-pre:bg-transparent">
+          <>
+            {msg.reasoning && <ReasoningBlock text={msg.reasoning} />}
+            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-pre:p-0 prose-pre:bg-transparent">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -107,7 +110,8 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
             >
               {msg.content || "​"}
             </ReactMarkdown>
-          </div>
+            </div>
+          </>
         )}
         {!isUser && msg.content && (
           <button
