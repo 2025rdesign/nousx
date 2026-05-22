@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NousxLogo } from "@/components/nousx-logo";
+import { AuthStarfield } from "@/components/auth-starfield";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { translateAuthError } from "@/lib/i18n-errors";
@@ -74,14 +75,17 @@ function AuthPage() {
       </div>
       <div
         aria-hidden
-        className="hidden md:block relative w-1/2 h-screen sticky top-0"
+        className="hidden md:block relative w-1/2 h-screen sticky top-0 overflow-hidden"
       >
-        <img
-          src="https://central.daev.ca/wp-content/uploads/2026/05/AURA-IA-IMAGEM-DASH.png"
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black/30" />
+        <AuthStarfield />
+        <div className="relative z-10 w-full h-full flex items-center justify-center">
+          <img
+            src="https://central.daev.ca/wp-content/uploads/2026/05/AURA-IA-IMAGEM-DASH.png"
+            alt=""
+            className="h-[260px] w-auto object-contain select-none"
+            draggable={false}
+          />
+        </div>
       </div>
     </div>
   );
