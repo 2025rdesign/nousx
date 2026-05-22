@@ -314,8 +314,8 @@ function StudioInner() {
             setMobileSidebarOpen(false);
           }}
           className={cn(
-            "w-full flex items-center justify-center gap-2 rounded-md border border-dashed border-border py-3 text-sm",
-            !activeProfileId && "border-primary text-primary",
+            "w-full flex items-center justify-center gap-2 rounded-md border border-primary/60 text-primary hover:bg-primary/10 py-2.5 text-sm transition-colors",
+            !activeProfileId && "bg-primary/10",
           )}
         >
           <Plus className="size-4" />
