@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
+  buildHostedCheckoutUrl,
   createPixOrder,
   createCardOrder,
   getOrder,
@@ -32,6 +33,15 @@ async function loadProfileForCheckout(userId: string) {
 
 function buildCustomer(name: string, email: string, cpf: string) {
   return { name, email, document: cpf };
+}
+
+function resolveOrderId(order: { id?: string; raw?: unknown } | null | undefined) {
+  const orderId = order?.id?.trim();
+  if (!orderId) {
+    console.warn("[CAKTO] ordem sem id válido:", JSON.stringify(order?.raw ?? order ?? null));
+    return null;
+  }
+  return orderId;
 }
 
 async function ensureNotBlocked(userId: string) {
@@ -154,17 +164,34 @@ export const buyCredits = createServerFn({ method: "POST" })
     const externalRef = `c_${userId.slice(0, 50)}_${data.packId}`;
 
     if (data.method === "PIX") {
-      const order = await createPixOrder({
-        productId: pack.productId,
-        customer,
-        externalReference: externalRef,
-      });
+      let order = null;
+      try {
+        order = await createPixOrder({
+          productId: pack.productId,
+          customer,
+          externalReference: externalRef,
+        });
+      } catch (error) {
+        console.warn(
+          "[CAKTO] falha ao criar ordem PIX, usando checkout hospedado:",
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+      const orderId = resolveOrderId(order) ?? pack.productId;
+      const redirectUrl =
+        order?.checkoutUrl ??
+        buildHostedCheckoutUrl({
+          checkoutId: pack.productId,
+          customer,
+          couponCode: coupon,
+        });
+      const hasPixPayload = Boolean(order?.pix_qr_image || order?.qr_code || order?.pix_code);
       await supabaseAdmin.from("payment_history").insert({
         user_id: userId,
         amount: value,
         type: "credit",
         status: "pending",
-        cakto_payment_id: order.id,
+        cakto_payment_id: resolveOrderId(order),
         metadata: {
           packId: data.packId,
           credits: pack.credits,
@@ -172,31 +199,50 @@ export const buyCredits = createServerFn({ method: "POST" })
           coupon,
           email,
           product_id: pack.productId,
+          external_reference: externalRef,
+          hosted_checkout_url: redirectUrl,
         },
       });
       return {
         method: "PIX" as const,
-        paymentId: order.id,
-        qrCodeImage: order.pix_qr_image ?? order.qr_code ?? "",
-        qrCodePayload: order.pix_code ?? order.qr_code ?? "",
-        expirationDate: order.expires_at ?? null,
+        paymentId: orderId,
+        qrCodeImage: order?.pix_qr_image ?? order?.qr_code ?? "",
+        qrCodePayload: order?.pix_code ?? order?.qr_code ?? "",
+        expirationDate: order?.expires_at ?? null,
+        redirectUrl: hasPixPayload ? null : redirectUrl,
         value,
       };
     }
 
     if (!data.card) throw new Error("Dados do cartão incompletos.");
-    const order = await createCardOrder({
-      productId: pack.productId,
-      customer,
-      card: toCaktoCard(data.card),
-      externalReference: externalRef,
-    });
+    let order = null;
+    try {
+      order = await createCardOrder({
+        productId: pack.productId,
+        customer,
+        card: toCaktoCard(data.card),
+        externalReference: externalRef,
+      });
+    } catch (error) {
+      console.warn(
+        "[CAKTO] falha ao criar ordem no cartão, usando checkout hospedado:",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+    const orderId = resolveOrderId(order) ?? pack.productId;
+    const redirectUrl =
+      order?.checkoutUrl ??
+      buildHostedCheckoutUrl({
+        checkoutId: pack.productId,
+        customer,
+        couponCode: coupon,
+      });
     await supabaseAdmin.from("payment_history").insert({
       user_id: userId,
       amount: value,
       type: "credit",
-      status: (order.status ?? "pending").toLowerCase(),
-      cakto_payment_id: order.id,
+      status: (order?.status ?? "pending").toLowerCase(),
+      cakto_payment_id: resolveOrderId(order),
       metadata: {
         packId: data.packId,
         credits: pack.credits,
@@ -204,15 +250,18 @@ export const buyCredits = createServerFn({ method: "POST" })
         coupon,
         email,
         product_id: pack.productId,
+        external_reference: externalRef,
+        hosted_checkout_url: redirectUrl,
       },
     });
-    if (isPaid(order.status)) {
-      await creditUserOnce(order.id, userId, pack.credits, data.packId);
+    if (orderId && order && isPaid(order.status)) {
+      await creditUserOnce(orderId, userId, pack.credits, data.packId);
     }
     return {
       method: "CREDIT_CARD" as const,
-      paymentId: order.id,
-      status: isPaid(order.status) ? "CONFIRMED" : (order.status ?? "PENDING").toUpperCase(),
+      paymentId: orderId,
+      status: order ? (isPaid(order.status) ? "CONFIRMED" : (order.status ?? "PENDING").toUpperCase()) : "REDIRECT",
+      redirectUrl,
       value,
     };
   });
@@ -264,22 +313,46 @@ export const subscribePlan = createServerFn({ method: "POST" })
     const customer = buildCustomer(profile.name, email, profile.cpf);
     const externalRef = `s_${userId.slice(0, 50)}_${data.planId}`;
 
-    let order;
+    let order = null;
     if (data.method === "PIX") {
-      order = await createPixOrder({
-        productId: plan.productId,
-        customer,
-        externalReference: externalRef,
-      });
+      try {
+        order = await createPixOrder({
+          productId: plan.productId,
+          customer,
+          externalReference: externalRef,
+        });
+      } catch (error) {
+        console.warn(
+          "[CAKTO] falha ao criar ordem PIX de assinatura, usando checkout hospedado:",
+          error instanceof Error ? error.message : String(error),
+        );
+      }
     } else {
       if (!data.card) throw new Error("Dados do cartão incompletos.");
-      order = await createCardOrder({
-        productId: plan.productId,
-        customer,
-        card: toCaktoCard(data.card),
-        externalReference: externalRef,
-      });
+      try {
+        order = await createCardOrder({
+          productId: plan.productId,
+          customer,
+          card: toCaktoCard(data.card),
+          externalReference: externalRef,
+        });
+      } catch (error) {
+        console.warn(
+          "[CAKTO] falha ao criar ordem de assinatura no cartão, usando checkout hospedado:",
+          error instanceof Error ? error.message : String(error),
+        );
+      }
     }
+
+    const orderId = resolveOrderId(order) ?? plan.productId;
+    const redirectUrl =
+      order?.checkoutUrl ??
+      buildHostedCheckoutUrl({
+        checkoutId: plan.productId,
+        customer,
+        couponCode: coupon,
+      });
+    const hasPixPayload = Boolean(order?.pix_qr_image || order?.qr_code || order?.pix_code);
 
     const nextRenewal = new Date();
     nextRenewal.setDate(nextRenewal.getDate() + 30);
@@ -287,47 +360,52 @@ export const subscribePlan = createServerFn({ method: "POST" })
     await supabaseAdmin.from("user_subscriptions").insert({
       user_id: userId,
       plan_id: data.planId,
-      status: isPaid(order.status) ? "active" : "pending",
-      cakto_subscription_id: order.subscription_id ?? order.id,
-      expires_at: isPaid(order.status) ? nextRenewal.toISOString() : null,
+      status: order && isPaid(order.status) ? "active" : "pending",
+      cakto_subscription_id: order?.subscription_id ?? resolveOrderId(order),
+      expires_at: order && isPaid(order.status) ? nextRenewal.toISOString() : null,
     });
 
     await supabaseAdmin.from("payment_history").insert({
       user_id: userId,
       amount: value,
       type: "subscription",
-      status: isPaid(order.status) ? "confirmed" : "pending",
-      cakto_payment_id: order.id,
+      status: order && isPaid(order.status) ? "confirmed" : "pending",
+      cakto_payment_id: resolveOrderId(order),
       metadata: {
         planId: data.planId,
         method: data.method,
         coupon,
         email,
         product_id: plan.productId,
-        subscription_id: order.subscription_id ?? order.id,
+        subscription_id: order?.subscription_id ?? resolveOrderId(order),
+        external_reference: externalRef,
+        hosted_checkout_url: redirectUrl,
       },
     });
 
-    if (isPaid(order.status)) {
-      await creditUserOnce(order.id, userId, plan.credits, data.planId);
+    if (order && isPaid(order.status)) {
+      await creditUserOnce(orderId, userId, plan.credits, data.planId);
     }
 
     if (data.method === "PIX") {
       return {
-        subscriptionId: order.subscription_id ?? order.id,
-        status: order.status,
+        subscriptionId: order?.subscription_id ?? orderId,
+        status: order?.status ?? "pending",
         method: "PIX" as const,
-        paymentId: order.id,
-        qrCodeImage: order.pix_qr_image ?? order.qr_code ?? "",
-        qrCodePayload: order.pix_code ?? order.qr_code ?? "",
-        expirationDate: order.expires_at ?? null,
+        paymentId: orderId,
+        qrCodeImage: order?.pix_qr_image ?? order?.qr_code ?? "",
+        qrCodePayload: order?.pix_code ?? order?.qr_code ?? "",
+        expirationDate: order?.expires_at ?? null,
+        redirectUrl: hasPixPayload ? null : redirectUrl,
         value,
       };
     }
     return {
-      subscriptionId: order.subscription_id ?? order.id,
-      status: order.status,
+      subscriptionId: order?.subscription_id ?? orderId,
+      status: order?.status ?? "REDIRECT",
       method: "CREDIT_CARD" as const,
+      paymentId: orderId,
+      redirectUrl,
     };
   });
 
