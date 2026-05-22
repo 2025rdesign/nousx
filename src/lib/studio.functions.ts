@@ -289,6 +289,12 @@ export const generateCharacter = createServerFn({ method: "POST" })
       if (!data.name || !data.model || !data.gender) {
         throw new Error("Preencha nome, estilo e gênero.");
       }
+      const cfgMap = { low: 4, medium: 7, high: 10 } as const;
+      const userNeg = (data.negativePrompt ?? "").trim();
+      const baseNeg = "deformed, bad anatomy, extra fingers, missing fingers, bad hands, blurry, low quality, watermark, text";
+      const blockNeg = data.blockExplicitContent
+        ? ", nudity, nude, naked, explicit, nsfw, sexual, genitals"
+        : "";
       body = {
         name: data.name,
         appearance: translated,
@@ -296,14 +302,13 @@ export const generateCharacter = createServerFn({ method: "POST" })
         model: data.model,
         gender: data.gender,
         aspectRatio: mapAspectRatio(data.aspectRatio),
-        blockExplicitContent: false,
-        cfg: 7,
+        blockExplicitContent: !!data.blockExplicitContent,
+        cfg: cfgMap[data.creativity ?? "medium"],
         faceImproveEnabled: false,
         faceImproveStrength: 5.0,
         improveBreasts: false,
         improveVagina: false,
-        negativeDetails:
-          "deformed, bad anatomy, extra fingers, missing fingers, bad hands, blurry, low quality, watermark, text",
+        negativeDetails: `${baseNeg}${blockNeg}${userNeg ? ", " + userNeg : ""}`,
       };
     } else {
       if (!data.profileId) throw new Error("Personagem não encontrado.");
