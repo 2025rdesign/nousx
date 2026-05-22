@@ -489,9 +489,8 @@ function StudioInner() {
                 />
                 <VoiceRecordButton
                   className="absolute bottom-2 right-2 size-8"
-                  onTranscript={(delta) =>
-                    setAppearance((prev) => (prev ? prev.replace(/\s*$/, " ") : "") + delta)
-                  }
+                  value={appearance}
+                  onChange={setAppearance}
                 />
               </div>
               <div className="flex items-center justify-between">

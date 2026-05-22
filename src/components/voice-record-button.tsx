@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -6,13 +6,20 @@ import { notify } from "@/lib/notify";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 
 interface Props {
-  onTranscript: (delta: string) => void;
+  /** Current value of the field, used as the base when starting recording. */
+  value: string;
+  /** Called with the full updated value (base + live transcript). */
+  onChange: (next: string) => void;
   disabled?: boolean;
   className?: string;
   lang?: string;
 }
 
-export function VoiceRecordButton({ onTranscript, disabled, className, lang = "pt-BR" }: Props) {
+export function VoiceRecordButton({ value, onChange, disabled, className, lang = "pt-BR" }: Props) {
+  const baseRef = useRef("");
+  const valueRef = useRef(value);
+  valueRef.current = value;
+
   const handleError = useCallback((err: string) => {
     if (err === "not-allowed" || err === "service-not-allowed") {
       notify.error("Permita o uso do microfone para gravar.");
@@ -23,11 +30,29 @@ export function VoiceRecordButton({ onTranscript, disabled, className, lang = "p
     }
   }, []);
 
-  const { supported, recording, toggle } = useSpeechRecognition({
+  const handleTranscript = useCallback(
+    (sessionText: string) => {
+      const base = baseRef.current;
+      const sep = base && !/\s$/.test(base) ? " " : "";
+      onChange(base + sep + sessionText);
+    },
+    [onChange],
+  );
+
+  const { supported, recording, start, stop } = useSpeechRecognition({
     lang,
-    onTranscript,
+    onTranscript: handleTranscript,
     onError: handleError,
   });
+
+  const toggle = useCallback(() => {
+    if (recording) {
+      stop();
+    } else {
+      baseRef.current = valueRef.current ?? "";
+      start();
+    }
+  }, [recording, start, stop]);
 
   if (!supported) return null;
 
