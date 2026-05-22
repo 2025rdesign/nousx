@@ -241,6 +241,20 @@ export const deleteCharacter = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const deleteProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("character_profiles")
+      .delete()
+      .eq("id", data.id)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 /* -------------------------- Improve prompt --------------------------- */
 
 export const improvePrompt = createServerFn({ method: "POST" })
