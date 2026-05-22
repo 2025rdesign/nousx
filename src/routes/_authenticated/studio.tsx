@@ -3,26 +3,32 @@ import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { notify } from "@/lib/notify";
-import { ArrowLeft, Download, Globe, Lock, Loader2, Maximize2, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Download, Globe, Lock, Loader2, Maximize2, Plus, Sparkles as SparklesIcon, Trash2, Wand2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { CharacterCard } from "@/components/studio/character-card";
 import {
   listMyProfiles,
   listMyCharacters,
   generateCharacter,
+  improvePrompt,
   togglePublic,
   deleteCharacter,
 } from "@/lib/studio.functions";
 import { cn } from "@/lib/utils";
 import { CreditPurchaseModal } from "@/components/payments/credit-purchase-modal";
-import { Sparkles } from "lucide-react";
 import { getCredits } from "@/lib/credits.functions";
 
 export const Route = createFileRoute("/_authenticated/studio")({
@@ -65,6 +71,43 @@ const LOADING_TEXTS = [
 
 function StudioPage() {
   return <StudioInner />;
+}
+
+function CreditsPill({
+  balance,
+  onClick,
+  compact,
+}: {
+  balance: number;
+  onClick: () => void;
+  compact?: boolean;
+}) {
+  const danger = balance < 5;
+  const empty = balance === 0;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={empty ? "Sem créditos" : `${balance} créditos`}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+        danger
+          ? "border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20"
+          : "border-border bg-card hover:border-accent hover:text-accent",
+        empty && "animate-pulse",
+      )}
+    >
+      {danger ? (
+        <AlertTriangle className="size-3.5" />
+      ) : (
+        <SparklesIcon className="size-3.5 text-accent" />
+      )}
+      <span>
+        {balance}
+        {!compact && " créditos"}
+      </span>
+    </button>
+  );
 }
 
 function StudioInner() {
@@ -110,6 +153,11 @@ function StudioInner() {
   const [name, setName] = useState("");
   const [createProfile, setCreateProfile] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [blockExplicit, setBlockExplicit] = useState(false);
+  const [creativity, setCreativity] = useState<"low" | "medium" | "high">("medium");
+  const [negativePrompt, setNegativePrompt] = useState("");
+  const [improving, setImproving] = useState(false);
+  const improveFn = useServerFn(improvePrompt);
 
   // result panel
   const [result, setResult] = useState<string | null>(null);
@@ -147,7 +195,9 @@ function StudioInner() {
           appearance,
           aspectRatio: ratio,
           createProfile,
-          blockExplicitContent: false,
+          blockExplicitContent: blockExplicit,
+          creativity,
+          negativePrompt: negativePrompt.trim() || undefined,
         },
       });
     },
@@ -244,14 +294,7 @@ function StudioInner() {
           </Button>
           <span className="text-sm font-semibold">Estúdio</span>
           <div className="flex-1" />
-          <button
-            type="button"
-            onClick={() => setCreditsOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium hover:border-accent hover:text-accent transition-colors"
-          >
-            <Sparkles className="size-3.5 text-accent" />
-            {balance}
-          </button>
+          <CreditsPill balance={balance} onClick={() => setCreditsOpen(true)} compact />
         </div>
         <div className="grid grid-cols-3">
           {([
@@ -292,14 +335,7 @@ function StudioInner() {
               </Button>
             </div>
             <div className="hidden md:flex items-center justify-end">
-              <button
-                type="button"
-                onClick={() => setCreditsOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium hover:border-accent hover:text-accent transition-colors"
-              >
-                <Sparkles className="size-3.5 text-accent" />
-                {balance} créditos
-              </button>
+              <CreditsPill balance={balance} onClick={() => setCreditsOpen(true)} />
             </div>
 
             {activeProfile ? (
@@ -330,61 +366,111 @@ function StudioInner() {
               </div>
             ) : (
               <>
-                <Tabs value={model} onValueChange={(v) => setModel(v as any)}>
-                  <TabsList className="grid grid-cols-3 w-full">
-                    <TabsTrigger value="DEFAULT">Realista</TabsTrigger>
-                    <TabsTrigger value="REALISM">Fotografia HD</TabsTrigger>
-                    <TabsTrigger value="ANIME">Anime</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Ex: Aurora"
-                    maxLength={60}
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="name" className="text-xs text-muted-foreground">
+                      Nome
+                    </Label>
+                    <Input
+                      id="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Ex: Aurora"
+                      maxLength={60}
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Estilo</Label>
+                    <Select value={model} onValueChange={(v) => setModel(v as any)}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="DEFAULT">Realista</SelectItem>
+                        <SelectItem value="REALISM">Fotografia HD</SelectItem>
+                        <SelectItem value="ANIME">Anime</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Gênero</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {([
-                      ["FEMALE", "Feminino"],
-                      ["MALE", "Masculino"],
-                      ["TRANS", "Trans"],
-                    ] as const).map(([v, l]) => (
-                      <Button
-                        key={v}
-                        type="button"
-                        variant={gender === v ? "default" : "outline"}
-                        onClick={() => setGender(v)}
-                      >
-                        {l}
-                      </Button>
-                    ))}
-                  </div>
+                <div className="flex gap-1.5">
+                  {([
+                    ["FEMALE", "Feminino"],
+                    ["MALE", "Masculino"],
+                    ["TRANS", "Trans"],
+                  ] as const).map(([v, l]) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setGender(v)}
+                      className={cn(
+                        "h-8 px-3 text-[13px] rounded-md border transition-colors",
+                        gender === v
+                          ? "border-primary text-primary bg-primary/10"
+                          : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
+                      )}
+                    >
+                      {l}
+                    </button>
+                  ))}
                 </div>
               </>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="appearance">
-                {activeProfile
-                  ? "Descreva a cena, pose, roupa ou situação..."
-                  : "Descreva seu personagem: aparência, cena, pose, roupa..."}
+              <Label htmlFor="appearance" className="text-xs text-muted-foreground">
+                Descrição
               </Label>
               <Textarea
                 id="appearance"
                 ref={textRef}
                 value={appearance}
                 onChange={(e) => setAppearance(e.target.value)}
-                rows={4}
-                className="resize-none min-h-[80px] w-full"
+                rows={6}
+                placeholder={
+                  activeProfile
+                    ? "Descreva a nova cena: pose, roupa, cenário, iluminação..."
+                    : "Descreva sua visão: aparência, roupa, cenário, pose, iluminação, estilo artístico... Quanto mais detalhes, melhor o resultado."
+                }
+                className="resize-none min-h-[120px] w-full text-[15px] leading-relaxed"
               />
+              <div className="flex items-center justify-between">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!appearance.trim() || improving}
+                  onClick={async () => {
+                    try {
+                      setImproving(true);
+                      const r = await improveFn({ data: { prompt: appearance.trim() } });
+                      setAppearance(r.prompt);
+                      notify.success("✨ Prompt melhorado!");
+                    } catch (e) {
+                      notify.error(e instanceof Error ? e.message : "Erro ao melhorar.");
+                    } finally {
+                      setImproving(false);
+                    }
+                  }}
+                >
+                  {improving ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      Melhorando...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="size-3.5" />
+                      Melhorar prompt
+                    </>
+                  )}
+                </Button>
+                <span className="text-[11px] text-muted-foreground">
+                  {appearance.length}/2000
+                </span>
+              </div>
               {activeProfile && (
                 <ScrollArea className="w-full">
                   <div className="flex gap-2 pb-2">
@@ -422,36 +508,89 @@ function StudioInner() {
               </div>
             </div>
 
-            {!activeProfile && (
-              <div className="rounded-lg border border-border">
-                <button
-                  type="button"
-                  className="w-full px-3 py-3 text-sm font-medium text-left"
-                  onClick={() => setShowAdvanced((v) => !v)}
-                >
-                  Avançado {showAdvanced ? "▾" : "▸"}
-                </button>
-                {showAdvanced && (
-                  <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
+            <div className="rounded-lg border border-border">
+              <button
+                type="button"
+                className="w-full px-3 py-2.5 text-xs font-medium text-left text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setShowAdvanced((v) => !v)}
+              >
+                Avançado {showAdvanced ? "▾" : "▸"}
+              </button>
+              {showAdvanced && (
+                <div className="px-3 pb-3 space-y-4 border-t border-border pt-3">
+                  {!activeProfile && (
                     <label className="flex items-start gap-3 cursor-pointer">
-                      <Switch
-                        checked={createProfile}
-                        onCheckedChange={setCreateProfile}
-                      />
+                      <Switch checked={createProfile} onCheckedChange={setCreateProfile} />
                       <div className="flex-1">
-                        <div className="text-sm font-medium">
-                          Salvar como personagem
-                        </div>
+                        <div className="text-sm font-medium">Salvar como personagem</div>
                         <p className="text-xs text-muted-foreground">
-                          Permite recriar o mesmo rosto em variações futuras. Para
-                          melhores resultados, descreva sem roupa ou com roupa mínima.
+                          Permite recriar o mesmo rosto em variações futuras.
                         </p>
                       </div>
                     </label>
+                  )}
+
+                  <div className="space-y-2">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <Switch checked={blockExplicit} onCheckedChange={setBlockExplicit} />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">🔞 Bloquear conteúdo adulto</div>
+                        <p className="text-xs text-muted-foreground">
+                          Padrão desligado. Quando ativo, evita nudez e conteúdo explícito.
+                        </p>
+                      </div>
+                    </label>
+                    {blockExplicit && /\b(nua|pelada|nude|naked|sem roupa|sem calcinha|seios|peito|bunda|genital|vagina|p[êe]nis)\b/i.test(appearance) && (
+                      <div className="flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-400">
+                        <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
+                        <span>
+                          Sua descrição contém conteúdo adulto. Ativar este filtro pode ignorar partes do seu prompt.
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
+
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Nível de criatividade</Label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {([
+                        ["low", "Conservador"],
+                        ["medium", "Equilibrado"],
+                        ["high", "Criativo"],
+                      ] as const).map(([v, l]) => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setCreativity(v)}
+                          className={cn(
+                            "h-8 px-2 text-[12px] rounded-md border transition-colors",
+                            creativity === v
+                              ? "border-primary text-primary bg-primary/10"
+                              : "border-border text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="negative" className="text-xs text-muted-foreground">
+                      Palavras a evitar
+                    </Label>
+                    <Input
+                      id="negative"
+                      value={negativePrompt}
+                      onChange={(e) => setNegativePrompt(e.target.value)}
+                      placeholder="Ex: deformado, borrado, texto..."
+                      maxLength={500}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
 
             <Button
               className="w-full"

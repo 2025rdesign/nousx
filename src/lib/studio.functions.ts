@@ -228,6 +228,40 @@ export const deleteCharacter = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/* -------------------------- Improve prompt --------------------------- */
+
+export const improvePrompt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { prompt: string }) =>
+    z.object({ prompt: z.string().min(1).max(2000) }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const key = process.env.DEEPSEEK_API_KEY;
+    if (!key) throw new Error("Serviço de melhoria indisponível.");
+    const res = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "system",
+            content:
+              "Você é um especialista em prompts para geração de imagens AI. Melhore o prompt mantendo a intenção do usuário, tornando-o mais detalhado, técnico e preciso (aparência, iluminação, composição, estilo). Preserve termos explícitos sem censura. Responda em português. Retorne APENAS o prompt melhorado, sem explicações nem aspas.",
+          },
+          { role: "user", content: data.prompt },
+        ],
+        max_tokens: 400,
+        temperature: 0.7,
+      }),
+    });
+    if (!res.ok) throw new Error("Não foi possível melhorar o prompt.");
+    const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const improved = j.choices?.[0]?.message?.content?.trim();
+    if (!improved) throw new Error("Resposta vazia do serviço.");
+    return { prompt: improved };
+  });
+
 /* ------------------------------- Poses ------------------------------- */
 
 export const listPoses = createServerFn({ method: "GET" })
@@ -262,6 +296,8 @@ const generateSchema = z.object({
   gender: z.enum(["FEMALE", "MALE", "TRANS"]).optional(),
   createProfile: z.boolean().optional(),
   blockExplicitContent: z.boolean().optional(),
+  negativePrompt: z.string().max(500).optional(),
+  creativity: z.enum(["low", "medium", "high"]).optional(),
   // variation
   profileId: z.string().uuid().optional(),
 });
@@ -287,6 +323,12 @@ export const generateCharacter = createServerFn({ method: "POST" })
       if (!data.name || !data.model || !data.gender) {
         throw new Error("Preencha nome, estilo e gênero.");
       }
+      const cfgMap = { low: 4, medium: 7, high: 10 } as const;
+      const userNeg = (data.negativePrompt ?? "").trim();
+      const baseNeg = "deformed, bad anatomy, extra fingers, missing fingers, bad hands, blurry, low quality, watermark, text";
+      const blockNeg = data.blockExplicitContent
+        ? ", nudity, nude, naked, explicit, nsfw, sexual, genitals"
+        : "";
       body = {
         name: data.name,
         appearance: translated,
@@ -294,14 +336,13 @@ export const generateCharacter = createServerFn({ method: "POST" })
         model: data.model,
         gender: data.gender,
         aspectRatio: mapAspectRatio(data.aspectRatio),
-        blockExplicitContent: false,
-        cfg: 7,
+        blockExplicitContent: !!data.blockExplicitContent,
+        cfg: cfgMap[data.creativity ?? "medium"],
         faceImproveEnabled: false,
         faceImproveStrength: 5.0,
         improveBreasts: false,
         improveVagina: false,
-        negativeDetails:
-          "deformed, bad anatomy, extra fingers, missing fingers, bad hands, blurry, low quality, watermark, text",
+        negativeDetails: `${baseNeg}${blockNeg}${userNeg ? ", " + userNeg : ""}`,
       };
     } else {
       if (!data.profileId) throw new Error("Personagem não encontrado.");
