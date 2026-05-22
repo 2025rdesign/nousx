@@ -29,6 +29,16 @@ import { translateAuthError } from "@/lib/i18n-errors";
 import { useEffect, useState } from "react";
 import { UserAvatar } from "@/components/user-avatar";
 import { SubscriptionTab } from "@/components/payments/subscription-tab";
+import { useActivePlan } from "@/hooks/use-active-plan";
+import { getCredits } from "@/lib/credits.functions";
+import {
+  cancelMySubscription,
+  getMySubscription,
+  listMyPaymentHistory,
+} from "@/lib/payments.functions";
+import { PLANS, type PlanId } from "@/lib/payments-config";
+import { PlanBadge, getPlanKey } from "@/components/plan-badge";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações — AuraIA" }] }),
@@ -87,6 +97,7 @@ function GeneralTab() {
 
   return (
     <div className="space-y-6">
+      <PlanSection />
       <Card className="border-border bg-card shadow-sm">
         <CardContent className="pt-8 pb-8 space-y-6">
           <div className="flex flex-col items-center gap-4">
@@ -129,6 +140,169 @@ function GeneralTab() {
 
       <DangerZone />
     </div>
+  );
+}
+
+function PlanSection() {
+  const qc = useQueryClient();
+  const { hasActive, planId } = useActivePlan();
+  const planKey = getPlanKey(hasActive, planId);
+  const fetchCredits = useServerFn(getCredits);
+  const fetchSub = useServerFn(getMySubscription);
+  const fetchHistory = useServerFn(listMyPaymentHistory);
+  const cancelFn = useServerFn(cancelMySubscription);
+
+  const { data: credits } = useQuery({
+    queryKey: ["credits"],
+    queryFn: () => fetchCredits(),
+    staleTime: 30_000,
+  });
+  const { data: sub } = useQuery({
+    queryKey: ["my-subscription"],
+    queryFn: () => fetchSub(),
+    staleTime: 60_000,
+  });
+  const { data: history = [] } = useQuery({
+    queryKey: ["payment-history"],
+    queryFn: () => fetchHistory(),
+    staleTime: 60_000,
+  });
+
+  const [showAll, setShowAll] = useState(false);
+
+  const cancel = useMutation({
+    mutationFn: () => cancelFn(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["my-subscription"] });
+      notify.success("Assinatura cancelada.");
+    },
+    onError: (e) => notify.error(e instanceof Error ? e.message : "Erro."),
+  });
+
+  const balance = credits?.balance ?? 0;
+  const plan = planKey !== "free" ? PLANS[planKey as PlanId] : null;
+  const renewDate =
+    sub?.expires_at && new Date(sub.expires_at).toLocaleDateString("pt-BR");
+
+  const visibleHistory = showAll ? history : history.slice(0, 5);
+
+  return (
+    <Card className="border-border bg-card shadow-sm">
+      <CardContent className="pt-6 pb-6 space-y-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold">Meu plano</h3>
+              <PlanBadge plan={planKey} />
+            </div>
+            {planKey === "free" ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Plano atual: <span className="text-foreground font-medium">Gratuito</span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Você tem <span className="text-foreground font-medium">{balance}</span> créditos disponíveis.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm">
+                  Plano <span className="font-medium">{plan?.name}</span> ativo
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {plan?.credits} créditos por mês
+                  {renewDate ? ` • Renovação em ${renewDate}` : ""}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  <span className="text-foreground font-medium">{balance}</span> créditos restantes
+                </p>
+              </>
+            )}
+          </div>
+          <div className="flex flex-col gap-2 shrink-0">
+            {planKey === "free" ? (
+              <Button asChild className="bg-[#6C47FF] hover:bg-[#7d5cff] text-white">
+                <Link to="/creditos">Ver planos e créditos</Link>
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (confirm("Deseja realmente cancelar sua assinatura?")) {
+                    cancel.mutate();
+                  }
+                }}
+                disabled={cancel.isPending}
+              >
+                {cancel.isPending ? "Cancelando..." : "Cancelar assinatura"}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {history.length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-border">
+            <h4 className="text-sm font-medium">Histórico de compras</h4>
+            <ul className="divide-y divide-border">
+              {visibleHistory.map((h: any) => {
+                const meta = (h.metadata ?? {}) as Record<string, any>;
+                const label =
+                  h.type === "subscription"
+                    ? `Assinatura ${meta.planId ?? ""}`.trim()
+                    : h.type === "credit"
+                      ? `Créditos${meta.packId ? ` — ${meta.packId}` : ""}`
+                      : h.type;
+                const statusLabel: Record<string, string> = {
+                  paid: "Aprovado",
+                  approved: "Aprovado",
+                  pending: "Pendente",
+                  refunded: "Reembolsado",
+                  cancelled: "Cancelado",
+                  failed: "Falhou",
+                };
+                const tone =
+                  h.status === "paid" || h.status === "approved"
+                    ? "text-success"
+                    : h.status === "refunded" || h.status === "failed" || h.status === "cancelled"
+                      ? "text-destructive"
+                      : "text-muted-foreground";
+                return (
+                  <li
+                    key={h.id}
+                    className="py-2 flex items-center justify-between gap-3 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate">{label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(h.created_at).toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-medium">
+                        R$ {Number(h.amount).toFixed(2).replace(".", ",")}
+                      </p>
+                      <p className={`text-xs ${tone}`}>
+                        {statusLabel[h.status] ?? h.status}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            {history.length > 5 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAll((v) => !v)}
+                className="w-full"
+              >
+                {showAll ? "Mostrar menos" : "Ver histórico completo"}
+              </Button>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Menu, Settings, LogOut, User as UserIcon, PanelLeft } from "lucide-react";
+import { Menu, Settings, LogOut, User as UserIcon, PanelLeft, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,12 +18,16 @@ import { UserAvatar } from "@/components/user-avatar";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getProfile } from "@/lib/chat.functions";
+import { getCredits } from "@/lib/credits.functions";
+import { CreditPurchaseModal } from "@/components/payments/credit-purchase-modal";
+import { cn } from "@/lib/utils";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [creditsOpen, setCreditsOpen] = useState(false);
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   // Sidebar aparece em todas as rotas autenticadas (não só chat).
@@ -48,6 +52,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
     retry: false,
     staleTime: 5 * 60_000,
   });
+  const fetchCredits = useServerFn(getCredits);
+  const { data: creditsData } = useQuery({
+    queryKey: ["credits"],
+    queryFn: () => fetchCredits(),
+    enabled: !!user && !loading,
+    staleTime: 30_000,
+  });
+  const balance = creditsData?.balance ?? 0;
+  const lowCredits = balance < 5;
   const displayName =
     (profile?.name as string | undefined) ||
     (user?.user_metadata?.name as string | undefined) ||
@@ -96,6 +109,23 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <NousxLogo className="text-lg" />
           </Link>
           <div className="flex-1" />
+          {user && (
+            <button
+              type="button"
+              onClick={() => setCreditsOpen(true)}
+              aria-label={`${balance} créditos — comprar mais`}
+              title={lowCredits ? "Poucos créditos restantes" : `${balance} créditos`}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors",
+                lowCredits
+                  ? "border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20"
+                  : "border-accent/40 bg-accent/10 text-accent hover:bg-accent/20",
+              )}
+            >
+              <Zap className="size-3.5" />
+              <span>{balance} cr</span>
+            </button>
+          )}
           <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -134,6 +164,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
+        <CreditPurchaseModal open={creditsOpen} onOpenChange={setCreditsOpen} />
 
         <main className="flex-1 min-h-0 overflow-hidden chat-bg-gradient">{children}</main>
         <footer className="shrink-0 border-t border-border bg-background/80 px-4 py-1.5 flex items-center justify-center gap-3 text-[11px] text-muted-foreground">

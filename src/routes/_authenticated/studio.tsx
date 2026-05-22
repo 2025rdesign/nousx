@@ -146,6 +146,7 @@ function CreditsPill({
   const danger = balance < 5;
   const empty = balance === 0;
   return (
+    <div className={cn("inline-flex items-center gap-2", danger && !compact && "flex-row")}>
     <button
       type="button"
       onClick={onClick}
@@ -168,6 +169,10 @@ function CreditsPill({
         {!compact && " créditos"}
       </span>
     </button>
+    {danger && !compact && (
+      <span className="text-[11px] text-destructive">Poucos créditos restantes</span>
+    )}
+    </div>
   );
 }
 

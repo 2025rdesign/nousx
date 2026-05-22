@@ -34,6 +34,12 @@ import {
 } from "@/lib/chat.functions";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
+import { UserAvatar } from "@/components/user-avatar";
+import { PlanBadge, getPlanKey } from "@/components/plan-badge";
+import { useAuth } from "@/hooks/use-auth";
+import { useActivePlan } from "@/hooks/use-active-plan";
+import { getCredits } from "@/lib/credits.functions";
+import { getProfile } from "@/lib/chat.functions";
 
 type Conv = {
   id: string;
@@ -78,6 +84,36 @@ export function ConversationSidebar({
   const pinFn = useServerFn(togglePinConversation);
   const renameFn = useServerFn(renameConversation);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const { user } = useAuth();
+  const { hasActive, planId } = useActivePlan();
+  const planKey = getPlanKey(hasActive, planId);
+  const fetchCredits = useServerFn(getCredits);
+  const { data: creditsData } = useQuery({
+    queryKey: ["credits"],
+    queryFn: () => fetchCredits(),
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+  const fetchProfile = useServerFn(getProfile);
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id ?? null],
+    queryFn: async () => {
+      try {
+        return await fetchProfile();
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
+  const displayName =
+    (profile?.name as string | undefined) ||
+    (user?.user_metadata?.name as string | undefined) ||
+    user?.email ||
+    "Você";
+  const balance = creditsData?.balance ?? 0;
 
   const currentId = useRouterState({
     select: (s) => {
@@ -335,10 +371,21 @@ export function ConversationSidebar({
           onMouseEnter={() => {
             import("@/routes/_authenticated/configuracoes").catch(() => undefined);
           }}
-          className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground/80 hover:bg-secondary/60 hover:text-foreground transition-colors"
+          className="flex items-center gap-3 rounded-md px-2 py-2 text-sm text-foreground/80 hover:bg-secondary/60 hover:text-foreground transition-colors"
         >
-          <Settings className="size-4" />
-          Configurações
+          <UserAvatar name={displayName} size={32} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="truncate text-sm font-medium">{displayName}</span>
+              <PlanBadge plan={planKey} className="shrink-0" />
+            </div>
+            <div className="text-[11px] text-muted-foreground truncate">
+              {planKey === "free"
+                ? `${balance} créditos`
+                : `Plano ${planKey === "plus" ? "Plus" : "Ultra"} • ${balance} créditos`}
+            </div>
+          </div>
+          <Settings className="size-4 text-muted-foreground shrink-0" />
         </Link>
       </div>
     </div>
