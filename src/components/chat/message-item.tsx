@@ -6,11 +6,23 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
+  Loader2,
   PanelRightOpen,
+  Volume2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCodeCanvas } from "./code-canvas";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useActivePlan } from "@/hooks/use-active-plan";
+import { audioPlayerStore } from "./audio-player-store";
+import { notify } from "@/lib/notify";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface ChatMsg {
   id: string;
@@ -33,7 +45,9 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
   const isUser = msg.role === "user";
   const [copied, setCopied] = useState(false);
   const [zoom, setZoom] = useState(false);
+  const [loadingAudio, setLoadingAudio] = useState(false);
   const { open: openCanvas } = useCodeCanvas();
+  const { hasActive } = useActivePlan();
   const imageUrl = msg.image_url ?? getInlineImageUrl(msg.content);
   const textContent = imageUrl === msg.content.trim() ? "" : msg.content;
 
@@ -41,6 +55,48 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
     await navigator.clipboard.writeText(textContent || msg.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  };
+
+  const onPlayAudio = async () => {
+    if (!hasActive || loadingAudio || msg.streaming) return;
+    const text = (textContent || msg.content || "").trim();
+    if (!text) return;
+    setLoadingAudio(true);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) {
+        notify.error("Sessão expirada. Faça login novamente.");
+        return;
+      }
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text }),
+      });
+      if (res.status === 403) {
+        notify.error("Disponível no plano Plus ou Ultra.");
+        return;
+      }
+      if (!res.ok) {
+        notify.error("Falha ao gerar áudio.");
+        return;
+      }
+      if (res.headers.get("X-Truncated") === "1") {
+        notify.error("Áudio gerado para os primeiros 4000 caracteres.");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      audioPlayerStore.open(msg.id, url);
+    } catch (err) {
+      console.error("[TTS]", err);
+      notify.error("Falha ao gerar áudio.");
+    } finally {
+      setLoadingAudio(false);
+    }
   };
 
   return (
@@ -256,21 +312,54 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
           </>
         )}
         {!isUser && textContent && (
-          <button
-            type="button"
-            onClick={onCopy}
-            className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {copied ? (
-              <>
-                <Check className="size-3" /> Copiado
-              </>
-            ) : (
-              <>
-                <Copy className="size-3" /> Copiar
-              </>
-            )}
-          </button>
+          <div className="mt-2 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onCopy}
+              className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {copied ? (
+                <>
+                  <Check className="size-3" /> Copiado
+                </>
+              ) : (
+                <>
+                  <Copy className="size-3" /> Copiar
+                </>
+              )}
+            </button>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={onPlayAudio}
+                    disabled={!hasActive || loadingAudio || !!msg.streaming}
+                    aria-label="Ouvir resposta"
+                    className={cn(
+                      "inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors",
+                      hasActive
+                        ? "hover:text-foreground"
+                        : "cursor-not-allowed",
+                    )}
+                    style={hasActive ? undefined : { opacity: 0.4 }}
+                  >
+                    {loadingAudio ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <Volume2 className="size-3" />
+                    )}
+                    <span className="hidden sm:inline">Ouvir</span>
+                  </button>
+                </TooltipTrigger>
+                {!hasActive && (
+                  <TooltipContent side="top">
+                    Disponível no plano Plus ou Ultra
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         )}
       </div>
     </div>

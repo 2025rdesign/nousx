@@ -12,6 +12,7 @@ import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/hooks/use-auth";
+import { FloatingAudioPlayer } from "@/components/chat/audio-player";
 
 function NotFoundComponent() {
   return (
@@ -164,6 +165,7 @@ function RootComponent() {
         <AuthProvider>
           <Outlet />
           <Toaster position="top-center" richColors />
+          <FloatingAudioPlayer />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
