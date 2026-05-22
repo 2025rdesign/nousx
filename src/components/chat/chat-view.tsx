@@ -18,13 +18,23 @@ import { CodeCanvasProvider } from "./code-canvas";
 import { notify } from "@/lib/notify";
 import type { ExtractedFile } from "@/lib/file-extract";
 
-const IMAGE_INTENT_RE =
-  /\b(ger(a|e|ar)|cri(a|e|ar)|fa[zç]a?|fa[zç]er|desenh(a|e|ar)|me\s+(d[êe]|d[áa])|quero|preciso\s+de)\b[\s\S]{0,60}\b(uma?\s+|umas?\s+)?(imagens?|fotos?|figuras?|desenhos?|ilustra[cç][aã]o(es)?|artes?|pinturas?|wallpapers?|capas?|logos?|logotipos?|[íi]cones?|avatares?|retratos?|posters?|p[ôo]steres?)\b/i;
+const IMAGE_VERBS_RE =
+  /\b(ger(a|e|ar|ando)|cri(a|e|ar|ando|e\-?me)|fa[zç](a|e|er|endo)|desenh(a|e|ar|ando)|imagin(a|e|ar)|pint(a|e|ar)|render(iz)?(a|e|ar)?|design(a|e|ar)?|monta(r|e)?|produz(a|ir)|mostr(a|e|ar)|me\s+(d[êe]|d[áa]|mostr[ae])|quero|preciso|gostaria(\s+de)?)\b/i;
+const IMAGE_NOUNS_RE =
+  /\b(imagens?|fotos?|figuras?|desenhos?|ilustra[cç][aã]o(es)?|artes?|pinturas?|wallpapers?|capas?|logos?|logotipos?|[íi]cones?|avatares?|retratos?|posters?|p[ôo]steres?|render(s|iza[cç][aã]o)?|thumbs?|miniaturas?|cartazes?|banners?)\b/i;
+const IMAGE_STANDALONE_RE =
+  /^\s*(uma?|umas?)\s+(imagens?|fotos?|figuras?|desenhos?|ilustra[cç][aã]o(es)?|artes?|pinturas?|wallpapers?|capas?|logos?|logotipos?|[íi]cones?|avatares?|retratos?|posters?|p[ôo]steres?)\s+(de|do|da|dos|das|com|em|sobre)\b/i;
 
 function detectImageIntent(text: string): boolean {
   if (!text) return false;
-  if (text.length > 600) return false;
-  return IMAGE_INTENT_RE.test(text);
+  if (text.length > 800) return false;
+  const t = text.trim();
+  if (!t) return false;
+  // Verb + image noun anywhere in the message
+  if (IMAGE_NOUNS_RE.test(t) && IMAGE_VERBS_RE.test(t)) return true;
+  // Or starts with "uma imagem de ..."
+  if (IMAGE_STANDALONE_RE.test(t)) return true;
+  return false;
 }
 
 interface Props {
