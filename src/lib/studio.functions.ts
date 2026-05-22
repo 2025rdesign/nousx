@@ -359,14 +359,19 @@ export const generateCharacter = createServerFn({ method: "POST" })
         gender: data.gender,
         aspectRatio: mapAspectRatio(data.aspectRatio),
         cfg: cfgMap[data.creativity ?? "medium"],
-        faceImproveEnabled: useFaceRef,
-        faceImproveStrength: useFaceRef ? 9.0 : 5.0,
+        faceImproveEnabled: true,
+        faceModel: "REALISM",
+        faceImproveStrength: useFaceRef ? 9.0 : 5,
         improveBreasts: false,
         improveVagina: false,
         negativeDetails: `${baseNeg}${userNeg ? ", " + userNeg : ""}`,
       };
       if (data.poseId) {
-        (body as Record<string, unknown>).poseId = data.poseId;
+        (body as Record<string, unknown>).pose = {
+          id: data.poseId,
+          type: data.poseType ?? undefined,
+          poseStrength: 50,
+        };
       }
       if (useFaceRef) {
         (body as Record<string, unknown>).faceImproveMediaId = data.faceRefMediaId;
@@ -384,28 +389,22 @@ export const generateCharacter = createServerFn({ method: "POST" })
         throw new Error("Personagem sem imagem base. Gere uma imagem primeiro.");
       }
 
-      if (REMOVE_BOTTOM.test(data.appearance)) {
-        endpoint = `${ALIVEAI_BASE}/prompts/edit-vagina`;
-        body = { mediaId: profile.base_media_id, prompt: translated, cfg: 5 };
-      } else if (REMOVE_CLOTHING.test(data.appearance)) {
-        endpoint = `${ALIVEAI_BASE}/prompts/edit-image`;
-        body = {
-          mediaId: profile.base_media_id,
-          editModel: "CREATIVE",
-          prompt: `${translated}, same person, same face, same hair`,
-          cfg: 5,
-          faceImproveEnabled: true,
-          faceImproveStrength: 5.0,
-        };
-      } else {
-        endpoint = `${ALIVEAI_BASE}/prompts/edit-image`;
-        body = {
-          mediaId: profile.base_media_id,
-          editModel: "CREATIVE",
-          prompt: `extract this person keep her appearance and body shape. ${translated}`,
-          cfg: 5,
-          faceImproveEnabled: true,
-          faceImproveStrength: 5.0,
+      endpoint = `${ALIVEAI_BASE}/prompts/character-image`;
+      body = {
+        prompt: translated,
+        profileId: profile.base_media_id,
+        aspectRatio: mapAspectRatio(data.aspectRatio),
+        highResolution: data.detailLevel === "HIGH",
+        characterStrength: 2,
+        improveFace: true,
+        improveBreasts: false,
+        improveVagina: false,
+      };
+      if (data.poseId) {
+        (body as Record<string, unknown>).pose = {
+          id: data.poseId,
+          type: data.poseType ?? undefined,
+          poseStrength: 50,
         };
       }
       // Stash for fallback
