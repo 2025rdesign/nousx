@@ -117,10 +117,30 @@ export function ConversationSidebar({
   const unpinned = all.filter((c) => !c.pinned);
   const groups = groupByDate(unpinned);
 
-  const navItems: Array<{ to: "/studio" | "/galeria" | "/explorar"; label: string; icon: any }> = [
-    { to: "/studio", label: "Estúdio", icon: Wand2 },
-    { to: "/galeria", label: "Galeria", icon: ImageIcon },
-    { to: "/explorar", label: "Explorar", icon: Compass },
+  const navItems: Array<{
+    to: "/studio" | "/galeria" | "/explorar";
+    label: string;
+    icon: any;
+    prefetch: () => Promise<unknown>;
+  }> = [
+    {
+      to: "/studio",
+      label: "Estúdio",
+      icon: Wand2,
+      prefetch: () => import("@/routes/_authenticated/studio"),
+    },
+    {
+      to: "/galeria",
+      label: "Galeria",
+      icon: ImageIcon,
+      prefetch: () => import("@/routes/_authenticated/galeria"),
+    },
+    {
+      to: "/explorar",
+      label: "Explorar",
+      icon: Compass,
+      prefetch: () => import("@/routes/_authenticated/explorar"),
+    },
   ];
 
   function renderItem(c: Conv) {
@@ -216,6 +236,10 @@ export function ConversationSidebar({
             key={it.to}
             to={it.to}
             onClick={onNavigate}
+            preload="intent"
+            onMouseEnter={() => {
+              it.prefetch().catch(() => undefined);
+            }}
             activeProps={{ className: "bg-secondary text-foreground" }}
             className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground/80 hover:bg-secondary/60 hover:text-foreground transition-colors"
           >
@@ -257,6 +281,10 @@ export function ConversationSidebar({
         <Link
           to="/configuracoes"
           onClick={onNavigate}
+          preload="intent"
+          onMouseEnter={() => {
+            import("@/routes/_authenticated/configuracoes").catch(() => undefined);
+          }}
           className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground/80 hover:bg-secondary/60 hover:text-foreground transition-colors"
         >
           <Settings className="size-4" />
