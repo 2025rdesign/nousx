@@ -112,9 +112,18 @@ export function ChatView({ conversationId }: Props) {
     setSending(true);
     setOptimisticAssistant(null);
     const wantsImage = !image && !file && detectImageIntent(text);
-    console.log("[CHAT] intenção de imagem detectada:", wantsImage, "| text:", text.slice(0, 120));
+    const vagueImage = wantsImage && isVagueImageRequest(text);
+    const shouldGenerateImage = wantsImage && !vagueImage;
+    console.log(
+      "[CHAT] intenção de imagem:",
+      wantsImage,
+      "| vaga:",
+      vagueImage,
+      "| text:",
+      text.slice(0, 120),
+    );
     setInflightMode(
-      wantsImage ? "image" : webSearch ? "web" : reasoning ? "reasoning" : "default",
+      shouldGenerateImage ? "image" : webSearch ? "web" : reasoning ? "reasoning" : "default",
     );
     setAwaitingReply(true);
     const displayText = file ? `📎 ${file.name}\n\n${text}` : text;
@@ -155,7 +164,31 @@ export function ChatView({ conversationId }: Props) {
       }
 
       // ── Image generation branch ──────────────────────────────────────────
-      if (wantsImage) {
+      if (vagueImage) {
+        console.log("[CHAT] pedido vago — pedindo descrição antes de gerar");
+        const ask =
+          "Claro! Me descreve o que você quer ver na imagem — personagem, cenário, estilo, cores, formato (vertical, horizontal, quadrado)...";
+        setOptimisticAssistant({
+          id: `tmp-a-${Date.now()}`,
+          role: "assistant",
+          content: ask,
+        });
+        await saveMsg({
+          data: { conversationId: convId, role: "assistant", content: ask },
+        });
+        queryClient.invalidateQueries({ queryKey: ["messages", convId] });
+        queryClient.invalidateQueries({ queryKey: ["conversations"] });
+        if (isNew) {
+          try {
+            await rename({ data: { id: convId, title: text.slice(0, 30) } });
+          } catch (e) {
+            console.warn("rename failed", e);
+          }
+        }
+        return;
+      }
+
+      if (shouldGenerateImage) {
         console.log("[CHAT] chamando /api/generate-image (DeepSeek bypassado)");
         const { data: sess } = await supabase.auth.getSession();
         const token = sess.session?.access_token;
