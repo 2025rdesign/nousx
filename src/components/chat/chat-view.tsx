@@ -261,7 +261,7 @@ export function ChatView({ conversationId }: Props) {
       let accum = "";
       let reasoningAccum = "";
       let buf = "";
-      setStreaming({ id: "stream", role: "assistant", content: "" });
+      let started = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -286,6 +286,13 @@ export function ChatView({ conversationId }: Props) {
               accum += delta;
             }
             if (delta || rdelta) {
+              if (!started) {
+                started = true;
+                // First chunk arrived: hide typing indicator before showing text
+                flushSync(() => {
+                  setAwaitingReply(false);
+                });
+              }
               flushSync(() => {
                 setStreaming({
                   id: "stream",
@@ -362,8 +369,8 @@ export function ChatView({ conversationId }: Props) {
               ))}
               {optimisticUser && <MessageItem msg={optimisticUser} />}
               {optimisticAssistant && <MessageItem msg={optimisticAssistant} />}
-              {streaming && streaming.content && <MessageItem msg={streaming} />}
-              {awaitingReply && !streaming?.content && <TypingIndicator mode={inflightMode} />}
+              {streaming && <MessageItem msg={streaming} />}
+              {awaitingReply && !streaming && <TypingIndicator mode={inflightMode} />}
             </div>
           </div>
         ) : (
