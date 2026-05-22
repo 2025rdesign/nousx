@@ -655,42 +655,6 @@ function StudioInner() {
               </label>
             )}
 
-            {/* Face reference */}
-            {!activeProfile && (
-              <div className="space-y-2 rounded-lg border border-border p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">Rosto de referência</div>
-                    <p className="text-xs text-muted-foreground">
-                      Reaproveite o rosto de uma imagem já gerada.
-                    </p>
-                  </div>
-                  {faceRef ? (
-                    <div className="relative">
-                      <img
-                        src={faceRef.imageUrl}
-                        alt="Rosto de referência"
-                        className="size-12 rounded-md object-cover border border-border"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setFaceRef(null)}
-                        className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-background border border-border flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground"
-                        aria-label="Remover"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <Button type="button" variant="outline" size="sm" onClick={() => setFaceRefOpen(true)}>
-                      <UserIcon className="size-3.5" />
-                      Escolher
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
             <div className="rounded-lg border border-border">
               <button
                 type="button"
