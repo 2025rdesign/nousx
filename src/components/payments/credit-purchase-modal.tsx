@@ -15,14 +15,15 @@ import {
   Clock,
   ShieldCheck,
   Zap,
+  QrCode,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
 import { CREDIT_PACKS, applyDiscount, type CreditPackId } from "@/lib/payments-config";
-import { createPixCharge } from "@/lib/cajupay.functions";
+import { createMpCheckout } from "@/lib/mercadopago.functions";
 import { getCredits } from "@/lib/credits.functions";
 import { CouponField, type AppliedCoupon } from "./coupon-field";
-import { PixCheckoutModal, type PixCheckoutData } from "./pix-checkout-modal";
 
 const PACK_META: Record<
   CreditPackId,
@@ -61,7 +62,7 @@ export function CreditPurchaseModal({
   const qc = useQueryClient();
   const [packId, setPackId] = useState<CreditPackId>("popular");
   const [coupon, setCoupon] = useState<AppliedCoupon>(null);
-  const [pix, setPix] = useState<PixCheckoutData | null>(null);
+  const [method, setMethod] = useState<"pix" | "card">("pix");
 
   const pack = CREDIT_PACKS[packId];
   const finalPrice = useMemo(
@@ -69,7 +70,7 @@ export function CreditPurchaseModal({
     [pack.price, coupon],
   );
 
-  const start = useServerFn(createPixCharge);
+  const start = useServerFn(createMpCheckout);
   const fetchCredits = useServerFn(getCredits);
 
   const creditsQ = useQuery({
@@ -91,10 +92,15 @@ export function CreditPurchaseModal({
   const purchase = useMutation({
     mutationFn: () =>
       start({
-        data: { kind: "credit", id: packId, couponCode: coupon?.code ?? null },
+        data: { kind: "credit", id: packId, couponCode: coupon?.code ?? null, method },
       }),
     onSuccess: (res) => {
-      setPix(res);
+      window.open(res.initPoint, "_blank", "noopener,noreferrer");
+      notify.success(
+        "Finalize o pagamento na página que abriu. Seus créditos serão liberados automaticamente.",
+      );
+      onOpenChange(false);
+      qc.invalidateQueries({ queryKey: ["credits"] });
     },
     onError: (e) => notify.error(e instanceof Error ? e.message : "Erro ao iniciar checkout."),
   });
@@ -252,6 +258,43 @@ export function CreditPurchaseModal({
             </div>
           </div>
 
+          <p className="text-xs text-zinc-500 leading-relaxed">
+            O pagamento é processado com segurança pela plataforma Mercado Pago.
+            Seus dados financeiros não são armazenados pela AuraIA.
+          </p>
+
+          <div>
+            <p className="text-xs uppercase tracking-wider text-zinc-400 mb-2">
+              Método de pagamento
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setMethod("pix")}
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors",
+                  method === "pix"
+                    ? "border-[#6C47FF] bg-[#6C47FF]/15 text-white"
+                    : "border-[#1E1E2E] bg-[#13131A] text-zinc-300 hover:border-zinc-600",
+                )}
+              >
+                <QrCode className="size-4" /> PIX
+              </button>
+              <button
+                type="button"
+                onClick={() => setMethod("card")}
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors",
+                  method === "card"
+                    ? "border-[#6C47FF] bg-[#6C47FF]/15 text-white"
+                    : "border-[#1E1E2E] bg-[#13131A] text-zinc-300 hover:border-zinc-600",
+                )}
+              >
+                <CreditCard className="size-4" /> Cartão
+              </button>
+            </div>
+          </div>
+
           <Button
             className="w-full bg-[#6C47FF] hover:bg-[#7d5cff] text-white"
             disabled={purchase.isPending}
@@ -259,26 +302,17 @@ export function CreditPurchaseModal({
           >
             {purchase.isPending ? (
               <>
-                <Loader2 className="size-4 animate-spin mr-2" /> Gerando PIX...
+                <Loader2 className="size-4 animate-spin mr-2" /> Abrindo checkout...
               </>
             ) : (
-              `Gerar PIX ${formatBRL(finalPrice)}`
+              `Continuar — ${formatBRL(finalPrice)}`
             )}
           </Button>
 
           <p className="text-xs text-zinc-500 text-center">
-            Pagamento 100% via PIX. Os créditos são liberados automaticamente após a
-            confirmação do pagamento.
+            Após confirmar o pagamento, seus créditos serão liberados automaticamente.
           </p>
         </div>
-        <PixCheckoutModal
-          data={pix}
-          open={!!pix}
-          onOpenChange={(v) => !v && setPix(null)}
-          onPaid={() => {
-            qc.invalidateQueries({ queryKey: ["credits"] });
-          }}
-        />
       </DialogContent>
     </Dialog>
   );

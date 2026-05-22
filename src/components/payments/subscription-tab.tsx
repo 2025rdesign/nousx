@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, QrCode, CreditCard } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
@@ -19,9 +19,8 @@ import {
   cancelMySubscription,
   getMySubscription,
 } from "@/lib/payments.functions";
-import { createPixCharge } from "@/lib/cajupay.functions";
+import { createMpCheckout } from "@/lib/mercadopago.functions";
 import { CouponField, type AppliedCoupon } from "./coupon-field";
-import { PixCheckoutModal, type PixCheckoutData } from "./pix-checkout-modal";
 
 const formatBRL = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
 
@@ -202,20 +201,28 @@ function PlanCheckoutDialog({
   const qc = useQueryClient();
   const plan = PLANS[planId];
   const [coupon, setCoupon] = useState<AppliedCoupon>(null);
-  const [pix, setPix] = useState<PixCheckoutData | null>(null);
+  const [method, setMethod] = useState<"pix" | "card">("pix");
 
   const finalPrice = useMemo(
     () => (coupon ? applyDiscount(plan.price, coupon.discountPercent) : plan.price),
     [plan.price, coupon],
   );
 
-  const start = useServerFn(createPixCharge);
+  const start = useServerFn(createMpCheckout);
   const m = useMutation({
     mutationFn: () =>
       start({
-        data: { kind: "subscription", id: planId, couponCode: coupon?.code ?? null },
+        data: { kind: "subscription", id: planId, couponCode: coupon?.code ?? null, method },
       }),
-    onSuccess: (res) => setPix(res),
+    onSuccess: (res) => {
+      window.open(res.initPoint, "_blank", "noopener,noreferrer");
+      notify.success(
+        "Finalize o pagamento na página que abriu. Sua assinatura será ativada automaticamente.",
+      );
+      qc.invalidateQueries({ queryKey: ["my-subscription"] });
+      qc.invalidateQueries({ queryKey: ["credits"] });
+      onOpenChange(false);
+    },
     onError: (e) => notify.error(e instanceof Error ? e.message : "Erro ao assinar."),
   });
 
@@ -239,6 +246,41 @@ function PlanCheckoutDialog({
             </div>
           </div>
           <CouponField value={coupon} onApply={setCoupon} />
+          <p className="text-xs text-zinc-500 leading-relaxed">
+            O pagamento é processado com segurança pela plataforma Mercado Pago.
+            Seus dados financeiros não são armazenados pela AuraIA.
+          </p>
+          <div>
+            <p className="text-xs uppercase tracking-wider text-zinc-400 mb-2">
+              Método de pagamento
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setMethod("pix")}
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors",
+                  method === "pix"
+                    ? "border-[#6C47FF] bg-[#6C47FF]/15 text-white"
+                    : "border-[#1E1E2E] bg-[#13131A] text-zinc-300 hover:border-zinc-600",
+                )}
+              >
+                <QrCode className="size-4" /> PIX
+              </button>
+              <button
+                type="button"
+                onClick={() => setMethod("card")}
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors",
+                  method === "card"
+                    ? "border-[#6C47FF] bg-[#6C47FF]/15 text-white"
+                    : "border-[#1E1E2E] bg-[#13131A] text-zinc-300 hover:border-zinc-600",
+                )}
+              >
+                <CreditCard className="size-4" /> Cartão
+              </button>
+            </div>
+          </div>
           <Button
             className="w-full bg-[#6C47FF] hover:bg-[#7d5cff] text-white"
             onClick={() => m.mutate()}
@@ -246,26 +288,16 @@ function PlanCheckoutDialog({
           >
             {m.isPending ? (
               <>
-                <Loader2 className="size-4 animate-spin mr-2" /> Gerando PIX...
+                <Loader2 className="size-4 animate-spin mr-2" /> Abrindo checkout...
               </>
             ) : (
-              `Gerar PIX — ${formatBRL(finalPrice)}/mês`
+              `Continuar — ${formatBRL(finalPrice)}/mês`
             )}
           </Button>
           <p className="text-xs text-zinc-500 text-center">
-            Pagamento 100% via PIX. Sua assinatura é ativada automaticamente após a
-            confirmação.
+            Após confirmar o pagamento, sua assinatura é ativada automaticamente.
           </p>
         </div>
-        <PixCheckoutModal
-          data={pix}
-          open={!!pix}
-          onOpenChange={(v) => !v && setPix(null)}
-          onPaid={() => {
-            qc.invalidateQueries({ queryKey: ["my-subscription"] });
-            qc.invalidateQueries({ queryKey: ["credits"] });
-          }}
-        />
       </DialogContent>
     </Dialog>
   );

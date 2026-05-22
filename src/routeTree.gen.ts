@@ -14,7 +14,11 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PagamentoSucessoRouteImport } from './routes/pagamento.sucesso'
+import { Route as PagamentoPendenteRouteImport } from './routes/pagamento.pendente'
+import { Route as PagamentoFalhaRouteImport } from './routes/pagamento.falha'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
+import { Route as ApiMpWebhookRouteImport } from './routes/api/mp-webhook'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiCaktoWebhookRouteImport } from './routes/api/cakto-webhook'
@@ -52,9 +56,29 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PagamentoSucessoRoute = PagamentoSucessoRouteImport.update({
+  id: '/pagamento/sucesso',
+  path: '/pagamento/sucesso',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagamentoPendenteRoute = PagamentoPendenteRouteImport.update({
+  id: '/pagamento/pendente',
+  path: '/pagamento/pendente',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagamentoFalhaRoute = PagamentoFalhaRouteImport.update({
+  id: '/pagamento/falha',
+  path: '/pagamento/falha',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTtsRoute = ApiTtsRouteImport.update({
   id: '/api/tts',
   path: '/api/tts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMpWebhookRoute = ApiMpWebhookRouteImport.update({
+  id: '/api/mp-webhook',
+  path: '/api/mp-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
@@ -133,7 +157,11 @@ export interface FileRoutesByFullPath {
   '/api/cakto-webhook': typeof ApiCaktoWebhookRoute
   '/api/chat': typeof ApiChatRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
+  '/api/mp-webhook': typeof ApiMpWebhookRoute
   '/api/tts': typeof ApiTtsRoute
+  '/pagamento/falha': typeof PagamentoFalhaRoute
+  '/pagamento/pendente': typeof PagamentoPendenteRoute
+  '/pagamento/sucesso': typeof PagamentoSucessoRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cajupay-webhook': typeof ApiPublicCajupayWebhookRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
@@ -152,7 +180,11 @@ export interface FileRoutesByTo {
   '/api/cakto-webhook': typeof ApiCaktoWebhookRoute
   '/api/chat': typeof ApiChatRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
+  '/api/mp-webhook': typeof ApiMpWebhookRoute
   '/api/tts': typeof ApiTtsRoute
+  '/pagamento/falha': typeof PagamentoFalhaRoute
+  '/pagamento/pendente': typeof PagamentoPendenteRoute
+  '/pagamento/sucesso': typeof PagamentoSucessoRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cajupay-webhook': typeof ApiPublicCajupayWebhookRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
@@ -173,7 +205,11 @@ export interface FileRoutesById {
   '/api/cakto-webhook': typeof ApiCaktoWebhookRoute
   '/api/chat': typeof ApiChatRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
+  '/api/mp-webhook': typeof ApiMpWebhookRoute
   '/api/tts': typeof ApiTtsRoute
+  '/pagamento/falha': typeof PagamentoFalhaRoute
+  '/pagamento/pendente': typeof PagamentoPendenteRoute
+  '/pagamento/sucesso': typeof PagamentoSucessoRoute
   '/_authenticated/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cajupay-webhook': typeof ApiPublicCajupayWebhookRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
@@ -194,7 +230,11 @@ export interface FileRouteTypes {
     | '/api/cakto-webhook'
     | '/api/chat'
     | '/api/generate-image'
+    | '/api/mp-webhook'
     | '/api/tts'
+    | '/pagamento/falha'
+    | '/pagamento/pendente'
+    | '/pagamento/sucesso'
     | '/c/$conversationId'
     | '/api/public/cajupay-webhook'
     | '/api/public/cakto-webhook'
@@ -213,7 +253,11 @@ export interface FileRouteTypes {
     | '/api/cakto-webhook'
     | '/api/chat'
     | '/api/generate-image'
+    | '/api/mp-webhook'
     | '/api/tts'
+    | '/pagamento/falha'
+    | '/pagamento/pendente'
+    | '/pagamento/sucesso'
     | '/c/$conversationId'
     | '/api/public/cajupay-webhook'
     | '/api/public/cakto-webhook'
@@ -233,7 +277,11 @@ export interface FileRouteTypes {
     | '/api/cakto-webhook'
     | '/api/chat'
     | '/api/generate-image'
+    | '/api/mp-webhook'
     | '/api/tts'
+    | '/pagamento/falha'
+    | '/pagamento/pendente'
+    | '/pagamento/sucesso'
     | '/_authenticated/c/$conversationId'
     | '/api/public/cajupay-webhook'
     | '/api/public/cakto-webhook'
@@ -249,7 +297,11 @@ export interface RootRouteChildren {
   ApiCaktoWebhookRoute: typeof ApiCaktoWebhookRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
+  ApiMpWebhookRoute: typeof ApiMpWebhookRoute
   ApiTtsRoute: typeof ApiTtsRoute
+  PagamentoFalhaRoute: typeof PagamentoFalhaRoute
+  PagamentoPendenteRoute: typeof PagamentoPendenteRoute
+  PagamentoSucessoRoute: typeof PagamentoSucessoRoute
   ApiPublicCajupayWebhookRoute: typeof ApiPublicCajupayWebhookRoute
   ApiPublicCaktoWebhookRoute: typeof ApiPublicCaktoWebhookRoute
   ApiPublicChatAnonRoute: typeof ApiPublicChatAnonRoute
@@ -292,11 +344,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pagamento/sucesso': {
+      id: '/pagamento/sucesso'
+      path: '/pagamento/sucesso'
+      fullPath: '/pagamento/sucesso'
+      preLoaderRoute: typeof PagamentoSucessoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pagamento/pendente': {
+      id: '/pagamento/pendente'
+      path: '/pagamento/pendente'
+      fullPath: '/pagamento/pendente'
+      preLoaderRoute: typeof PagamentoPendenteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pagamento/falha': {
+      id: '/pagamento/falha'
+      path: '/pagamento/falha'
+      fullPath: '/pagamento/falha'
+      preLoaderRoute: typeof PagamentoFalhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/tts': {
       id: '/api/tts'
       path: '/api/tts'
       fullPath: '/api/tts'
       preLoaderRoute: typeof ApiTtsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mp-webhook': {
+      id: '/api/mp-webhook'
+      path: '/api/mp-webhook'
+      fullPath: '/api/mp-webhook'
+      preLoaderRoute: typeof ApiMpWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/generate-image': {
@@ -417,7 +497,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCaktoWebhookRoute: ApiCaktoWebhookRoute,
   ApiChatRoute: ApiChatRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
+  ApiMpWebhookRoute: ApiMpWebhookRoute,
   ApiTtsRoute: ApiTtsRoute,
+  PagamentoFalhaRoute: PagamentoFalhaRoute,
+  PagamentoPendenteRoute: PagamentoPendenteRoute,
+  PagamentoSucessoRoute: PagamentoSucessoRoute,
   ApiPublicCajupayWebhookRoute: ApiPublicCajupayWebhookRoute,
   ApiPublicCaktoWebhookRoute: ApiPublicCaktoWebhookRoute,
   ApiPublicChatAnonRoute: ApiPublicChatAnonRoute,
