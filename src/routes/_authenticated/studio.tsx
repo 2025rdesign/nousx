@@ -78,15 +78,69 @@ function StudioPage() {
   return <StudioInner />;
 }
 
+function HistoryThumb({
+  src,
+  alt,
+  index,
+  onClick,
+  children,
+}: {
+  src: string | null;
+  alt: string;
+  index: number;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div
+      onClick={onClick}
+      className="relative group rounded-lg overflow-hidden cursor-pointer bg-[#1a1a2e] animate-in fade-in h-[120px] md:h-[140px]"
+      style={{
+        animationDelay: `${index * 50}ms`,
+        animationFillMode: "both",
+      }}
+    >
+      {!loaded && (
+        <div className="absolute inset-0 bg-[#1a1a2e] animate-pulse" />
+      )}
+      {src && (
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          onLoad={() => setLoaded(true)}
+          className="block w-full h-full object-cover transition-opacity duration-300 group-hover:scale-[1.03]"
+          style={{ opacity: loaded ? 1 : 0 }}
+        />
+      )}
+      <div className="absolute inset-0 bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function CreditsPill({
   balance,
   onClick,
   compact,
+  loading,
 }: {
   balance: number;
   onClick: () => void;
   compact?: boolean;
+  loading?: boolean;
 }) {
+  if (loading) {
+    return (
+      <span
+        aria-label="Carregando créditos"
+        className="inline-block rounded-full bg-muted animate-pulse"
+        style={{ width: 60, height: 24 }}
+      />
+    );
+  }
   const danger = balance < 5;
   const empty = balance === 0;
   return (
@@ -123,7 +177,7 @@ function StudioInner() {
   const toggleFn = useServerFn(togglePublic);
   const deleteFn = useServerFn(deleteCharacter);
   const fetchCredits = useServerFn(getCredits);
-  const { data: creditsData } = useQuery({
+  const { data: creditsData, isLoading: creditsLoading } = useQuery({
     queryKey: ["credits"],
     queryFn: () => fetchCredits(),
     staleTime: 30_000,
@@ -377,7 +431,12 @@ function StudioInner() {
           </Button>
           <span className="text-sm font-semibold">Estúdio</span>
           <div className="flex-1" />
-          <CreditsPill balance={balance} onClick={() => setCreditsOpen(true)} compact />
+          <CreditsPill
+            balance={balance}
+            onClick={() => setCreditsOpen(true)}
+            compact
+            loading={creditsLoading}
+          />
         </div>
         <div className="grid grid-cols-3">
           {([
@@ -419,7 +478,11 @@ function StudioInner() {
               </Button>
             </div>
             <div className="hidden md:flex items-center justify-end">
-              <CreditsPill balance={balance} onClick={() => setCreditsOpen(true)} />
+              <CreditsPill
+                balance={balance}
+                onClick={() => setCreditsOpen(true)}
+                loading={creditsLoading}
+              />
             </div>
 
             {activeProfile ? (
@@ -927,11 +990,13 @@ function StudioInner() {
                   Nada por aqui ainda.
                 </p>
               ) : (
-                <div className="columns-2 md:columns-3 gap-1.5 [column-fill:_balance]">
-                  {history.map((c) => (
-                    <div
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {history.map((c, index) => (
+                    <HistoryThumb
                       key={c.id}
-                      className="relative group mb-1.5 break-inside-avoid rounded-lg overflow-hidden bg-muted cursor-pointer"
+                      src={c.image_url ?? null}
+                      alt={c.name || "Variação"}
+                      index={index}
                       onClick={() => {
                         if (c.image_url) {
                           setResult(c.image_url);
@@ -940,15 +1005,6 @@ function StudioInner() {
                         }
                       }}
                     >
-                      {c.image_url && (
-                        <img
-                          src={c.image_url}
-                          alt={c.name || "Variação"}
-                          loading="lazy"
-                          className="block w-full h-auto transition-transform duration-200 group-hover:scale-[1.03]"
-                        />
-                      )}
-                      <div className="absolute inset-0 bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                       <Button
                         size="icon"
                         variant="ghost"
@@ -977,8 +1033,7 @@ function StudioInner() {
                       >
                         <Trash2 className="size-3.5" />
                       </Button>
-                      </div>
-                    </div>
+                    </HistoryThumb>
                   ))}
                 </div>
               )}
