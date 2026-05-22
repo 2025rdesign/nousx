@@ -801,7 +801,12 @@ function StudioInner() {
           )}
         >
           <div className="p-3 md:p-6 space-y-4 lg:min-h-full lg:flex lg:flex-col">
-            <h3 className="text-sm font-semibold">Resultado</h3>
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold">Resultado</h3>
+              {(isLoading || progress > 0) && (
+                <Progress value={progress} className="h-1 bg-primary/15" />
+              )}
+            </div>
             <div
               className={cn(
                 "w-full mx-auto rounded-lg overflow-hidden bg-muted relative",
@@ -817,18 +822,18 @@ function StudioInner() {
                 )}
               >
               {isLoading && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-muted px-6">
-                  <Loader2 className="size-8 animate-spin text-primary" />
-                  <p className="text-sm text-foreground font-medium text-center">
-                    {LOADING_TEXTS[loadingTextIdx]}
-                  </p>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Gerando... isso pode levar até 1 minuto
-                  </p>
-                  <div className="w-full max-w-[220px] h-1.5 bg-background/60 rounded-full overflow-hidden">
-                    <div className="h-full w-1/3 bg-primary rounded-full animate-[progressSlide_1.5s_ease-in-out_infinite]" />
+                <>
+                  <Skeleton className="absolute inset-0 rounded-lg" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6">
+                    <Loader2 className="size-7 animate-spin text-primary" />
+                    <p className="text-sm text-foreground font-medium text-center">
+                      Gerando sua imagem...
+                    </p>
+                    <p className="text-xs text-muted-foreground text-center">
+                      {LOADING_TEXTS[loadingTextIdx]}
+                    </p>
                   </div>
-                </div>
+                </>
               )}
               {!isLoading && result && (
                 <img src={result} alt="Resultado" className="w-full h-full object-contain lg:object-contain" />
