@@ -27,6 +27,12 @@ const IMAGE_INTENT_RE =
 
 const MIN_DESCRIPTION_CHARS = 10;
 
+const IMAGE_FOLLOW_UP_RE =
+  /\b(a\s+mesma|mesm[ao]s?|igual|parecid[ao]s?|fa[cç]a|deixe|coloque|troque|mude|ajuste|edite|refa[cç]a|regenere|varia[cç][aã]o|vers[aã]o|mais|menos|sem|com)\b/i;
+
+const VISUAL_EDIT_CUE_RE =
+  /\b(mulher|homem|pessoa|modelo|rosto|corpo|cabelo|olhos?|pele|roupa|biqu[ií]ni|lingerie|pose|fundo|cen[aá]rio|praia|areia|luz|ilumina[cç][aã]o|estilo|realista|sensual|sexy|vertical|story|stories|9:16|16:9|1:1|quadrado)\b/i;
+
 function detectImageIntent(text: string): boolean {
   if (!text) return false;
   if (text.length > 800) return false;
@@ -44,6 +50,28 @@ function detectImageIntent(text: string): boolean {
     .replace(/\b(agora|aqui|r[áa]pido|nova|legal|bonita|top|massa|incr[íi]vel)\b/gi, " ")
     .trim();
   return after.length >= MIN_DESCRIPTION_CHARS;
+}
+
+function getLatestAssistantImage(messages: ChatMsg[], optimisticAssistant: ChatMsg | null) {
+  if (optimisticAssistant?.role === "assistant" && optimisticAssistant.image_url) {
+    return optimisticAssistant;
+  }
+
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+    if (message.role === "assistant" && message.image_url) {
+      return message;
+    }
+  }
+
+  return null;
+}
+
+function detectImageFollowUp(text: string, hasPreviousAssistantImage: boolean): boolean {
+  if (!hasPreviousAssistantImage) return false;
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length > 500) return false;
+  return IMAGE_FOLLOW_UP_RE.test(trimmed) && VISUAL_EDIT_CUE_RE.test(trimmed);
 }
 
 interface Props {
@@ -108,8 +136,14 @@ export function ChatView({ conversationId }: Props) {
   ) {
     setSending(true);
     setOptimisticAssistant(null);
-    const wantsImage = !image && !file && detectImageIntent(text);
+    const latestAssistantImage = getLatestAssistantImage(messages, optimisticAssistant);
+    const isImageFollowUp = !image && !file && detectImageFollowUp(text, !!latestAssistantImage);
+    const wantsImage = !image && !file && (detectImageIntent(text) || isImageFollowUp);
+    const imagePrompt = isImageFollowUp && latestAssistantImage?.content
+      ? `${text}\n\nContexto da imagem anterior: ${latestAssistantImage.content}`
+      : text;
     console.log("[CHAT] gerar imagem:", wantsImage, "| text:", text.slice(0, 120));
+    console.log("[CHAT] follow-up de imagem:", isImageFollowUp);
     setInflightMode(
       wantsImage ? "image" : webSearch ? "web" : reasoning ? "reasoning" : "default",
     );
@@ -163,7 +197,7 @@ export function ChatView({ conversationId }: Props) {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ prompt: text }),
+          body: JSON.stringify({ prompt: imagePrompt }),
         });
         console.log("[CHAT] /api/generate-image status:", res.status);
         if (res.status === 402) {
@@ -345,7 +379,8 @@ export function ChatView({ conversationId }: Props) {
     }
   }
 
-  const hasContent = messages.length > 0 || streaming || optimisticUser;
+  const hasContent =
+    messages.length > 0 || streaming || optimisticUser || optimisticAssistant || awaitingReply;
   const showSkeleton =
     !!conversationId && messagesLoading && !hasContent;
 
