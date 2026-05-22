@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiCaktoWebhookRouteImport } from './routes/api/cakto-webhook'
 import { Route as AuthenticatedStudioRouteImport } from './routes/_authenticated/studio'
 import { Route as AuthenticatedGaleriaRouteImport } from './routes/_authenticated/galeria'
 import { Route as AuthenticatedExplorarRouteImport } from './routes/_authenticated/explorar'
@@ -63,6 +64,11 @@ const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCaktoWebhookRoute = ApiCaktoWebhookRouteImport.update({
+  id: '/api/cakto-webhook',
+  path: '/api/cakto-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedStudioRoute = AuthenticatedStudioRouteImport.update({
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/explorar': typeof AuthenticatedExplorarRoute
   '/galeria': typeof AuthenticatedGaleriaRoute
   '/studio': typeof AuthenticatedStudioRoute
+  '/api/cakto-webhook': typeof ApiCaktoWebhookRoute
   '/api/chat': typeof ApiChatRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/tts': typeof ApiTtsRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/explorar': typeof AuthenticatedExplorarRoute
   '/galeria': typeof AuthenticatedGaleriaRoute
   '/studio': typeof AuthenticatedStudioRoute
+  '/api/cakto-webhook': typeof ApiCaktoWebhookRoute
   '/api/chat': typeof ApiChatRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/tts': typeof ApiTtsRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   '/_authenticated/explorar': typeof AuthenticatedExplorarRoute
   '/_authenticated/galeria': typeof AuthenticatedGaleriaRoute
   '/_authenticated/studio': typeof AuthenticatedStudioRoute
+  '/api/cakto-webhook': typeof ApiCaktoWebhookRoute
   '/api/chat': typeof ApiChatRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/tts': typeof ApiTtsRoute
@@ -173,6 +182,7 @@ export interface FileRouteTypes {
     | '/explorar'
     | '/galeria'
     | '/studio'
+    | '/api/cakto-webhook'
     | '/api/chat'
     | '/api/generate-image'
     | '/api/tts'
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/explorar'
     | '/galeria'
     | '/studio'
+    | '/api/cakto-webhook'
     | '/api/chat'
     | '/api/generate-image'
     | '/api/tts'
@@ -208,6 +219,7 @@ export interface FileRouteTypes {
     | '/_authenticated/explorar'
     | '/_authenticated/galeria'
     | '/_authenticated/studio'
+    | '/api/cakto-webhook'
     | '/api/chat'
     | '/api/generate-image'
     | '/api/tts'
@@ -222,6 +234,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   TermosRoute: typeof TermosRoute
+  ApiCaktoWebhookRoute: typeof ApiCaktoWebhookRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiTtsRoute: typeof ApiTtsRoute
@@ -285,6 +298,13 @@ declare module '@tanstack/react-router' {
       path: '/api/chat'
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cakto-webhook': {
+      id: '/api/cakto-webhook'
+      path: '/api/cakto-webhook'
+      fullPath: '/api/cakto-webhook'
+      preLoaderRoute: typeof ApiCaktoWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/studio': {
@@ -374,6 +394,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   TermosRoute: TermosRoute,
+  ApiCaktoWebhookRoute: ApiCaktoWebhookRoute,
   ApiChatRoute: ApiChatRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiTtsRoute: ApiTtsRoute,
@@ -383,3 +404,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
