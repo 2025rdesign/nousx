@@ -253,7 +253,8 @@ export function CreditPurchaseModal({
         if (!v) setTimeout(reset, 300);
       }}
     >
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto p-0 gap-0 border-border bg-[#0A0A0F] data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-4 data-[state=open]:duration-300">
+        <div className="px-5 pt-5 pb-3">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {step !== "select" && step !== "success" && (
@@ -271,58 +272,218 @@ export function CreditPurchaseModal({
                 <ArrowLeft className="size-4" />
               </Button>
             )}
-            {step === "select" && "Comprar créditos"}
+            {step === "select" && "Créditos"}
             {step === "customer" && "Seus dados"}
             {step === "checkout" && "Finalizar pagamento"}
             {step === "pix" && "Pague com PIX"}
             {step === "success" && "Tudo certo!"}
           </DialogTitle>
         </DialogHeader>
+        </div>
 
         {step === "select" && (
-          <div className="space-y-3">
-            {(Object.keys(CREDIT_PACKS) as CreditPackId[]).map((id) => {
-              const p = CREDIT_PACKS[id];
-              const active = packId === id;
-              return (
-                <button
-                  type="button"
-                  key={id}
-                  onClick={() => setPackId(id)}
-                  className={cn(
-                    "w-full text-left rounded-lg border p-4 transition-colors relative",
-                    active
-                      ? "border-accent bg-accent/5 ring-1 ring-accent/40"
-                      : "border-border hover:border-accent/60",
-                  )}
-                >
-                  {p.popular && (
-                    <Badge className="absolute -top-2 right-3 bg-accent text-accent-foreground">
-                      Mais popular
-                    </Badge>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold">{p.name}</p>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Sparkles className="size-3.5 text-accent" />
-                        {p.credits} créditos
-                      </p>
-                    </div>
-                    <p className="text-xl font-bold">
-                      R$ {p.price.toFixed(2).replace(".", ",")}
-                    </p>
+          <div className="px-5 pb-5 space-y-5">
+            {/* Balance card */}
+            <div className="rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-5">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-full bg-[#6C47FF]/30 blur-xl animate-pulse" />
+                  <div className="relative size-12 rounded-full bg-gradient-to-br from-[#6C47FF] to-[#9B7BFF] flex items-center justify-center shadow-lg shadow-[#6C47FF]/30">
+                    <Gem className="size-6 text-white" />
                   </div>
-                </button>
-              );
-            })}
-            <Button className="w-full" onClick={goToCheckout}>
-              Continuar
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs uppercase tracking-wider text-zinc-400">
+                    Seu saldo atual
+                  </p>
+                  <p className="text-3xl font-bold text-white leading-tight">
+                    {balance.toLocaleString("pt-BR")}{" "}
+                    <span className="text-base font-medium text-zinc-400">
+                      créditos
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              {totalPurchased > 0 && (
+                <div className="mt-4">
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#1E1E2E]">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-[#6C47FF] to-[#9B7BFF] transition-all"
+                      style={{ width: `${usedPercent}%` }}
+                    />
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-zinc-500">
+                    {usedPercent}% do total comprado já utilizado
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                {hasOnlyNonExpiring ? (
+                  <span className="flex items-center gap-1.5 text-emerald-400">
+                    <ShieldCheck className="size-3.5" /> Sem expiração
+                  </span>
+                ) : expiresInDays != null && balance > 0 ? (
+                  <span className="flex items-center gap-1.5 text-amber-400">
+                    <Clock className="size-3.5" /> Expiram em {expiresInDays}{" "}
+                    {expiresInDays === 1 ? "dia" : "dias"}
+                  </span>
+                ) : null}
+                <span className="text-zinc-500">
+                  1 crédito = 1 geração de imagem no Estúdio
+                </span>
+              </div>
+            </div>
+
+            {/* Urgency banner */}
+            {balance === 0 ? (
+              <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 flex items-center gap-2 text-sm text-red-300">
+                <span aria-hidden>🚫</span>
+                <span className="font-medium">
+                  Sem créditos — gere imagens agora
+                </span>
+              </div>
+            ) : balance < 10 ? (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex items-center gap-2 text-sm text-amber-300">
+                <Zap className="size-4" />
+                <span>Seus créditos estão acabando!</span>
+              </div>
+            ) : null}
+
+            {/* Section title */}
+            <div>
+              <h3 className="text-lg font-semibold text-white">
+                Recarregue e economize mais
+              </h3>
+              <p className="text-sm text-zinc-400">
+                Créditos maiores = menor custo por imagem
+              </p>
+            </div>
+
+            {/* Packs grid */}
+            <div className="grid gap-3 md:grid-cols-3">
+              {(Object.keys(CREDIT_PACKS) as CreditPackId[]).map((id) => {
+                const p = CREDIT_PACKS[id];
+                const meta = PACK_META[id];
+                const perImg = pricePerImage(p);
+                const starterPer = pricePerImage(CREDIT_PACKS.starter);
+                const savings =
+                  id === "starter"
+                    ? 0
+                    : Math.round((1 - perImg / starterPer) * 100);
+                const active = packId === id;
+                const isPopular = meta.accent === "purple";
+                const isPro = meta.accent === "gold";
+                return (
+                  <button
+                    type="button"
+                    key={id}
+                    onClick={() => setPackId(id)}
+                    className={cn(
+                      "relative text-left rounded-2xl border bg-[#13131A] p-4 pt-5 transition-all flex flex-col",
+                      "hover:-translate-y-0.5",
+                      isPopular && "md:scale-[1.03] md:-my-1",
+                      active && isPopular && "border-[#6C47FF] ring-2 ring-[#6C47FF]/40 shadow-lg shadow-[#6C47FF]/20",
+                      active && isPro && "border-[#F59E0B] ring-2 ring-[#F59E0B]/30 shadow-lg shadow-[#F59E0B]/10",
+                      active && meta.accent === "muted" && "border-zinc-400 ring-1 ring-zinc-400/30",
+                      !active && isPopular && "border-[#6C47FF]/60",
+                      !active && isPro && "border-[#F59E0B]/40",
+                      !active && meta.accent === "muted" && "border-[#1E1E2E]",
+                    )}
+                  >
+                    {meta.badge && (
+                      <span
+                        className={cn(
+                          "absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wider",
+                          meta.badge.tone === "purple"
+                            ? "bg-[#6C47FF] text-white"
+                            : "bg-[#F59E0B] text-black",
+                        )}
+                      >
+                        {meta.badge.label}
+                      </span>
+                    )}
+
+                    <p className="text-sm font-medium text-zinc-300">{p.name}</p>
+                    <p className="mt-2 text-2xl font-bold text-white">
+                      {formatBRL(p.price)}
+                    </p>
+                    <p className="mt-2 flex items-center gap-1.5 text-sm text-white">
+                      <Sparkles className="size-3.5 text-[#6C47FF]" />
+                      <span className="font-semibold">{p.credits}</span>
+                      <span className="text-zinc-400">créditos</span>
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-400">
+                      {formatBRL(perImg)} por imagem
+                      {savings > 0 && (
+                        <span className="ml-1 text-emerald-400 font-medium">
+                          (-{savings}% vs Starter)
+                        </span>
+                      )}
+                    </p>
+
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {meta.expiresDays != null ? (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300">
+                          <Clock className="size-3" /> Expiram em{" "}
+                          {meta.expiresDays} dias
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-300">
+                          <ShieldCheck className="size-3" /> Nunca expiram
+                        </span>
+                      )}
+                      {meta.tag && meta.tag.tone === "muted" && (
+                        <span className="inline-flex items-center rounded-md bg-zinc-700/40 px-1.5 py-0.5 text-[10px] text-zinc-300">
+                          {meta.tag.label}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-4">
+                      <span
+                        className={cn(
+                          "block w-full text-center text-sm font-semibold rounded-md py-2 transition-colors",
+                          isPopular
+                            ? "bg-[#6C47FF] text-white hover:bg-[#7d5cff]"
+                            : isPro
+                              ? "bg-[#6C47FF] text-white hover:bg-[#7d5cff]"
+                              : "border border-zinc-600 text-white hover:bg-white/5",
+                        )}
+                      >
+                        Comprar
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <Button
+              className="w-full bg-[#6C47FF] hover:bg-[#7d5cff] text-white"
+              onClick={goToCheckout}
+            >
+              Continuar com {CREDIT_PACKS[packId].name} ·{" "}
+              {formatBRL(CREDIT_PACKS[packId].price)}
             </Button>
+
+            {/* Footer trust block */}
+            <div className="border-t border-[#1E1E2E] pt-4 space-y-1.5">
+              <p className="flex items-center gap-2 text-xs text-zinc-400">
+                <ShieldCheck className="size-3.5 text-emerald-400" />
+                Pagamento seguro via PIX ou Cartão
+              </p>
+              <p className="flex items-center gap-2 text-xs text-zinc-400">
+                <Zap className="size-3.5 text-amber-400" />
+                Créditos liberados automaticamente após confirmação
+              </p>
+            </div>
           </div>
         )}
 
         {step === "customer" && (
+          <div className="px-5 pb-5">
           <CustomerDataStep
             initial={{
               name: profileQ.data?.name ?? "",
@@ -333,10 +494,11 @@ export function CreditPurchaseModal({
             onSubmit={(d) => saveProfileM.mutate(d)}
             submitLabel="Salvar e continuar"
           />
+          </div>
         )}
 
         {step === "checkout" && (
-          <div className="space-y-4">
+          <div className="space-y-4 px-5 pb-5">
             <div className="rounded-lg bg-muted/40 p-3 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">{pack.name}</p>
@@ -385,7 +547,7 @@ export function CreditPurchaseModal({
         )}
 
         {step === "pix" && pix && (
-          <div className="space-y-4">
+          <div className="space-y-4 px-5 pb-5">
             <PixDisplay qrCodeImage={pix.image} payload={pix.payload} />
             <CountdownTimer seconds={timeLeft} />
             <p className="text-xs text-muted-foreground text-center">
@@ -395,7 +557,7 @@ export function CreditPurchaseModal({
         )}
 
         {step === "success" && (
-          <div className="text-center space-y-4 py-4">
+          <div className="text-center space-y-4 py-4 px-5 pb-5">
             <div className="mx-auto size-16 rounded-full bg-success/20 flex items-center justify-center">
               <Check className="size-8 text-success" />
             </div>
