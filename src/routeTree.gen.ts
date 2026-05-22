@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PagamentoSucessoRouteImport } from './routes/pagamento.sucesso'
+import { Route as PagamentoFalhaRouteImport } from './routes/pagamento.falha'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiMpWebhookRouteImport } from './routes/api/mp-webhook'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
@@ -57,6 +58,11 @@ const IndexRoute = IndexRouteImport.update({
 const PagamentoSucessoRoute = PagamentoSucessoRouteImport.update({
   id: '/pagamento/sucesso',
   path: '/pagamento/sucesso',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagamentoFalhaRoute = PagamentoFalhaRouteImport.update({
+  id: '/pagamento/falha',
+  path: '/pagamento/falha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTtsRoute = ApiTtsRouteImport.update({
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/mp-webhook': typeof ApiMpWebhookRoute
   '/api/tts': typeof ApiTtsRoute
+  '/pagamento/falha': typeof PagamentoFalhaRoute
   '/pagamento/sucesso': typeof PagamentoSucessoRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cajupay-webhook': typeof ApiPublicCajupayWebhookRoute
@@ -168,6 +175,7 @@ export interface FileRoutesByTo {
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/mp-webhook': typeof ApiMpWebhookRoute
   '/api/tts': typeof ApiTtsRoute
+  '/pagamento/falha': typeof PagamentoFalhaRoute
   '/pagamento/sucesso': typeof PagamentoSucessoRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cajupay-webhook': typeof ApiPublicCajupayWebhookRoute
@@ -191,6 +199,7 @@ export interface FileRoutesById {
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/mp-webhook': typeof ApiMpWebhookRoute
   '/api/tts': typeof ApiTtsRoute
+  '/pagamento/falha': typeof PagamentoFalhaRoute
   '/pagamento/sucesso': typeof PagamentoSucessoRoute
   '/_authenticated/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cajupay-webhook': typeof ApiPublicCajupayWebhookRoute
@@ -214,6 +223,7 @@ export interface FileRouteTypes {
     | '/api/generate-image'
     | '/api/mp-webhook'
     | '/api/tts'
+    | '/pagamento/falha'
     | '/pagamento/sucesso'
     | '/c/$conversationId'
     | '/api/public/cajupay-webhook'
@@ -235,6 +245,7 @@ export interface FileRouteTypes {
     | '/api/generate-image'
     | '/api/mp-webhook'
     | '/api/tts'
+    | '/pagamento/falha'
     | '/pagamento/sucesso'
     | '/c/$conversationId'
     | '/api/public/cajupay-webhook'
@@ -257,6 +268,7 @@ export interface FileRouteTypes {
     | '/api/generate-image'
     | '/api/mp-webhook'
     | '/api/tts'
+    | '/pagamento/falha'
     | '/pagamento/sucesso'
     | '/_authenticated/c/$conversationId'
     | '/api/public/cajupay-webhook'
@@ -275,6 +287,7 @@ export interface RootRouteChildren {
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiMpWebhookRoute: typeof ApiMpWebhookRoute
   ApiTtsRoute: typeof ApiTtsRoute
+  PagamentoFalhaRoute: typeof PagamentoFalhaRoute
   PagamentoSucessoRoute: typeof PagamentoSucessoRoute
   ApiPublicCajupayWebhookRoute: typeof ApiPublicCajupayWebhookRoute
   ApiPublicCaktoWebhookRoute: typeof ApiPublicCaktoWebhookRoute
@@ -323,6 +336,13 @@ declare module '@tanstack/react-router' {
       path: '/pagamento/sucesso'
       fullPath: '/pagamento/sucesso'
       preLoaderRoute: typeof PagamentoSucessoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pagamento/falha': {
+      id: '/pagamento/falha'
+      path: '/pagamento/falha'
+      fullPath: '/pagamento/falha'
+      preLoaderRoute: typeof PagamentoFalhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/tts': {
@@ -459,6 +479,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiMpWebhookRoute: ApiMpWebhookRoute,
   ApiTtsRoute: ApiTtsRoute,
+  PagamentoFalhaRoute: PagamentoFalhaRoute,
   PagamentoSucessoRoute: PagamentoSucessoRoute,
   ApiPublicCajupayWebhookRoute: ApiPublicCajupayWebhookRoute,
   ApiPublicCaktoWebhookRoute: ApiPublicCaktoWebhookRoute,
