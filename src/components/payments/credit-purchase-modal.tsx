@@ -258,6 +258,43 @@ export function CreditPurchaseModal({
             </div>
           </div>
 
+          <p className="text-xs text-zinc-500 leading-relaxed">
+            O pagamento é processado com segurança pela plataforma Mercado Pago.
+            Seus dados financeiros não são armazenados pela AuraIA.
+          </p>
+
+          <div>
+            <p className="text-xs uppercase tracking-wider text-zinc-400 mb-2">
+              Método de pagamento
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setMethod("pix")}
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors",
+                  method === "pix"
+                    ? "border-[#6C47FF] bg-[#6C47FF]/15 text-white"
+                    : "border-[#1E1E2E] bg-[#13131A] text-zinc-300 hover:border-zinc-600",
+                )}
+              >
+                <QrCode className="size-4" /> PIX
+              </button>
+              <button
+                type="button"
+                onClick={() => setMethod("card")}
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors",
+                  method === "card"
+                    ? "border-[#6C47FF] bg-[#6C47FF]/15 text-white"
+                    : "border-[#1E1E2E] bg-[#13131A] text-zinc-300 hover:border-zinc-600",
+                )}
+              >
+                <CreditCard className="size-4" /> Cartão
+              </button>
+            </div>
+          </div>
+
           <Button
             className="w-full bg-[#6C47FF] hover:bg-[#7d5cff] text-white"
             disabled={purchase.isPending}
@@ -265,26 +302,17 @@ export function CreditPurchaseModal({
           >
             {purchase.isPending ? (
               <>
-                <Loader2 className="size-4 animate-spin mr-2" /> Gerando PIX...
+                <Loader2 className="size-4 animate-spin mr-2" /> Abrindo checkout...
               </>
             ) : (
-              `Gerar PIX ${formatBRL(finalPrice)}`
+              `Continuar — ${formatBRL(finalPrice)}`
             )}
           </Button>
 
           <p className="text-xs text-zinc-500 text-center">
-            Pagamento 100% via PIX. Os créditos são liberados automaticamente após a
-            confirmação do pagamento.
+            Após confirmar o pagamento, seus créditos serão liberados automaticamente.
           </p>
         </div>
-        <PixCheckoutModal
-          data={pix}
-          open={!!pix}
-          onOpenChange={(v) => !v && setPix(null)}
-          onPaid={() => {
-            qc.invalidateQueries({ queryKey: ["credits"] });
-          }}
-        />
       </DialogContent>
     </Dialog>
   );
