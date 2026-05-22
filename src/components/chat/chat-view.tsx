@@ -26,6 +26,18 @@ const IMAGE_STANDALONE_RE =
 const IMAGE_SIMPLE_RE =
   /(gera|cria|faz|fazer|criar|gerar|quero|gostaria|preciso|me\s+(d[áa]|d[êe]|manda|mostra|envia)).{0,40}(imagens?|fotos?|ilustra[cç][aã]o(es)?|figuras?|desenhos?|picture|image|art(e|work)?|wallpaper|logo|[íi]cone|avatar|retrato|p[ôo]ster|banner|capa)/i;
 
+// Pedido vago: verbo + "imagem/foto" SEM descrição do conteúdo.
+// Ex.: "gera uma imagem pra mim", "faz uma foto", "cria uma imagem".
+const IMAGE_VAGUE_RE =
+  /^\s*(por\s+favor[,\s]+)?(gera|gere|gerar|cria|crie|criar|faz|faça|fazer|desenha|desenhe|me\s+(d[áa]|d[êe]|manda|mostra|envia|gera|cria|faz)|quero|gostaria(\s+de)?|preciso(\s+de)?)\s+(uma?\s+)?(nova\s+)?(imagens?|fotos?|figuras?|desenhos?|ilustra[cç][aã]o(es)?|artes?|pinturas?)\s*(a[ií]|nova|legal|bonita|massa|top|incr[íi]vel|pra\s+mim|para\s+mim|aqui|agora|r[áa]pido)?\s*[\.\?!]*\s*$/i;
+
+function isVagueImageRequest(text: string): boolean {
+  if (!text) return false;
+  const t = text.trim();
+  if (!t) return false;
+  return IMAGE_VAGUE_RE.test(t);
+}
+
 function detectImageIntent(text: string): boolean {
   if (!text) return false;
   if (text.length > 800) return false;
