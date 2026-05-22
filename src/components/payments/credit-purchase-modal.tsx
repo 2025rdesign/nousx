@@ -62,7 +62,7 @@ export function CreditPurchaseModal({
   const qc = useQueryClient();
   const [packId, setPackId] = useState<CreditPackId>("popular");
   const [coupon, setCoupon] = useState<AppliedCoupon>(null);
-  const [pix, setPix] = useState<PixCheckoutData | null>(null);
+  const [method, setMethod] = useState<"pix" | "card">("pix");
 
   const pack = CREDIT_PACKS[packId];
   const finalPrice = useMemo(
@@ -70,7 +70,7 @@ export function CreditPurchaseModal({
     [pack.price, coupon],
   );
 
-  const start = useServerFn(createPixCharge);
+  const start = useServerFn(createMpCheckout);
   const fetchCredits = useServerFn(getCredits);
 
   const creditsQ = useQuery({
@@ -92,10 +92,15 @@ export function CreditPurchaseModal({
   const purchase = useMutation({
     mutationFn: () =>
       start({
-        data: { kind: "credit", id: packId, couponCode: coupon?.code ?? null },
+        data: { kind: "credit", id: packId, couponCode: coupon?.code ?? null, method },
       }),
     onSuccess: (res) => {
-      setPix(res);
+      window.open(res.initPoint, "_blank", "noopener,noreferrer");
+      notify.success(
+        "Finalize o pagamento na página que abriu. Seus créditos serão liberados automaticamente.",
+      );
+      onOpenChange(false);
+      qc.invalidateQueries({ queryKey: ["credits"] });
     },
     onError: (e) => notify.error(e instanceof Error ? e.message : "Erro ao iniciar checkout."),
   });
