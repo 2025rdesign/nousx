@@ -24,12 +24,16 @@ const IMAGE_NOUNS_RE =
   /\b(imagens?|fotos?|figuras?|desenhos?|ilustra[cç][aã]o(es)?|artes?|pinturas?|wallpapers?|capas?|logos?|logotipos?|[íi]cones?|avatares?|retratos?|posters?|p[ôo]steres?|render(s|iza[cç][aã]o)?|thumbs?|miniaturas?|cartazes?|banners?)\b/i;
 const IMAGE_STANDALONE_RE =
   /^\s*(uma?|umas?)\s+(imagens?|fotos?|figuras?|desenhos?|ilustra[cç][aã]o(es)?|artes?|pinturas?|wallpapers?|capas?|logos?|logotipos?|[íi]cones?|avatares?|retratos?|posters?|p[ôo]steres?)\s+(de|do|da|dos|das|com|em|sobre)\b/i;
+const IMAGE_SIMPLE_RE =
+  /(gera|cria|faz|fazer|criar|gerar|quero|gostaria|preciso|me\s+(d[áa]|d[êe]|manda|mostra|envia)).{0,40}(imagens?|fotos?|ilustra[cç][aã]o(es)?|figuras?|desenhos?|picture|image|art(e|work)?|wallpaper|logo|[íi]cone|avatar|retrato|p[ôo]ster|banner|capa)/i;
 
 function detectImageIntent(text: string): boolean {
   if (!text) return false;
   if (text.length > 800) return false;
   const t = text.trim();
   if (!t) return false;
+  // Simple "verb ... image-noun" within 40 chars
+  if (IMAGE_SIMPLE_RE.test(t)) return true;
   // Verb + image noun anywhere in the message
   if (IMAGE_NOUNS_RE.test(t) && IMAGE_VERBS_RE.test(t)) return true;
   // Or starts with "uma imagem de ..."
@@ -82,6 +86,7 @@ export function ChatView({ conversationId }: Props) {
   ) {
     setSending(true);
     const wantsImage = !image && !file && detectImageIntent(text);
+    console.log("[CHAT] image intent detected:", wantsImage, "| text:", text.slice(0, 120));
     setInflightMode(
       wantsImage ? "image" : webSearch ? "web" : reasoning ? "reasoning" : "default",
     );
@@ -125,6 +130,7 @@ export function ChatView({ conversationId }: Props) {
 
       // ── Image generation branch ──────────────────────────────────────────
       if (wantsImage) {
+        console.log("[CHAT] calling /api/generate-image (DeepSeek bypassed)");
         const { data: sess } = await supabase.auth.getSession();
         const token = sess.session?.access_token;
         if (!token) throw new Error("Sessão expirada.");
@@ -136,7 +142,9 @@ export function ChatView({ conversationId }: Props) {
           },
           body: JSON.stringify({ prompt: text }),
         });
+        console.log("[CHAT] /api/generate-image status:", res.status);
         if (res.status === 402) {
+          console.log("[CHAT] plano inativo — exibindo mensagem de upgrade");
           const msg =
             "Geração de imagem no chat é exclusiva do plano **Plus** ou **Ultra**.\n\n" +
             "Você ainda pode gerar imagens no **Estúdio** usando seus créditos avulsos.\n\n" +
@@ -153,6 +161,7 @@ export function ChatView({ conversationId }: Props) {
           throw new Error(err.error || "Falha ao gerar imagem.");
         }
         const data = (await res.json()) as { url: string };
+        console.log("[CHAT] imagem gerada:", data.url);
         await saveMsg({
           data: {
             conversationId: convId,
