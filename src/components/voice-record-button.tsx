@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,9 +13,10 @@ interface Props {
   disabled?: boolean;
   className?: string;
   lang?: string;
+  onRecordingChange?: (recording: boolean) => void;
 }
 
-export function VoiceRecordButton({ value, onChange, disabled, className, lang = "pt-BR" }: Props) {
+export function VoiceRecordButton({ value, onChange, disabled, className, lang = "pt-BR", onRecordingChange }: Props) {
   const baseRef = useRef("");
   const valueRef = useRef(value);
   valueRef.current = value;
@@ -44,6 +45,10 @@ export function VoiceRecordButton({ value, onChange, disabled, className, lang =
     onTranscript: handleTranscript,
     onError: handleError,
   });
+
+  useEffect(() => {
+    onRecordingChange?.(recording);
+  }, [recording, onRecordingChange]);
 
   const toggle = useCallback(() => {
     if (recording) {

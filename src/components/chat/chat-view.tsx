@@ -23,7 +23,7 @@ import { VoiceModeModal } from "./voice-mode-modal";
 // "imagem / foto / ilustração / desenho / arte". Pedidos vagos
 // como "gera uma imagem" caem no DeepSeek, que pergunta o que ele quer.
 const IMAGE_INTENT_RE =
-  /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|mostr(?:a|e|ar)|me\s+(?:d[áa]|d[êe]|manda|mostra|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?)\b[^\n]{0,30}\b(imagens?|fotos?|ilustra[cç][aã]o(?:es)?|desenhos?|figuras?|artes?|pinturas?|wallpapers?|retratos?|p[ôo]steres?|banners?|capas?)\b([^\n]*)/i;
+  /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|mostr(?:a|e|ar)|me\s+(?:d[áa]|d[êe]|manda|mostra|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?)\b[^\n]{0,30}\b(image(?:m|ns)|fotos?|ilustra[cç](?:[ãa]o|[õo]es)|desenhos?|figuras?|artes?|pinturas?|wallpapers?|retratos?|p[ôo]ster(?:es)?|banners?|capas?)\b([^\n]*)/i;
 
 const MIN_DESCRIPTION_CHARS = 10;
 
