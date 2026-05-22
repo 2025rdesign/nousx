@@ -153,7 +153,7 @@ function StudioInner() {
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   // mode B (new) state
-  const [model, setModel] = useState<"DEFAULT" | "REALISM" | "ANIME" | "TEMPORARY" | "ANIMA">("DEFAULT");
+  const [model, setModel] = useState<"DEFAULT" | "REALISM" | "ANIME">("DEFAULT");
   const [gender, setGender] = useState<"FEMALE" | "MALE" | "TRANS">("FEMALE");
   const [name, setName] = useState("");
   const [createProfile, setCreateProfile] = useState(false);
@@ -168,7 +168,7 @@ function StudioInner() {
   const [poseId, setPoseId] = useState<string | null>(null);
   const [poseType, setPoseType] = useState<string | null>(null);
   const [poseCategory, setPoseCategory] = useState<string>(POSE_CATEGORIES[0]?.id ?? "standing");
-  const [poseStrength, setPoseStrength] = useState<number>(80);
+  const [poseStrength, setPoseStrength] = useState<number>(50);
   const [posePrompt, setPosePrompt] = useState<string>("");
   const [highQuality, setHighQuality] = useState(false);
   const [editModel, setEditModel] = useState<"CREATIVE" | "REALISM" | "QWEN_PRO">("CREATIVE");
@@ -187,6 +187,32 @@ function StudioInner() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<"criar" | "resultado" | "personagens">("criar");
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const formScrollRef = useRef<HTMLElement>(null);
+
+  const resetForm = () => {
+    setActiveProfileId(null);
+    setName("");
+    setAppearance("");
+    setModel("DEFAULT");
+    setGender("FEMALE");
+    setAspect("4:5");
+    setPoseEnabled(false);
+    setPoseId(null);
+    setPoseType(null);
+    setPoseStrength(50);
+    setPosePrompt("");
+    setHighQuality(false);
+    setNegativePrompt("");
+    setEditModel("CREATIVE");
+    setResult(null);
+    setResultId(null);
+    setCreateProfile(false);
+    setMobileSidebarOpen(false);
+    setMobileTab("criar");
+    requestAnimationFrame(() => {
+      formScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
 
   const insertChip = (chip: string) => {
     setAppearance((prev) => (prev ? `${prev}, ${chip.toLowerCase()}` : chip));
@@ -299,10 +325,7 @@ function StudioInner() {
       <div className="px-3 pb-2">
         <button
           type="button"
-          onClick={() => {
-            setActiveProfileId(null);
-            setMobileSidebarOpen(false);
-          }}
+          onClick={resetForm}
           className="w-full h-10 flex items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#6C47FF] bg-transparent text-foreground text-[13px] transition-colors hover:bg-[#6C47FF]/[0.08] mb-2"
         >
           <Plus className="size-4" />
