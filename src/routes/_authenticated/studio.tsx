@@ -398,19 +398,57 @@ function StudioInner() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="appearance">
-                {activeProfile
-                  ? "Descreva a cena, pose, roupa ou situação..."
-                  : "Descreva seu personagem: aparência, cena, pose, roupa..."}
+              <Label htmlFor="appearance" className="text-xs text-muted-foreground">
+                Descrição
               </Label>
               <Textarea
                 id="appearance"
                 ref={textRef}
                 value={appearance}
                 onChange={(e) => setAppearance(e.target.value)}
-                rows={4}
-                className="resize-none min-h-[80px] w-full"
+                rows={6}
+                placeholder={
+                  activeProfile
+                    ? "Descreva a nova cena: pose, roupa, cenário, iluminação..."
+                    : "Descreva sua visão: aparência, roupa, cenário, pose, iluminação, estilo artístico... Quanto mais detalhes, melhor o resultado."
+                }
+                className="resize-none min-h-[120px] w-full text-[15px] leading-relaxed"
               />
+              <div className="flex items-center justify-between">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!appearance.trim() || improving}
+                  onClick={async () => {
+                    try {
+                      setImproving(true);
+                      const r = await improveFn({ data: { prompt: appearance.trim() } });
+                      setAppearance(r.prompt);
+                      notify.success("✨ Prompt melhorado!");
+                    } catch (e) {
+                      notify.error(e instanceof Error ? e.message : "Erro ao melhorar.");
+                    } finally {
+                      setImproving(false);
+                    }
+                  }}
+                >
+                  {improving ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      Melhorando...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="size-3.5" />
+                      Melhorar prompt
+                    </>
+                  )}
+                </Button>
+                <span className="text-[11px] text-muted-foreground">
+                  {appearance.length}/2000
+                </span>
+              </div>
               {activeProfile && (
                 <ScrollArea className="w-full">
                   <div className="flex gap-2 pb-2">
