@@ -11,6 +11,7 @@ import {
   getPayment,
   createSubscription,
   cancelSubscription,
+  getFirstSubscriptionPayment,
 } from "./asaas.server";
 import { creditUserOnce } from "./credits.server";
 import { CREDIT_PACKS, PLANS, applyDiscount, type CreditPackId, type PlanId } from "./payments-config";
@@ -287,7 +288,50 @@ export const subscribePlan = createServerFn({ method: "POST" })
       asaas_subscription_id: sub.id,
       expires_at: sub.nextDueDate ? new Date(sub.nextDueDate).toISOString() : null,
     });
-    return { subscriptionId: sub.id, status: sub.status };
+
+    if (data.method === "PIX") {
+      // Fetch the first auto-generated payment of this subscription and pull its
+      // PIX QR code so the client can render it immediately.
+      try {
+        const firstPayment = await getFirstSubscriptionPayment(sub.id);
+        if (firstPayment) {
+          const qr = await getPixQrCode(firstPayment.id);
+          await supabaseAdmin.from("payment_history").insert({
+            user_id: userId,
+            amount: value,
+            type: "subscription",
+            status: "pending",
+            asaas_payment_id: firstPayment.id,
+            metadata: {
+              planId: data.planId,
+              method: "PIX",
+              coupon,
+              subscriptionId: sub.id,
+            },
+          });
+          return {
+            subscriptionId: sub.id,
+            status: sub.status,
+            method: "PIX" as const,
+            paymentId: firstPayment.id,
+            qrCodeImage: qr.encodedImage,
+            qrCodePayload: qr.payload,
+            expirationDate: qr.expirationDate,
+            value,
+          };
+        }
+      } catch (e) {
+        console.error("[subscribePlan] PIX QR fetch failed", e);
+        throw new Error("Não conseguimos gerar o QR Code PIX. Tente novamente.");
+      }
+      throw new Error("Cobrança PIX não foi gerada. Tente novamente.");
+    }
+
+    return {
+      subscriptionId: sub.id,
+      status: sub.status,
+      method: "CREDIT_CARD" as const,
+    };
   });
 
 export const getMySubscription = createServerFn({ method: "GET" })
