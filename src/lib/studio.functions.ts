@@ -96,22 +96,17 @@ async function pollPrompt(promptId: string): Promise<{ mediaId: string; mediaUrl
 }
 
 async function ensureCredits(supabase: any, userId: string) {
-  const { data, error } = await supabase
-    .from("credits")
-    .select("balance")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data || data.balance <= 0) throw new Error("Créditos insuficientes.");
-  return data.balance as number;
+  // Trigger an expiration sweep + balance refresh via the admin helper.
+  const { recomputeUserBalance } = await import("./credits.server");
+  const balance = await recomputeUserBalance(userId);
+  if (balance <= 0) throw new Error("Créditos insuficientes.");
+  void supabase;
+  return balance;
 }
 
-async function decrementCredit(supabase: any, userId: string, current: number) {
-  const { error } = await supabase
-    .from("credits")
-    .update({ balance: current - 1, updated_at: new Date().toISOString() })
-    .eq("user_id", userId);
-  if (error) throw new Error(error.message);
+async function decrementCredit(_supabase: any, userId: string, _current: number) {
+  const { consumeCredits } = await import("./credits.server");
+  await consumeCredits(userId, 1);
 }
 
 /* ------------------------------- Lists ------------------------------- */
