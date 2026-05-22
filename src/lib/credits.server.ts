@@ -87,7 +87,7 @@ export async function creditUserOnce(
   const { data: existing } = await supabaseAdmin
     .from("payment_history")
     .select("id, status, metadata")
-    .eq("asaas_payment_id", paymentId)
+    .eq("cakto_payment_id", paymentId)
     .maybeSingle();
   const meta = (existing?.metadata as Record<string, unknown> | null) || null;
   if (meta && meta.credited === true) return;
@@ -118,8 +118,20 @@ export async function creditUserOnce(
       amount: 0,
       type: "credit",
       status: "confirmed",
-      asaas_payment_id: paymentId,
+      cakto_payment_id: paymentId,
       metadata: { credited: true, grantedAmount: amount, packId: resolvedPack },
     });
   }
+}
+
+/**
+ * Revokes all remaining credits for a user (used on refund / chargeback).
+ */
+export async function revokeAllCredits(userId: string) {
+  await supabaseAdmin
+    .from("credit_batches")
+    .update({ credits_remaining: 0 })
+    .eq("user_id", userId)
+    .gt("credits_remaining", 0);
+  await recomputeBalance(userId);
 }
