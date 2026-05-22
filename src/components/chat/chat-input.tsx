@@ -173,7 +173,8 @@ export function ChatInput({ onSend, disabled }: Props) {
           <div className="flex-1" />
           <VoiceRecordButton
             disabled={disabled}
-            onTranscript={(delta) => setText((prev) => (prev ? prev.replace(/\s*$/, " ") : "") + delta)}
+            value={text}
+            onChange={setText}
           />
           <Button
             type="button"
