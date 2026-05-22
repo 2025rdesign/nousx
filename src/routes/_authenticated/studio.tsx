@@ -277,6 +277,30 @@ function StudioInner() {
 
   const isLoading = gen.isPending;
 
+  // Simulated progress bar: fast to 85% in 8s, slow to 95%, jumps to 100% on success
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    if (!isLoading) {
+      if (result) {
+        setProgress(100);
+        const t = setTimeout(() => setProgress(0), 700);
+        return () => clearTimeout(t);
+      }
+      setProgress(0);
+      return;
+    }
+    setProgress(2);
+    const start = Date.now();
+    const iv = setInterval(() => {
+      const elapsed = (Date.now() - start) / 1000;
+      let p: number;
+      if (elapsed < 8) p = (elapsed / 8) * 85;
+      else p = Math.min(95, 85 + (elapsed - 8) * 0.5);
+      setProgress(p);
+    }, 120);
+    return () => clearInterval(iv);
+  }, [isLoading, result]);
+
   const Sidebar = (
     <div className="flex flex-col h-full bg-sidebar">
       <div className="p-3 border-b border-border">
