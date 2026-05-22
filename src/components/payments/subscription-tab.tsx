@@ -71,7 +71,7 @@ export function SubscriptionTab() {
           <CardContent className="pt-6 pb-6 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <Badge className="mb-2 bg-success text-success-foreground hover:bg-success">
+                <Badge className="mb-2 bg-success text-white hover:bg-success">
                   ● Plano {plan?.name} ativo
                 </Badge>
                 <h3 className="text-xl font-bold">{plan?.name}</h3>
