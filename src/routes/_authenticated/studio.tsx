@@ -894,42 +894,6 @@ function StudioInner() {
         </section>
       </div>
 
-      {/* Face reference picker */}
-      <Dialog open={faceRefOpen} onOpenChange={setFaceRefOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Escolher rosto de referência</DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto">
-            {allCharacters.filter((c) => c.image_url && c.media_id).length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center text-sm text-muted-foreground">
-                <ImageIcon className="size-8 mb-2 opacity-50" />
-                Nenhuma imagem gerada ainda.
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {allCharacters
-                  .filter((c) => c.image_url && c.media_id)
-                  .slice(0, 20)
-                  .map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => {
-                        setFaceRef({ mediaId: c.media_id!, imageUrl: c.image_url! });
-                        setFaceRefOpen(false);
-                      }}
-                      className="aspect-square rounded-md overflow-hidden border border-border hover:border-primary hover:ring-2 hover:ring-primary/40 transition-all bg-muted"
-                    >
-                      <img src={c.image_url!} alt={c.name || "Geração"} className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Lightbox */}
       {lightboxOpen && result && (
         <div
