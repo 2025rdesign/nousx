@@ -168,11 +168,12 @@ function StudioInner() {
   const [faceRef, setFaceRef] = useState<{ mediaId: string; imageUrl: string } | null>(null);
   const [faceRefOpen, setFaceRefOpen] = useState(false);
 
-  const { data: poses = [] } = useQuery({
+  const { data: poses = [], isLoading: posesLoading, isError: posesError } = useQuery({
     queryKey: ["alive-poses"],
     queryFn: () => fetchPoses(),
     enabled: poseEnabled,
     staleTime: 5 * 60_000,
+    retry: 0,
   });
 
   const { data: allCharacters = [] } = useQuery({
@@ -567,8 +568,15 @@ function StudioInner() {
               </label>
               {poseEnabled && (
                 <div className="space-y-3 pt-1">
-                  {poses.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Carregando poses...</p>
+                  {posesLoading ? (
+                    <p className="text-xs text-muted-foreground flex items-center gap-2">
+                      <Loader2 className="size-3 animate-spin" />
+                      Carregando poses...
+                    </p>
+                  ) : posesError || poses.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Poses indisponíveis no momento.
+                    </p>
                   ) : (
                     Object.entries(groupedPoses).map(([group, items]) =>
                       items.length === 0 ? null : (
