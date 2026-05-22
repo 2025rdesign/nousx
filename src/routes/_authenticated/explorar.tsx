@@ -32,15 +32,19 @@ function Explore() {
   const fetchImages = useServerFn(listPublicCharacters);
   const fetchProfiles = useServerFn(listPublicProfiles);
 
-  const { data: images = [] } = useQuery({
+  const { data: images = [], isLoading: liImages } = useQuery({
     queryKey: ["public-characters"],
     queryFn: () => fetchImages(),
     enabled: confirmed,
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
   });
-  const { data: characters = [] } = useQuery({
+  const { data: characters = [], isLoading: liChars } = useQuery({
     queryKey: ["public-profiles"],
     queryFn: () => fetchProfiles(),
     enabled: confirmed,
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
   });
 
   // Defensive dedupe by id — the server already deduplicates, but this
@@ -63,7 +67,9 @@ function Explore() {
           </TabsPrimitive.List>
 
           <TabsContent value="images" className="mt-4">
-            {uniqueImages.length === 0 ? (
+            {liImages && uniqueImages.length === 0 ? (
+              <SkeletonGrid />
+            ) : uniqueImages.length === 0 ? (
               <EmptyExplore />
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
