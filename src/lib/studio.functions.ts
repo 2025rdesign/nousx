@@ -247,7 +247,7 @@ export const improvePrompt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: {
     prompt: string;
-    model?: "DEFAULT" | "REALISM" | "ANIME" | "TEMPORARY" | "ANIMA";
+    model?: "DEFAULT" | "REALISM" | "ANIME";
     characterName?: string;
     characterAppearance?: string;
     editModel?: "CREATIVE" | "REALISM" | "QWEN_PRO";
@@ -257,7 +257,7 @@ export const improvePrompt = createServerFn({ method: "POST" })
     z
       .object({
         prompt: z.string().min(1).max(2000),
-        model: z.enum(["DEFAULT", "REALISM", "ANIME", "TEMPORARY", "ANIMA"]).optional(),
+        model: z.enum(["DEFAULT", "REALISM", "ANIME"]).optional(),
         characterName: z.string().max(120).optional(),
         characterAppearance: z.string().max(4000).optional(),
         editModel: z.enum(["CREATIVE", "REALISM", "QWEN_PRO"]).optional(),
@@ -344,7 +344,7 @@ const generateSchema = z.object({
   detailLevel: z.enum(["MEDIUM", "HIGH"]).optional(),
   // new
   name: z.string().min(1).max(60).optional(),
-  model: z.enum(["DEFAULT", "REALISM", "ANIME", "TEMPORARY", "ANIMA"]).optional(),
+  model: z.enum(["DEFAULT", "REALISM", "ANIME"]).optional(),
   gender: z.enum(["FEMALE", "MALE", "TRANS"]).optional(),
   createProfile: z.boolean().optional(),
   negativePrompt: z.string().max(500).optional(),
