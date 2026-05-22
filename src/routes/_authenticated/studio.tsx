@@ -341,7 +341,7 @@ function StudioInner() {
     <div className="h-full flex flex-col md:flex-row">
       <CreditPurchaseModal open={creditsOpen} onOpenChange={setCreditsOpen} />
       {/* Studio sidebar (desktop) */}
-      <aside className="hidden lg:flex w-[250px] shrink-0 border-r border-[#1a1a2e]">{Sidebar}</aside>
+      <aside className="hidden lg:flex w-[250px] shrink-0 border-r border-border">{Sidebar}</aside>
       <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
         <SheetContent side="left" className="p-0 w-72 hidden md:block lg:hidden">
           <SheetTitle className="sr-only">Personagens</SheetTitle>
