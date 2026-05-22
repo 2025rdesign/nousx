@@ -33,53 +33,60 @@ export function VoiceModeModal({ open, onClose }: Props) {
   const startSession = useCallback(async () => {
     if (typeof window === "undefined" || !mountedRef.current) return;
 
-    const { VoiceSession } = await import("@/lib/voice-session");
-    if (!mountedRef.current) return;
+    try {
+      const { VoiceSession } = await import("@/lib/voice-session");
+      if (!mountedRef.current) return;
 
-    const session = new VoiceSession({
-      state: (s) => {
-        if (!mountedRef.current) return;
-        setState(s);
-      },
-      error: (message) => {
-        if (!mountedRef.current) return;
-        setError(message);
-      },
-      userTranscript: (text) => {
-        if (!mountedRef.current) return;
-        setUserText(text);
-      },
-      assistantTranscript: (text) => {
-        if (!mountedRef.current) return;
-        setAssistantText(text);
-      },
-      turn: (turn) => {
-        if (!mountedRef.current) return;
-        setHistory((prev) => [...prev, turn].slice(-4));
-        if (turn.role === "user") setUserText("");
-        if (turn.role === "assistant") setAssistantText("");
-      },
-      analyser: (node) => {
-        if (!mountedRef.current) return;
-        analyserRef.current = node;
-      },
-    });
+      const session = new VoiceSession({
+        state: (s) => {
+          if (!mountedRef.current) return;
+          setState(s);
+        },
+        error: (message) => {
+          if (!mountedRef.current) return;
+          setError(message);
+        },
+        userTranscript: (text) => {
+          if (!mountedRef.current) return;
+          setUserText(text);
+        },
+        assistantTranscript: (text) => {
+          if (!mountedRef.current) return;
+          setAssistantText(text);
+        },
+        turn: (turn) => {
+          if (!mountedRef.current) return;
+          setHistory((prev) => [...prev, turn].slice(-4));
+          if (turn.role === "user") setUserText("");
+          if (turn.role === "assistant") setAssistantText("");
+        },
+        analyser: (node) => {
+          if (!mountedRef.current) return;
+          analyserRef.current = node;
+        },
+      });
 
-    const previousSession = sessionRef.current;
-    sessionRef.current = session;
-    setState("connecting");
-    setError(null);
+      const previousSession = sessionRef.current;
+      sessionRef.current = session;
+      setState("connecting");
+      setError(null);
 
-    if (previousSession) {
-      await previousSession.close();
+      if (previousSession) {
+        await previousSession.close();
+      }
+
+      if (!mountedRef.current) {
+        await session.close();
+        return;
+      }
+
+      await session.start();
+    } catch (err) {
+      console.error("[VOICE] modal start error", err);
+      if (!mountedRef.current) return;
+      setError(err instanceof Error ? err.message : "Falha ao iniciar modo de voz.");
+      setState("error");
     }
-
-    if (!mountedRef.current) {
-      await session.close();
-      return;
-    }
-
-    await session.start();
   }, []);
 
   useEffect(() => {
