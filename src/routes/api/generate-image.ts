@@ -75,6 +75,7 @@ export const Route = createFileRoute("/api/generate-image")({
         }
 
         try {
+          console.log("[GENERATE-IMAGE] calling Grok xAI for prompt:", prompt.slice(0, 120));
           const res = await fetch(XAI_ENDPOINT, {
             method: "POST",
             headers: {
@@ -98,6 +99,7 @@ export const Route = createFileRoute("/api/generate-image")({
           };
           const url = data.data?.[0]?.url;
           if (!url) return json({ error: "Resposta inválida." }, 500);
+          console.log("[GENERATE-IMAGE] image generated:", url);
           return json({ url, revisedPrompt: data.data?.[0]?.revised_prompt ?? null }, 200);
         } catch (e) {
           console.error("[GENERATE-IMAGE] error", e);
