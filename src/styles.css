@@ -160,6 +160,30 @@
   }
 }
 
+/* Mobile / PWA hardening */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+}
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+button, a, [role="button"] {
+  touch-action: manipulation;
+}
+/* iOS: prevent zoom-on-focus by forcing >=16px on form fields */
+@media (max-width: 768px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+/* Safe-area helpers for iPhone notch / home indicator */
+.safe-top { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
 @layer utilities {
   .typing-dot {
     animation: typing-bounce 1.2s infinite ease-in-out;

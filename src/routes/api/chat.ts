@@ -327,9 +327,23 @@ export const Route = createFileRoute("/api/chat")({
           );
         }
 
-        // Pipe through a TransformStream so chunks flush immediately.
-        // For Gemini, also translate its SSE shape to OpenAI's delta shape so
-        // the frontend parser works unchanged.
+        // For OpenAI-compatible upstreams (DeepSeek), pass the body directly —
+        // identical to the anonymous endpoint. Wrapping it in a TransformStream
+        // was causing the runtime to buffer the entire response before the
+        // client saw any chunk, so streaming "appeared" only after completion.
+        if (upstreamKind === "openai") {
+          return new Response(upstream.body, {
+            status: 200,
+            headers: {
+              "content-type": "text/event-stream; charset=utf-8",
+              "cache-control": "no-cache, no-transform",
+              "x-accel-buffering": "no",
+              connection: "keep-alive",
+            },
+          });
+        }
+
+        // Gemini needs translation to OpenAI's delta shape — keep the transform.
         const { readable, writable } = new TransformStream();
         (async () => {
           const reader = upstream.body!.getReader();
@@ -341,10 +355,6 @@ export const Route = createFileRoute("/api/chat")({
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
-              if (upstreamKind === "openai") {
-                await writer.write(value);
-                continue;
-              }
               // Gemini: parse SSE, extract text, re-emit OpenAI delta frames
               buf += decoder.decode(value, { stream: true });
               const lines = buf.split("\n");
@@ -374,9 +384,7 @@ export const Route = createFileRoute("/api/chat")({
                 }
               }
             }
-            if (upstreamKind === "gemini") {
-              await writer.write(encoder.encode("data: [DONE]\n\n"));
-            }
+            await writer.write(encoder.encode("data: [DONE]\n\n"));
           } catch (e) {
             console.error("[CHAT STREAM] pipe error", e);
           } finally {
