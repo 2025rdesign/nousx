@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, Check, Loader2, ShieldCheck, Clock } from "lucide-react";
+import { Copy, Check, Loader2, ShieldCheck, Clock, Info } from "lucide-react";
 import { notify } from "@/lib/notify";
 import {
   createPixPayment,
@@ -189,6 +189,24 @@ export function MpPixModal(props: PixModalProps) {
           </div>
           <p className="text-lg font-bold text-white shrink-0">{formatBRL(amount)}</p>
         </div>
+
+        {/* Aviso responsável pelo recebimento */}
+        {!isPaid && (
+          <div
+            className="mt-3 flex items-start gap-2 rounded-lg p-3 border"
+            style={{
+              backgroundColor: "rgba(108, 71, 255, 0.08)",
+              borderColor: "rgba(108, 71, 255, 0.2)",
+            }}
+          >
+            <Info className="size-4 shrink-0 mt-0.5" style={{ color: "rgba(108, 71, 255, 0.9)" }} />
+            <p className="text-[13px] leading-relaxed text-zinc-300">
+              O pagamento será processado em nome de <strong className="font-medium text-white">Ray Dougas</strong>,
+              administrador e desenvolvedor responsável pela plataforma AuraIA.
+              Isso é normal e não afeta a segurança da sua compra.
+            </p>
+          </div>
+        )}
 
         {/* CPF step */}
         {!pix && (
