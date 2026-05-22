@@ -417,12 +417,24 @@ export const generateCharacter = createServerFn({ method: "POST" })
       if (data.editModel) {
         (body as Record<string, unknown>).editModel = data.editModel;
       }
-      if (data.poseId) {
-        (body as Record<string, unknown>).pose = {
-          type: resolvePoseType(data.poseId),
-          id: cleanPoseId(data.poseId),
-          strength: 80,
-        };
+      {
+        const strength = data.poseStrength ?? 80;
+        const userPrompt = (data.posePrompt ?? "").trim();
+        if (data.poseId) {
+          const p: Record<string, unknown> = {
+            type: resolvePoseType(data.poseId),
+            id: cleanPoseId(data.poseId),
+            strength,
+          };
+          if (userPrompt) p.posePrompt = userPrompt;
+          (body as Record<string, unknown>).pose = p;
+        } else if (userPrompt) {
+          (body as Record<string, unknown>).pose = {
+            type: "CUSTOM",
+            posePrompt: userPrompt,
+            strength,
+          };
+        }
       }
       // Stash for fallback
       (body as any).__fallbackAppearance = profile.appearance || null;
