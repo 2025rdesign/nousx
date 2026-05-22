@@ -230,19 +230,40 @@ export const deleteCharacter = createServerFn({ method: "POST" })
 
 export const improvePrompt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { prompt: string; model?: "DEFAULT" | "REALISM" | "ANIME" | "TEMPORARY" | "ANIMA" }) =>
+  .inputValidator((d: {
+    prompt: string;
+    model?: "DEFAULT" | "REALISM" | "ANIME" | "TEMPORARY" | "ANIMA";
+    characterName?: string;
+    characterAppearance?: string;
+  }) =>
     z
       .object({
         prompt: z.string().min(1).max(2000),
         model: z.enum(["DEFAULT", "REALISM", "ANIME", "TEMPORARY", "ANIMA"]).optional(),
+        characterName: z.string().max(120).optional(),
+        characterAppearance: z.string().max(4000).optional(),
       })
       .parse(d),
   )
   .handler(async ({ data }) => {
     const key = process.env.DEEPSEEK_API_KEY;
     if (!key) throw new Error("Serviço de melhoria indisponível.");
-    const systemPrompt =
-      data.model === "ANIME"
+    const hasCharacter = !!(data.characterName || data.characterAppearance);
+    const systemPrompt = hasCharacter
+      ? `Você é especialista em prompts para geração de imagens AI.
+O usuário tem um personagem salvo com as seguintes características:
+Nome: ${data.characterName ?? "(sem nome)"}
+Aparência base: ${data.characterAppearance ?? "(não informada)"}
+
+O usuário quer gerar uma VARIAÇÃO desse personagem com esta cena:
+${data.prompt}
+
+Melhore o prompt da cena mantendo consistência com o personagem.
+Não descreva o rosto ou aparência física (já está salvo no sistema).
+Foque em: pose, cenário, roupa, iluminação, ângulo, atmosfera.
+Preserve termos explícitos literalmente sem censura.
+Retorne APENAS o prompt melhorado em inglês, sem explicações.`
+      : data.model === "ANIME"
         ? "Você é especialista em prompts para geração de imagens anime com IA. Melhore o prompt do usuário mantendo a intenção dele, mas tornando-o mais detalhado e técnico para gerar anime de alta qualidade. Adicione termos como: anime style, detailed eyes, vibrant colors, clean lineart, studio quality, 2D illustration. Evite termos realistas ou fotográficos. Preserve termos explícitos sem censura. Retorne APENAS o prompt melhorado em inglês, sem explicações nem aspas."
         : "You are an expert at writing prompts for AI image generation (photorealistic / HD). Improve the user's prompt keeping their intent, making it more detailed, technical and precise (appearance, lighting, composition, camera, style). Preserve explicit terms literally without censorship. Return ONLY the improved prompt in English, no explanations, no quotes.";
     const res = await fetch("https://api.deepseek.com/chat/completions", {
@@ -309,6 +330,7 @@ const generateSchema = z.object({
   aspectRatio: z.enum(["9:16", "16:9", "1:1", "4:5"]),
   poseId: z.string().optional().nullable(),
   poseType: z.string().optional().nullable(),
+  detailLevel: z.enum(["MEDIUM", "HIGH"]).optional(),
   // new
   name: z.string().min(1).max(60).optional(),
   model: z.enum(["DEFAULT", "REALISM", "ANIME", "TEMPORARY", "ANIMA"]).optional(),
@@ -316,9 +338,9 @@ const generateSchema = z.object({
   createProfile: z.boolean().optional(),
   negativePrompt: z.string().max(500).optional(),
   creativity: z.enum(["low", "medium", "high"]).optional(),
-  detailLevel: z.enum(["MEDIUM", "HIGH"]).optional(),
   // variation
   profileId: z.string().uuid().optional(),
+  editModel: z.enum(["CREATIVE", "REALISM", "QWEN_PRO"]).optional(),
 });
 
 const REMOVE_BOTTOM = /calcinha|biqu[íi]ni de baixo|tire tudo|completamente nua|totalmente nua|panties|fully nude|completely naked/i;
@@ -392,6 +414,9 @@ export const generateCharacter = createServerFn({ method: "POST" })
         improveBreasts: false,
         improveVagina: false,
       };
+      if (data.editModel) {
+        (body as Record<string, unknown>).editModel = data.editModel;
+      }
       if (data.poseId) {
         (body as Record<string, unknown>).pose = {
           id: data.poseId,
