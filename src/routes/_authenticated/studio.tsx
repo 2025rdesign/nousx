@@ -533,6 +533,13 @@ function StudioInner() {
                           model,
                           characterName: activeProfile?.name,
                           characterAppearance: activeProfile?.appearance ?? undefined,
+                          editModel: activeProfile ? editModel : undefined,
+                          highQuality,
+                          poseLabel: poseId
+                            ? (POSES.find((p) => p.id === poseId)?.posePrompt
+                                || POSES.find((p) => p.id === poseId)?.label
+                                || undefined)
+                            : (posePrompt.trim() || undefined),
                         },
                       });
                       setAppearance(r.prompt);
