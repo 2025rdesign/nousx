@@ -3,6 +3,7 @@ export type LocalPose = {
   category: string;
   label: string;
   preview: string;
+  posePrompt?: string;
 };
 
 export const POSES: LocalPose[] = [
@@ -88,18 +89,18 @@ export const POSES: LocalPose[] = [
   { id: "NSFW_suspended029_depth", category: "suspended", label: "Suspenso", preview: "https://central.daev.ca/wp-content/uploads/2026/02/NSFW_suspended029_depth.webp" },
   { id: "NSFW_suspended035_depth", category: "suspended", label: "Suspenso", preview: "https://central.daev.ca/wp-content/uploads/2026/02/NSFW_suspended035_depth.webp" },
   // CASAL
-  { id: "porn_abwc_fucking_from_behind_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_abwc_fucking_from_behind_depth.webp" },
-  { id: "porn_abc_fucking_from_behind_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_abc_fucking_from_behind_depth.webp" },
-  { id: "porn_lick_2_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_lick_2_depth.webp" },
-  { id: "porn_fingering_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_fingering_depth.webp" },
-  { id: "porn_blowjob_looking_at_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_blowjob_looking_at_depth.webp" },
-  { id: "porn_fucking_cowgirl_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_fucking_cowgirl_depth.webp" },
-  { id: "porn_kissing_from_behind_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_kissing_from_behind_depth.webp" },
-  { id: "porn_riding_penis_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_riding_penis_depth.webp" },
-  { id: "porn_blowjob_looking_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_blowjob_looking_depth.webp" },
-  { id: "porn_penis_between_breasts_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_penis_between_breasts_depth.webp" },
-  { id: "porn_on_knees_sucking_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_on_knees_sucking_depth.webp" },
-  { id: "porn_lick_1_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_lick_1_depth.webp" },
+  { id: "porn_abwc_fucking_from_behind_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_abwc_fucking_from_behind_depth.webp", posePrompt: "couple having sex, man penetrating woman from behind against a wall" },
+  { id: "porn_abc_fucking_from_behind_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_abc_fucking_from_behind_depth.webp", posePrompt: "couple having sex, man penetrating woman from behind, doggy style" },
+  { id: "porn_lick_2_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_lick_2_depth.webp", posePrompt: "man performing oral sex on woman, licking her between the legs" },
+  { id: "porn_fingering_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_fingering_depth.webp", posePrompt: "man fingering woman with his hand between her legs" },
+  { id: "porn_blowjob_looking_at_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_blowjob_looking_at_depth.webp", posePrompt: "woman performing oral sex on man, looking up at him" },
+  { id: "porn_fucking_cowgirl_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_fucking_cowgirl_depth.webp", posePrompt: "couple having sex, woman on top in cowgirl position" },
+  { id: "porn_kissing_from_behind_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_kissing_from_behind_depth.webp", posePrompt: "couple intimate, man kissing woman's neck from behind, embracing" },
+  { id: "porn_riding_penis_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_riding_penis_depth.webp", posePrompt: "woman riding man, sitting on top of him during sex" },
+  { id: "porn_blowjob_looking_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_blowjob_looking_depth.webp", posePrompt: "woman performing oral sex on man, looking forward" },
+  { id: "porn_penis_between_breasts_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_penis_between_breasts_depth.webp", posePrompt: "couple intimate, penis between woman's breasts, titjob" },
+  { id: "porn_on_knees_sucking_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_on_knees_sucking_depth.webp", posePrompt: "woman on her knees performing oral sex on standing man" },
+  { id: "porn_lick_1_depth", category: "couple", label: "Casal", preview: "https://central.daev.ca/wp-content/uploads/2026/02/porn_lick_1_depth.webp", posePrompt: "man performing oral sex on woman lying down, licking between her legs" },
 ];
 
 export const POSE_CATEGORIES = [

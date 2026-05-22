@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { POSES } from "@/data/poses";
 
 const ALIVEAI_BASE = "https://api.aliveai.app";
 
@@ -93,6 +94,20 @@ async function pollPrompt(promptId: string): Promise<{ mediaId: string; mediaUrl
   }
 
   throw new Error("Tempo limite de geração atingido. Tente novamente.");
+}
+
+async function logPromptPoseEcho(promptId: string) {
+  try {
+    const res = await fetch(`${ALIVEAI_BASE}/prompts/${promptId}`, {
+      headers: aliveHeaders(),
+    });
+    if (!res.ok) return;
+    const data = (await res.json()) as any;
+    const echoed = data?.originalPrompt?.pose ?? data?.promptContainer?.originalPrompt?.pose ?? data?.pose ?? null;
+    console.log("[POSE RESPONSE]", JSON.stringify(echoed));
+  } catch (err) {
+    console.warn("[POSE RESPONSE] fetch failed", err);
+  }
 }
 
 async function ensureCredits(_supabase: any, userId: string, cost: number) {
@@ -334,6 +349,38 @@ function resolvePoseType(id: string): string {
   return "CUSTOM";
 }
 
+function buildPosePayload(
+  poseId: string | null | undefined,
+  posePromptInput: string | null | undefined,
+  poseStrengthInput: number | null | undefined,
+): Record<string, unknown> | null {
+  const poseStrength = Number.isFinite(Number(poseStrengthInput))
+    ? Math.round(Number(poseStrengthInput))
+    : 50;
+  const userPrompt = (posePromptInput ?? "").trim();
+  if (poseId) {
+    const type = resolvePoseType(poseId);
+    // For couple/PORN poses the API frequently ignores the depth id —
+    // send only the textual posePrompt instead.
+    if (type === "PORN") {
+      const local = POSES.find((p) => p.id === poseId);
+      const description = userPrompt || local?.posePrompt || "couple having sex";
+      return { type: "PORN", poseStrength, posePrompt: description };
+    }
+    const pose: Record<string, unknown> = {
+      type,
+      id: cleanPoseId(poseId),
+      poseStrength,
+    };
+    if (userPrompt) pose.posePrompt = userPrompt;
+    return pose;
+  }
+  if (userPrompt) {
+    return { type: "CUSTOM", poseStrength, posePrompt: userPrompt };
+  }
+  return null;
+}
+
 export const generateCharacter = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => generateSchema.parse(d))
@@ -372,23 +419,9 @@ export const generateCharacter = createServerFn({ method: "POST" })
         negativeDetails: `${baseNeg}${userNeg ? ", " + userNeg : ""}`,
       };
       {
-        const strength = Number.isFinite(Number(data.poseStrength))
-          ? Math.round(Number(data.poseStrength))
-          : 50;
-        const userPrompt = (data.posePrompt ?? "").trim();
-        let pose: Record<string, unknown> | null = null;
-        if (data.poseId) {
-          pose = {
-            type: resolvePoseType(data.poseId),
-            id: cleanPoseId(data.poseId),
-            poseStrength: strength,
-          };
-          if (userPrompt) pose.posePrompt = userPrompt;
-        } else if (userPrompt) {
-          pose = { type: "CUSTOM", poseStrength: strength, posePrompt: userPrompt };
-        }
+        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength);
         if (pose) {
-          console.log("[POSE]", JSON.stringify(pose));
+          console.log("[POSE PAYLOAD]", JSON.stringify(pose));
           (body as Record<string, unknown>).pose = pose;
         }
       }
@@ -418,23 +451,9 @@ export const generateCharacter = createServerFn({ method: "POST" })
         cfg: 5,
       };
       {
-        const strength = Number.isFinite(Number(data.poseStrength))
-          ? Math.round(Number(data.poseStrength))
-          : 50;
-        const userPrompt = (data.posePrompt ?? "").trim();
-        let pose: Record<string, unknown> | null = null;
-        if (data.poseId) {
-          pose = {
-            type: resolvePoseType(data.poseId),
-            id: cleanPoseId(data.poseId),
-            poseStrength: strength,
-          };
-          if (userPrompt) pose.posePrompt = userPrompt;
-        } else if (userPrompt) {
-          pose = { type: "CUSTOM", poseStrength: strength, posePrompt: userPrompt };
-        }
+        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength);
         if (pose) {
-          console.log("[POSE]", JSON.stringify(pose));
+          console.log("[POSE PAYLOAD]", JSON.stringify(pose));
           (body as Record<string, unknown>).pose = pose;
         }
       }
@@ -501,6 +520,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
 
     const { mediaId, mediaUrl } = await pollPrompt(promptId);
     console.log("[DEBUG] Poll completed", { mediaId, mediaUrl });
+    await logPromptPoseEcho(promptId);
 
     let profileId: string | null = data.mode === "variation" ? data.profileId! : null;
 
