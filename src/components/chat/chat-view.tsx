@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -306,10 +305,63 @@ export function ChatView({ conversationId }: Props) {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
+      const streamId = `stream-${Date.now()}`;
       let accum = "";
       let reasoningAccum = "";
       let buf = "";
-      let started = false;
+
+      setAwaitingReply(false);
+      setStreaming({
+        id: streamId,
+        role: "assistant",
+        content: "",
+        reasoning: null,
+        streaming: true,
+      });
+
+      const appendChunk = (text: string, reasoningText?: string) => {
+        const safeText = text || "";
+        const safeReasoning = reasoningText || "";
+
+        if (safeText) accum += safeText;
+        if (safeReasoning) reasoningAccum += safeReasoning;
+        if (!safeText && !safeReasoning) return;
+
+        setStreaming((prev) => {
+          if (!prev || prev.id !== streamId) {
+            return {
+              id: streamId,
+              role: "assistant",
+              content: safeText,
+              reasoning: safeReasoning || null,
+              streaming: true,
+            };
+          }
+
+          return {
+            ...prev,
+            content: `${prev.content}${safeText}`,
+            reasoning: safeReasoning
+              ? `${prev.reasoning ?? ""}${safeReasoning}`
+              : (prev.reasoning ?? null),
+            streaming: true,
+          };
+        });
+      };
+
+      const processPayload = (payload: string) => {
+        if (!payload || payload === "[DONE]") return;
+
+        try {
+          const json = JSON.parse(payload);
+          const d = json.choices?.[0]?.delta ?? {};
+          const delta = typeof d.content === "string" ? d.content : "";
+          const rdelta = typeof d.reasoning_content === "string" ? d.reasoning_content : "";
+          appendChunk(delta, rdelta);
+        } catch {
+          appendChunk(payload);
+        }
+      };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -317,52 +369,36 @@ export function ChatView({ conversationId }: Props) {
         buf += decoder.decode(value, { stream: true });
         const lines = buf.split("\n");
         buf = lines.pop() ?? "";
+
         for (const line of lines) {
           const trimmed = line.trim();
           if (!trimmed.startsWith("data:")) continue;
-          const payload = trimmed.slice(5).trim();
-          if (payload === "[DONE]") continue;
-          try {
-            const json = JSON.parse(payload);
-            const d = json.choices?.[0]?.delta ?? {};
-            const delta = d.content;
-            const rdelta = d.reasoning_content;
-            if (typeof rdelta === "string" && rdelta.length > 0) {
-              reasoningAccum += rdelta;
-            }
-            if (typeof delta === "string" && delta.length > 0) {
-              accum += delta;
-            }
-            if (delta || rdelta) {
-              if (!started) {
-                started = true;
-                // First chunk arrived: hide typing indicator before showing text
-                flushSync(() => {
-                  setAwaitingReply(false);
-                });
-              }
-              flushSync(() => {
-                setStreaming({
-                  id: "stream",
-                  role: "assistant",
-                  content: accum,
-                  reasoning: reasoningAccum || null,
-                  streaming: true,
-                });
-              });
-            }
-          } catch {
-            /* ignore */
-          }
+          processPayload(trimmed.slice(5).trim());
         }
       }
+
+      const tail = decoder.decode();
+      if (tail) {
+        buf += tail;
+      }
+      if (buf.trim().startsWith("data:")) {
+        processPayload(buf.trim().slice(5).trim());
+      }
+
+      setStreaming((prev) =>
+        prev && prev.id === streamId
+          ? {
+              ...prev,
+              streaming: false,
+            }
+          : prev,
+      );
 
       if (accum) {
         await saveMsg({
           data: { conversationId: convId, role: "assistant", content: accum },
         });
       }
-      setStreaming(null);
       queryClient.invalidateQueries({ queryKey: ["messages", convId] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
 
