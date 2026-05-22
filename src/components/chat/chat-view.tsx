@@ -1,6 +1,6 @@
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { ClientOnly, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,11 +17,7 @@ import { CodeCanvasProvider } from "./code-canvas";
 import { notify } from "@/lib/notify";
 import type { ExtractedFile } from "@/lib/file-extract";
 import { useActivePlan } from "@/hooks/use-active-plan";
-
-const VoiceModeModal = lazy(async () => {
-  const mod = await import("./voice-mode-modal");
-  return { default: mod.VoiceModeModal };
-});
+import { VoiceModeModal } from "./voice-mode-modal";
 
 // Só gera imagem quando o usuário descreve o conteúdo após
 // "imagem / foto / ilustração / desenho / arte". Pedidos vagos
@@ -392,33 +388,7 @@ export function ChatView({ conversationId }: Props) {
           onOpenVoiceMode={() => setVoiceOpen(true)}
           voiceModeActive={voiceOpen}
         />
-        <ClientOnly fallback={null}>
-          <Suspense fallback={null}>
-            <VoiceModeModal
-              open={voiceOpen}
-              onClose={async (summary) => {
-                setVoiceOpen(false);
-                if (!summary) return;
-                try {
-                  let convId = conversationId;
-                  if (!convId) {
-                    const conv = await createConv({ data: { title: "Conversa por voz" } });
-                    convId = conv.id;
-                    queryClient.invalidateQueries({ queryKey: ["conversations"] });
-                    navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
-                  }
-                  await saveMsg({
-                    data: { conversationId: convId, role: "assistant", content: summary },
-                  });
-                  queryClient.invalidateQueries({ queryKey: ["messages", convId] });
-                } catch (e) {
-                  console.error("[VOICE] save summary error", e);
-                  notify.error("Não foi possível salvar o resumo.");
-                }
-              }}
-            />
-          </Suspense>
-        </ClientOnly>
+        <VoiceModeModal open={voiceOpen} onClose={() => setVoiceOpen(false)} />
       </div>
     </CodeCanvasProvider>
   );
