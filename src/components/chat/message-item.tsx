@@ -34,11 +34,9 @@ export interface ChatMsg {
 }
 
 function getInlineImageUrl(content: string): string | null {
-  const trimmed = content.trim();
-  if (/^(https?:\/\/\S+\.(png|jpe?g|webp|gif|avif))(\?\S*)?$/i.test(trimmed)) {
-    return trimmed;
-  }
-  return null;
+  if (!content) return null;
+  const m = content.match(/https?:\/\/[^\s)]+\.(?:png|jpe?g|webp|gif|avif)(?:\?[^\s)]*)?/i);
+  return m ? m[0] : null;
 }
 
 function MessageItemInner({ msg }: { msg: ChatMsg }) {
@@ -49,7 +47,9 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
   const { open: openCanvas } = useCodeCanvas();
   const { hasActive } = useActivePlan();
   const imageUrl = msg.image_url ?? getInlineImageUrl(msg.content);
-  const textContent = imageUrl === msg.content.trim() ? "" : msg.content;
+  const textContent = imageUrl
+    ? msg.content.replace(imageUrl, "").replace(/!\[[^\]]*\]\(\s*\)/g, "").trim()
+    : msg.content;
 
   const onCopy = async () => {
     await navigator.clipboard.writeText(textContent || msg.content);
