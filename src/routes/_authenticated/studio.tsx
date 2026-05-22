@@ -204,6 +204,8 @@ function StudioInner() {
             aspectRatio: ratio,
             poseId: poseEnabled ? poseId ?? undefined : undefined,
             poseType: poseEnabled ? poseType ?? undefined : undefined,
+            poseStrength: poseEnabled ? poseStrength : undefined,
+            posePrompt: poseEnabled ? posePrompt.trim() || undefined : undefined,
             editModel,
             detailLevel: highQuality ? "HIGH" : "MEDIUM",
           },
@@ -224,6 +226,8 @@ function StudioInner() {
           detailLevel: highQuality ? "HIGH" : "MEDIUM",
           poseId: poseEnabled ? poseId ?? undefined : undefined,
           poseType: poseEnabled ? poseType ?? undefined : undefined,
+          poseStrength: poseEnabled ? poseStrength : undefined,
+          posePrompt: poseEnabled ? posePrompt.trim() || undefined : undefined,
         },
       });
     },
