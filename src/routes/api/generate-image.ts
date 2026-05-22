@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 const XAI_ENDPOINT = "https://api.x.ai/v1/images/generations";
+const XAI_IMAGE_MODEL = "grok-imagine-image";
 
 export const Route = createFileRoute("/api/generate-image")({
   server: {
@@ -46,6 +47,7 @@ export const Route = createFileRoute("/api/generate-image")({
 
         const sub = subs?.[0] ?? null;
         const hasActive = !!sub;
+        console.log("[GENERATE-IMAGE] active plan:", hasActive);
         if (!hasActive) {
           console.log("[GENERATE-IMAGE] no active subscription for", userId);
           return json(
@@ -83,7 +85,7 @@ export const Route = createFileRoute("/api/generate-image")({
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "grok-2-image-1212",
+              model: XAI_IMAGE_MODEL,
               prompt,
               n: 1,
               response_format: "url",

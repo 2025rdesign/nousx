@@ -69,6 +69,7 @@ export function ChatView({ conversationId }: Props) {
     "default" | "web" | "reasoning" | "image"
   >("default");
   const [optimisticUser, setOptimisticUser] = useState<ChatMsg | null>(null);
+  const [optimisticAssistant, setOptimisticAssistant] = useState<ChatMsg | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const messages: ChatMsg[] = (dbMessages as ChatMsg[] | undefined) ?? [];
@@ -86,7 +87,7 @@ export function ChatView({ conversationId }: Props) {
   ) {
     setSending(true);
     const wantsImage = !image && !file && detectImageIntent(text);
-    console.log("[CHAT] image intent detected:", wantsImage, "| text:", text.slice(0, 120));
+    console.log("[CHAT] intenção de imagem detectada:", wantsImage, "| text:", text.slice(0, 120));
     setInflightMode(
       wantsImage ? "image" : webSearch ? "web" : reasoning ? "reasoning" : "default",
     );
@@ -130,7 +131,7 @@ export function ChatView({ conversationId }: Props) {
 
       // ── Image generation branch ──────────────────────────────────────────
       if (wantsImage) {
-        console.log("[CHAT] calling /api/generate-image (DeepSeek bypassed)");
+        console.log("[CHAT] chamando /api/generate-image (DeepSeek bypassado)");
         const { data: sess } = await supabase.auth.getSession();
         const token = sess.session?.access_token;
         if (!token) throw new Error("Sessão expirada.");
@@ -144,6 +145,7 @@ export function ChatView({ conversationId }: Props) {
         });
         console.log("[CHAT] /api/generate-image status:", res.status);
         if (res.status === 402) {
+          console.log("[CHAT] plano ativo:", false);
           console.log("[CHAT] plano inativo — exibindo mensagem de upgrade");
           const msg =
             "Geração de imagem no chat é exclusiva do plano **Plus** ou **Ultra**.\n\n" +
@@ -161,7 +163,14 @@ export function ChatView({ conversationId }: Props) {
           throw new Error(err.error || "Falha ao gerar imagem.");
         }
         const data = (await res.json()) as { url: string };
+        console.log("[CHAT] plano ativo:", true);
         console.log("[CHAT] imagem gerada:", data.url);
+        setOptimisticAssistant({
+          id: `tmp-a-${Date.now()}`,
+          role: "assistant",
+          content: "Aqui está sua imagem ✨",
+          image_url: data.url,
+        });
         await saveMsg({
           data: {
             conversationId: convId,
@@ -299,6 +308,7 @@ export function ChatView({ conversationId }: Props) {
       }
       setStreaming(null);
       setOptimisticUser(null);
+      setOptimisticAssistant(null);
     } finally {
       setSending(false);
       setAwaitingReply(false);
@@ -333,6 +343,7 @@ export function ChatView({ conversationId }: Props) {
                 <MessageItem key={m.id} msg={m} />
               ))}
               {optimisticUser && <MessageItem msg={optimisticUser} />}
+              {optimisticAssistant && <MessageItem msg={optimisticAssistant} />}
               {streaming && streaming.content && <MessageItem msg={streaming} />}
               {awaitingReply && !streaming?.content && <TypingIndicator mode={inflightMode} />}
             </div>
