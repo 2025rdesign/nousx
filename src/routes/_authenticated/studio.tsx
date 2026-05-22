@@ -295,9 +295,9 @@ function StudioInner() {
   }, [isLoading, result]);
 
   const Sidebar = (
-    <div className="flex flex-col h-full bg-[#0D0D14]">
-      <div className="px-4 pt-4 pb-2">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+    <div className="flex flex-col h-full bg-background">
+      <div className="px-3 pt-4 pb-2">
+        <h2 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground px-1">
           Personagens
         </h2>
       </div>
@@ -308,14 +308,14 @@ function StudioInner() {
             setActiveProfileId(null);
             setMobileSidebarOpen(false);
           }}
-          className="w-full h-9 flex items-center justify-center gap-2 rounded-md border border-[#6C47FF] bg-transparent text-white text-[13px] transition-colors hover:bg-[#6C47FF]/20"
+          className="w-full h-10 flex items-center justify-center gap-2 rounded-[10px] border border-dashed border-[#6C47FF] bg-transparent text-foreground text-[13px] transition-colors hover:bg-[#6C47FF]/[0.08] mb-2"
         >
           <Plus className="size-4" />
           Novo personagem
         </button>
       </div>
       <ScrollArea className="flex-1">
-        <div className="divide-y divide-white/[0.03]">
+        <div className="flex flex-col gap-2 px-3 pb-3">
           {profiles.map((p) => (
             <CharacterCard
               key={p.id}
