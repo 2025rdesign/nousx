@@ -219,3 +219,24 @@ export async function createSubscription(args: {
 export async function cancelSubscription(id: string): Promise<void> {
   await asaas(`/subscriptions/${id}`, { method: "DELETE" });
 }
+
+export async function listSubscriptionPayments(
+  subscriptionId: string,
+): Promise<{ data: AsaasPayment[] }> {
+  return asaas<{ data: AsaasPayment[] }>(
+    `/subscriptions/${subscriptionId}/payments`,
+  );
+}
+
+/**
+ * Returns the first (oldest) payment generated for a subscription.
+ * Asaas auto-creates the initial payment when the subscription is created.
+ */
+export async function getFirstSubscriptionPayment(
+  subscriptionId: string,
+): Promise<AsaasPayment | null> {
+  const res = await listSubscriptionPayments(subscriptionId);
+  if (!res?.data?.length) return null;
+  // Pick the earliest by id (Asaas IDs are time-sortable as strings) — fallback to first
+  return res.data[res.data.length - 1] ?? res.data[0];
+}

@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Menu, Settings, LogOut, User as UserIcon, PanelLeft, ArrowLeft } from "lucide-react";
+import { Menu, Settings, LogOut, User as UserIcon, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -26,8 +26,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  // Sidebar de conversas só aparece em rotas de chat.
-  const showChatSidebar = pathname === "/" || pathname.startsWith("/c/");
+  // Sidebar aparece em todas as rotas autenticadas (não só chat).
+  // Em rotas que não são chat escondemos a lista de conversas, mas a
+  // navegação (Estúdio / Galeria / Explorar / Configurações) continua acessível.
+  const isChatRoute = pathname === "/" || pathname.startsWith("/c/");
+  const showSidebar = true;
+  void isChatRoute;
 
   const fetchProfile = useServerFn(getProfile);
   const { data: profile } = useQuery({
@@ -43,15 +47,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="h-screen w-full flex bg-background text-foreground overflow-hidden">
-      {/* Desktop sidebar (apenas em rotas de chat) */}
-      {showChatSidebar && !collapsed && (
+      {/* Desktop sidebar — sempre visível enquanto autenticado */}
+      {showSidebar && !collapsed && (
         <aside className="hidden md:flex w-64 shrink-0 border-r border-border bg-sidebar">
           <ConversationSidebar onNavigate={() => undefined} />
         </aside>
       )}
 
-      {/* Mobile sidebar (apenas em rotas de chat) */}
-      {showChatSidebar && (
+      {/* Mobile sidebar */}
+      {showSidebar && (
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent side="left" className="p-0 w-72 bg-sidebar border-border">
             <ConversationSidebar onNavigate={() => setMobileOpen(false)} />
@@ -61,42 +65,25 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 shrink-0 flex items-center gap-2 px-3 md:px-4 border-b border-border bg-background/80 backdrop-blur">
-          {showChatSidebar && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden"
-                onClick={() => setMobileOpen(true)}
-                aria-label="Abrir menu"
-              >
-                <Menu className="size-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hidden md:inline-flex"
-                onClick={() => setCollapsed((v) => !v)}
-                aria-label={collapsed ? "Mostrar sidebar" : "Esconder sidebar"}
-              >
-                <PanelLeft className="size-5" />
-              </Button>
-            </>
-          )}
-          {!showChatSidebar && (
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="hidden md:inline-flex gap-1.5"
-            >
-              <Link to="/">
-                <ArrowLeft className="size-4" />
-                Chat
-              </Link>
-            </Button>
-          )}
-          <Link to="/" className={showChatSidebar ? "md:hidden" : ""}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Abrir menu"
+          >
+            <Menu className="size-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden md:inline-flex"
+            onClick={() => setCollapsed((v) => !v)}
+            aria-label={collapsed ? "Mostrar sidebar" : "Esconder sidebar"}
+          >
+            <PanelLeft className="size-5" />
+          </Button>
+          <Link to="/" className="md:hidden">
             <NousxLogo className="text-lg" />
           </Link>
           <div className="flex-1" />
