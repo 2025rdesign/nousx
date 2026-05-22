@@ -405,6 +405,7 @@ function StudioInner() {
       <div className="flex-1 min-w-0 flex flex-col lg:flex-row min-h-0">
         {/* Center panel */}
         <section
+          ref={formScrollRef}
           className={cn(
             "studio-scroll lg:w-[400px] lg:shrink-0 lg:flex-none flex-1 min-w-0 min-h-0 overflow-y-auto lg:border-r lg:border-border",
             "md:block",
