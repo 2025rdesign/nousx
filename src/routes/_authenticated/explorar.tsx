@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { Sparkles } from "lucide-react";
-import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,11 +20,7 @@ const AGE_KEY = "nousx-age-confirmed";
 
 export const Route = createFileRoute("/_authenticated/explorar")({
   head: () => ({ meta: [{ title: "Explorar — NOUSX" }] }),
-  component: () => (
-    <AppLayout>
-      <Explore />
-    </AppLayout>
-  ),
+  component: Explore,
 });
 
 function Explore() {
