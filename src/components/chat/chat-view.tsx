@@ -54,6 +54,8 @@ export function ChatView({ conversationId }: Props) {
     queryFn: () =>
       conversationId ? fetchMessages({ data: { conversationId } }) : Promise.resolve([]),
     enabled: !!conversationId,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
   });
 
   const [streaming, setStreaming] = useState<ChatMsg | null>(null);
