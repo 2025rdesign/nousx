@@ -8,6 +8,12 @@ import { notify } from "@/lib/notify";
 import { extractFileText, type ExtractedFile } from "@/lib/file-extract";
 import { VoiceRecordButton } from "@/components/voice-record-button";
 import { SoundWaveIcon } from "./sound-wave-icon";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Props {
   onSend: (
@@ -40,6 +46,7 @@ export function ChatInput({
   const [extracting, setExtracting] = useState(false);
   const [reasoning, setReasoning] = useState(false);
   const [webSearch, setWebSearch] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function blockAnon(e: MouseEvent | Event) {
@@ -54,7 +61,7 @@ export function ChatInput({
 
   function handleSubmit() {
     const t = text.trim();
-    if (!t || disabled || extracting) return;
+    if (!t || disabled || extracting || isRecording) return;
     onSend(t, image, file, reasoning, webSearch);
     setText("");
     setImage(null);
@@ -231,7 +238,12 @@ export function ChatInput({
               <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
             </button>
           ) : (
-            <VoiceRecordButton disabled={disabled} value={text} onChange={setText} />
+            <VoiceRecordButton
+              disabled={disabled}
+              value={text}
+              onChange={setText}
+              onRecordingChange={setIsRecording}
+            />
           )}
           {!anonMode && (
             <>
@@ -253,16 +265,32 @@ export function ChatInput({
               </button>
             </>
           )}
-          <Button
-            type="button"
-            size="icon"
-            onClick={handleSubmit}
-            disabled={!text.trim() || disabled}
-            className={cn("rounded-lg")}
-            aria-label="Enviar"
-          >
-            <Send className="size-4" />
-          </Button>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    type="button"
+                    size="icon"
+                    onClick={handleSubmit}
+                    disabled={!text.trim() || disabled || isRecording}
+                    className={cn(
+                      "rounded-lg",
+                      isRecording && "opacity-40 cursor-not-allowed",
+                    )}
+                    aria-label="Enviar"
+                  >
+                    <Send className="size-4" />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {isRecording && (
+                <TooltipContent side="top">
+                  Pare a gravação antes de enviar
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
       <p className="text-[10px] text-muted-foreground text-center mt-2">
