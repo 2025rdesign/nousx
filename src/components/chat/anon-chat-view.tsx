@@ -256,7 +256,6 @@ export function AnonChatView({ onUsageChange }: { onUsageChange?: (n: number) =>
           className="sm:max-w-md"
           onPointerDownOutside={(e) => limitReached && e.preventDefault()}
           onEscapeKeyDown={(e) => limitReached && e.preventDefault()}
-          showClose={!limitReached}
         >
           <DialogHeader>
             <DialogTitle>Suas mensagens gratuitas acabaram</DialogTitle>
