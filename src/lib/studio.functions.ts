@@ -234,7 +234,7 @@ export const improvePrompt = createServerFn({ method: "POST" })
     z
       .object({
         prompt: z.string().min(1).max(2000),
-        model: z.enum(["DEFAULT", "REALISM", "ANIME"]).optional(),
+        model: z.enum(["DEFAULT", "REALISM", "ANIME", "TEMPORARY", "ANIMA"]).optional(),
       })
       .parse(d),
   )
