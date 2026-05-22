@@ -30,11 +30,13 @@ import {
   improvePrompt,
   togglePublic,
   deleteCharacter,
+  deleteProfile,
 } from "@/lib/studio.functions";
 import { cn } from "@/lib/utils";
 import { CreditPurchaseModal } from "@/components/payments/credit-purchase-modal";
 import { getCredits } from "@/lib/credits.functions";
 import { POSES, POSE_CATEGORIES } from "@/data/poses";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/studio")({
   head: () => ({
@@ -176,6 +178,7 @@ function StudioInner() {
   const genFn = useServerFn(generateCharacter);
   const toggleFn = useServerFn(togglePublic);
   const deleteFn = useServerFn(deleteCharacter);
+  const deleteProfileFn = useServerFn(deleteProfile);
   const fetchCredits = useServerFn(getCredits);
   const { data: creditsData, isLoading: creditsLoading } = useQuery({
     queryKey: ["credits"],
@@ -396,6 +399,24 @@ function StudioInner() {
               onClick={() => {
                 setActiveProfileId(p.id);
                 setMobileSidebarOpen(false);
+              }}
+              onDelete={async () => {
+                const prev = qc.getQueryData<typeof profiles>(["my-profiles"]);
+                qc.setQueryData<typeof profiles>(["my-profiles"], (old) =>
+                  (old ?? []).filter((x) => x.id !== p.id),
+                );
+                if (activeProfileId === p.id) setActiveProfileId(null);
+                try {
+                  await deleteProfileFn({ data: { id: p.id } });
+                  toast.success("Personagem excluído com sucesso");
+                  qc.invalidateQueries({ queryKey: ["my-profiles"] });
+                  qc.invalidateQueries({ queryKey: ["my-characters"] });
+                } catch (err) {
+                  qc.setQueryData(["my-profiles"], prev);
+                  toast.error(
+                    err instanceof Error ? err.message : "Erro ao excluir personagem",
+                  );
+                }
               }}
             />
           ))}
