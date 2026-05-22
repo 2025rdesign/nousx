@@ -71,7 +71,7 @@ export function PixCheckoutModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-[#0A0A0F] border-border">
+      <DialogContent className="max-w-[min(920px,95vw)] sm:max-w-[min(920px,95vw)] bg-[#0A0A0F] border-border p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Pagamento via PIX</DialogTitle>
         </DialogHeader>
@@ -107,39 +107,61 @@ export function PixCheckoutModal({
             </Button>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="rounded-lg bg-[#13131A] border border-[#1E1E2E] p-3 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white">{data.description}</p>
-                <p className="text-xs text-zinc-400">Aguardando pagamento…</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+            {/* QR Code */}
+            <div className="flex flex-col items-center gap-3">
+              <div className="bg-white rounded-xl p-3 sm:p-4 w-full flex justify-center">
+                <QRCodeSVG
+                  value={data.qrCode}
+                  size={240}
+                  level="M"
+                  className="w-full h-auto max-w-[260px]"
+                />
               </div>
-              <p className="text-lg font-bold text-white">{formatBRL(data.amountCents)}</p>
+              <p className="text-xs text-zinc-500 text-center">
+                Aponte a câmera do seu app de banco
+              </p>
             </div>
 
-            <div className="bg-white rounded-xl p-4 flex justify-center">
-              <QRCodeSVG value={data.qrCode} size={220} level="M" />
-            </div>
+            {/* Info + copia-e-cola */}
+            <div className="flex flex-col gap-4 min-w-0">
+              <div className="rounded-lg bg-[#13131A] border border-[#1E1E2E] p-4">
+                <p className="text-xs uppercase tracking-wide text-zinc-500 mb-1">
+                  Você está adquirindo
+                </p>
+                <p className="text-base font-semibold text-white">
+                  {data.description}
+                </p>
+                <p className="mt-3 text-2xl font-bold text-white">
+                  {formatBRL(data.amountCents)}
+                </p>
+                <p className="text-xs text-zinc-400 mt-1">Pagamento único via PIX</p>
+              </div>
 
-            <div className="space-y-2">
-              <p className="text-xs text-zinc-400">Ou copie o código PIX:</p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 truncate rounded-md bg-[#13131A] border border-[#1E1E2E] px-3 py-2 text-xs text-zinc-300">
-                  {data.qrCode}
-                </code>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={copy}
-                  className="shrink-0"
-                >
-                  {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+              <div className="space-y-2 min-w-0">
+                <p className="text-xs text-zinc-400">Ou copie o código PIX:</p>
+                <div className="flex items-center gap-2 min-w-0">
+                  <code className="flex-1 min-w-0 truncate rounded-md bg-[#13131A] border border-[#1E1E2E] px-3 py-2 text-xs text-zinc-300">
+                    {data.qrCode}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={copy}
+                    className="shrink-0"
+                  >
+                    {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                  </Button>
+                </div>
+                <Button onClick={copy} className="w-full mt-1">
+                  {copied ? "Copiado!" : "Copiar código PIX"}
                 </Button>
               </div>
-            </div>
 
-            <div className="flex items-center gap-2 text-xs text-zinc-500 justify-center">
-              <Loader2 className="size-3 animate-spin" />
-              Estamos verificando o pagamento automaticamente
+              <div className="flex items-center gap-2 text-xs text-zinc-500">
+                <Loader2 className="size-3 animate-spin" />
+                Aguardando pagamento — verificamos automaticamente
+              </div>
             </div>
           </div>
         )}
