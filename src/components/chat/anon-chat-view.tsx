@@ -20,6 +20,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { ChatInput } from "./chat-input";
 import { EmptyState } from "./empty-state";
 import { MessageItem, TypingIndicator, type ChatMsg } from "./message-item";
+import { CodeCanvasProvider } from "./code-canvas";
 import {
   Dialog,
   DialogContent,
@@ -319,6 +320,7 @@ export function AnonChatView() {
   );
 
   return (
+    <CodeCanvasProvider>
     <div className="h-screen w-full flex bg-background text-foreground overflow-hidden">
       {!collapsed && (
         <aside className="hidden md:flex w-64 shrink-0 border-r border-border bg-sidebar">
@@ -480,5 +482,6 @@ export function AnonChatView() {
         </DialogContent>
       </Dialog>
     </div>
+    </CodeCanvasProvider>
   );
 }
