@@ -369,7 +369,7 @@ function StudioInner() {
         {/* Center panel */}
         <section
           className={cn(
-            "studio-scroll lg:w-[400px] lg:shrink-0 lg:flex-none flex-1 min-w-0 overflow-auto lg:border-r lg:border-border",
+            "studio-scroll lg:w-[400px] lg:shrink-0 lg:flex-none flex-1 min-w-0 min-h-0 overflow-y-auto lg:border-r lg:border-border",
             "md:block",
             mobileTab === "criar" ? "block" : "hidden",
           )}
@@ -391,7 +391,7 @@ function StudioInner() {
                     <img
                       src={activeProfile.base_image_url}
                       alt={activeProfile.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover object-top"
                     />
                   )}
                 </div>
@@ -751,7 +751,7 @@ function StudioInner() {
         {/* Result panel */}
         <section
           className={cn(
-            "lg:flex-1 lg:min-w-0 shrink-0 border-t lg:border-t-0 border-border bg-sidebar/40 overflow-auto",
+            "flex-1 lg:flex-1 lg:min-w-0 min-h-0 border-t lg:border-t-0 border-border bg-sidebar/40 overflow-y-auto",
             "md:block",
             mobileTab === "resultado" ? "block" : "hidden",
           )}
@@ -890,7 +890,7 @@ function StudioInner() {
         {/* Personagens panel (mobile only as tab) */}
         <section
           className={cn(
-            "flex-1 min-w-0 overflow-auto md:hidden",
+            "flex-1 min-w-0 min-h-0 overflow-y-auto md:hidden",
             mobileTab === "personagens" ? "block" : "hidden",
           )}
         >
