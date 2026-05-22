@@ -183,6 +183,11 @@ export function CreditPurchaseModal({
     },
     onSuccess: (res) => {
       if (res.method === "PIX") {
+        if (res.redirectUrl) {
+          notify.success("Redirecionando para o checkout da Cakto...");
+          window.location.href = res.redirectUrl;
+          return;
+        }
         setPix({
           paymentId: res.paymentId,
           image: res.qrCodeImage,
@@ -195,6 +200,9 @@ export function CreditPurchaseModal({
           qc.invalidateQueries({ queryKey: ["credits"] });
           notify.success("Créditos adicionados com sucesso! 🎉");
           setStep("success");
+        } else if (res.redirectUrl) {
+          notify.success("Redirecionando para o checkout da Cakto...");
+          window.location.href = res.redirectUrl;
         } else {
           notify.error("Pagamento não aprovado. Tente outro cartão.");
         }
