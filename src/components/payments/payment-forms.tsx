@@ -11,14 +11,6 @@ export type CardForm = {
   expiryYear: string;
   ccv: string;
 };
-export type HolderForm = {
-  name: string;
-  email: string;
-  cpfCnpj: string;
-  postalCode: string;
-  addressNumber: string;
-  phone: string;
-};
 
 function maskCpf(v: string) {
   const d = v.replace(/\D/g, "").slice(0, 11);
@@ -99,21 +91,13 @@ export function CustomerDataStep({
   );
 }
 
-export function useCardForm(defaultEmail = "") {
+export function useCardForm(_defaultEmail = "") {
   const [card, setCard] = useState<CardForm>({
     holderName: "",
     number: "",
     expiryMonth: "",
     expiryYear: "",
     ccv: "",
-  });
-  const [holder, setHolder] = useState<HolderForm>({
-    name: "",
-    email: defaultEmail,
-    cpfCnpj: "",
-    postalCode: "",
-    addressNumber: "",
-    phone: "",
   });
   const sanitized = () => ({
     card: {
@@ -123,26 +107,16 @@ export function useCardForm(defaultEmail = "") {
       expiryMonth: card.expiryMonth.replace(/\D/g, "").padStart(2, "0").slice(0, 2),
       expiryYear: card.expiryYear.replace(/\D/g, "").slice(0, 4),
     },
-    holder: {
-      ...holder,
-      cpfCnpj: holder.cpfCnpj.replace(/\D/g, ""),
-      postalCode: holder.postalCode.replace(/\D/g, ""),
-      phone: holder.phone.replace(/\D/g, ""),
-    },
   });
-  return { card, setCard, holder, setHolder, sanitized };
+  return { card, setCard, sanitized };
 }
 
 export function CardFields({
   card,
   setCard,
-  holder,
-  setHolder,
 }: {
   card: CardForm;
   setCard: (c: CardForm) => void;
-  holder: HolderForm;
-  setHolder: (h: HolderForm) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -194,64 +168,6 @@ export function CardFields({
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-3 pt-2 border-t border-border">
-        <p className="text-xs text-muted-foreground">Dados do titular</p>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label>Nome completo</Label>
-            <Input
-              value={holder.name}
-              onChange={(e) => setHolder({ ...holder, name: e.target.value })}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label>CPF</Label>
-            <Input
-              inputMode="numeric"
-              placeholder="Somente números"
-              value={holder.cpfCnpj}
-              onChange={(e) => setHolder({ ...holder, cpfCnpj: e.target.value })}
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label>E-mail</Label>
-            <Input
-              type="email"
-              value={holder.email}
-              onChange={(e) => setHolder({ ...holder, email: e.target.value })}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Telefone (DDD + número)</Label>
-            <Input
-              inputMode="numeric"
-              placeholder="11999999999"
-              value={holder.phone}
-              onChange={(e) => setHolder({ ...holder, phone: e.target.value })}
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label>CEP</Label>
-            <Input
-              inputMode="numeric"
-              placeholder="00000000"
-              value={holder.postalCode}
-              onChange={(e) => setHolder({ ...holder, postalCode: e.target.value })}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Número</Label>
-            <Input
-              value={holder.addressNumber}
-              onChange={(e) => setHolder({ ...holder, addressNumber: e.target.value })}
-            />
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -264,14 +180,19 @@ export function PixDisplay({
   payload: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const src = qrCodeImage.startsWith("data:") || qrCodeImage.startsWith("http")
+    ? qrCodeImage
+    : `data:image/png;base64,${qrCodeImage}`;
   return (
     <div className="space-y-4 text-center">
       <div className="mx-auto w-48 h-48 bg-white rounded-md p-2">
-        <img
-          src={`data:image/png;base64,${qrCodeImage}`}
-          alt="QR Code PIX"
-          className="w-full h-full"
-        />
+        {qrCodeImage ? (
+          <img src={src} alt="QR Code PIX" className="w-full h-full" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-xs text-zinc-500">
+            QR indisponível
+          </div>
+        )}
       </div>
       <div className="space-y-2">
         <p className="text-xs text-muted-foreground">Ou copie o código PIX</p>

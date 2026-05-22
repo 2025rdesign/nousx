@@ -2,62 +2,57 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { getRequestIP } from "@tanstack/react-start/server";
 import {
-  findOrCreateCustomer,
-  createPixPayment,
-  getPixQrCode,
-  createCardPayment,
-  getPayment,
-  createSubscription,
-  cancelSubscription,
-  getFirstSubscriptionPayment,
-} from "./asaas.server";
+  createPixOrder,
+  createCardOrder,
+  getOrder,
+  isPaid,
+} from "./cakto.server";
 import { creditUserOnce } from "./credits.server";
-import { CREDIT_PACKS, PLANS, applyDiscount, type CreditPackId, type PlanId } from "./payments-config";
+import {
+  CREDIT_PACKS,
+  PLANS,
+  applyDiscount,
+  type CreditPackId,
+  type PlanId,
+} from "./payments-config";
 
-async function getOrCreateCustomerForUser(userId: string, email: string) {
-  const { data: profile } = await supabaseAdmin
+// CPF validation (only length + digits)
+const cpfRegex = /^\d{11}$/;
+
+async function loadProfileForCheckout(userId: string) {
+  const { data: profile, error } = await supabaseAdmin
     .from("profiles")
-    .select("asaas_customer_id, name, cpf")
+    .select("name, cpf, cakto_customer_id, is_blocked")
     .eq("id", userId)
     .maybeSingle();
-  if (!profile?.cpf || !profile?.name) {
-    throw new Error("Preencha seus dados de cobrança antes de continuar.");
-  }
-  const customer = await findOrCreateCustomer({
-    email,
-    name: profile?.name ?? null,
-    cpfCnpj: profile?.cpf ?? null,
-    existingId: profile?.asaas_customer_id ?? null,
-  });
-  if (profile?.asaas_customer_id !== customer.id) {
-    await supabaseAdmin
-      .from("profiles")
-      .update({ asaas_customer_id: customer.id })
-      .eq("id", userId);
-  }
-  return customer;
+  if (error) throw new Error(error.message);
+  return profile;
 }
 
-// CPF validation (only length + digits; full DV check optional)
-const cpfRegex = /^\d{11}$/;
+function buildCustomer(name: string, email: string, cpf: string) {
+  return { name, email, document: cpf };
+}
+
+async function ensureNotBlocked(userId: string) {
+  const profile = await loadProfileForCheckout(userId);
+  if (profile?.is_blocked) {
+    throw new Error("Sua conta está com restrição de compra. Entre em contato com o suporte.");
+  }
+  return profile;
+}
 
 export const getCheckoutProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { userId, claims } = context;
     const email = (claims.email as string | undefined) ?? "";
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("name, cpf, asaas_customer_id")
-      .eq("id", userId)
-      .maybeSingle();
+    const profile = await loadProfileForCheckout(userId);
     return {
       email,
       name: profile?.name ?? "",
       cpf: profile?.cpf ?? "",
-      ready: Boolean(profile?.name && profile?.cpf && profile?.asaas_customer_id),
+      ready: Boolean(profile?.name && profile?.cpf),
     };
   });
 
@@ -75,29 +70,12 @@ export const saveCheckoutProfile = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ context, data }) => {
-    const { userId, claims } = context;
-    const email = claims.email as string | undefined;
-    if (!email) throw new Error("Email não encontrado.");
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("asaas_customer_id")
-      .eq("id", userId)
-      .maybeSingle();
-    const customer = await findOrCreateCustomer({
-      email,
-      name: data.name,
-      cpfCnpj: data.cpf,
-      existingId: profile?.asaas_customer_id ?? null,
-    });
+    const { userId } = context;
     await supabaseAdmin
       .from("profiles")
-      .update({
-        name: data.name,
-        cpf: data.cpf,
-        asaas_customer_id: customer.id,
-      })
+      .update({ name: data.name, cpf: data.cpf })
       .eq("id", userId);
-    return { ok: true, customerId: customer.id };
+    return { ok: true };
   });
 
 export const validateCoupon = createServerFn({ method: "POST" })
@@ -125,14 +103,17 @@ const cardSchema = z.object({
   expiryYear: z.string().regex(/^\d{4}$/),
   ccv: z.string().regex(/^\d{3,4}$/),
 });
-const holderSchema = z.object({
-  name: z.string().min(1).max(100),
-  email: z.string().email(),
-  cpfCnpj: z.string().regex(/^\d{11,14}$/),
-  postalCode: z.string().regex(/^\d{8}$/),
-  addressNumber: z.string().min(1).max(20),
-  phone: z.string().regex(/^\d{10,11}$/),
-});
+
+function toCaktoCard(card: z.infer<typeof cardSchema>) {
+  // expiry: MM/YY (Cakto convention based on user spec)
+  const yy = card.expiryYear.slice(-2);
+  return {
+    card_number: card.number,
+    card_holder: card.holderName,
+    card_expiry: `${card.expiryMonth}/${yy}`,
+    card_cvv: card.ccv,
+  };
+}
 
 export const buyCredits = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -143,7 +124,6 @@ export const buyCredits = createServerFn({ method: "POST" })
         method: z.enum(["PIX", "CREDIT_CARD"]),
         couponCode: z.string().max(40).optional().nullable(),
         card: cardSchema.optional(),
-        holder: holderSchema.optional(),
       })
       .parse(d),
   )
@@ -151,6 +131,10 @@ export const buyCredits = createServerFn({ method: "POST" })
     const { userId, claims } = context;
     const email = claims.email as string | undefined;
     if (!email) throw new Error("Email do usuário não encontrado.");
+    const profile = await ensureNotBlocked(userId);
+    if (!profile?.name || !profile?.cpf) {
+      throw new Error("Preencha seus dados de cobrança antes de continuar.");
+    }
     const pack = CREDIT_PACKS[data.packId as CreditPackId];
     let value = pack.price;
     let coupon: string | null = null;
@@ -166,60 +150,69 @@ export const buyCredits = createServerFn({ method: "POST" })
         coupon = c.code;
       }
     }
-    const customer = await getOrCreateCustomerForUser(userId, email);
+    const customer = buildCustomer(profile.name, email, profile.cpf);
     const externalRef = `c_${userId.slice(0, 50)}_${data.packId}`;
+
     if (data.method === "PIX") {
-      const payment = await createPixPayment({
-        customerId: customer.id,
-        value,
-        description: `NOUSX — ${pack.name} (${pack.credits} créditos)`,
+      const order = await createPixOrder({
+        productId: pack.productId,
+        customer,
         externalReference: externalRef,
       });
-      const qr = await getPixQrCode(payment.id);
       await supabaseAdmin.from("payment_history").insert({
         user_id: userId,
         amount: value,
         type: "credit",
         status: "pending",
-        asaas_payment_id: payment.id,
-        metadata: { packId: data.packId, credits: pack.credits, method: "PIX", coupon },
+        cakto_payment_id: order.id,
+        metadata: {
+          packId: data.packId,
+          credits: pack.credits,
+          method: "PIX",
+          coupon,
+          email,
+          product_id: pack.productId,
+        },
       });
       return {
         method: "PIX" as const,
-        paymentId: payment.id,
-        qrCodeImage: qr.encodedImage,
-        qrCodePayload: qr.payload,
-        expirationDate: qr.expirationDate,
+        paymentId: order.id,
+        qrCodeImage: order.pix_qr_image ?? order.qr_code ?? "",
+        qrCodePayload: order.pix_code ?? order.qr_code ?? "",
+        expirationDate: order.expires_at ?? null,
         value,
       };
     }
-    if (!data.card || !data.holder) throw new Error("Dados do cartão incompletos.");
-    const remoteIp = getRequestIP({ xForwardedFor: true }) || "127.0.0.1";
-    const payment = await createCardPayment({
-      customerId: customer.id,
-      value,
-      description: `NOUSX — ${pack.name} (${pack.credits} créditos)`,
+
+    if (!data.card) throw new Error("Dados do cartão incompletos.");
+    const order = await createCardOrder({
+      productId: pack.productId,
+      customer,
+      card: toCaktoCard(data.card),
       externalReference: externalRef,
-      card: data.card,
-      holder: data.holder,
-      remoteIp,
     });
     await supabaseAdmin.from("payment_history").insert({
       user_id: userId,
       amount: value,
       type: "credit",
-      status: payment.status.toLowerCase(),
-      asaas_payment_id: payment.id,
-      metadata: { packId: data.packId, credits: pack.credits, method: "CARD", coupon },
+      status: (order.status ?? "pending").toLowerCase(),
+      cakto_payment_id: order.id,
+      metadata: {
+        packId: data.packId,
+        credits: pack.credits,
+        method: "CARD",
+        coupon,
+        email,
+        product_id: pack.productId,
+      },
     });
-    // If immediately confirmed, credit now (idempotent — webhook may repeat)
-    if (["CONFIRMED", "RECEIVED"].includes(payment.status)) {
-      await creditUserOnce(payment.id, userId, pack.credits, data.packId);
+    if (isPaid(order.status)) {
+      await creditUserOnce(order.id, userId, pack.credits, data.packId);
     }
     return {
       method: "CREDIT_CARD" as const,
-      paymentId: payment.id,
-      status: payment.status,
+      paymentId: order.id,
+      status: isPaid(order.status) ? "CONFIRMED" : (order.status ?? "PENDING").toUpperCase(),
       value,
     };
   });
@@ -228,8 +221,9 @@ export const checkPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ paymentId: z.string().min(1) }).parse(d))
   .handler(async ({ data }) => {
-    const p = await getPayment(data.paymentId);
-    return { status: p.status, value: p.value };
+    const p = await getOrder(data.paymentId);
+    const status = isPaid(p.status) ? "CONFIRMED" : (p.status ?? "PENDING").toUpperCase();
+    return { status, value: p.amount ?? 0 };
   });
 
 export const subscribePlan = createServerFn({ method: "POST" })
@@ -241,7 +235,6 @@ export const subscribePlan = createServerFn({ method: "POST" })
         method: z.enum(["PIX", "CREDIT_CARD"]),
         couponCode: z.string().max(40).optional().nullable(),
         card: cardSchema.optional(),
-        holder: holderSchema.optional(),
       })
       .parse(d),
   )
@@ -249,6 +242,10 @@ export const subscribePlan = createServerFn({ method: "POST" })
     const { userId, claims } = context;
     const email = claims.email as string | undefined;
     if (!email) throw new Error("Email não encontrado.");
+    const profile = await ensureNotBlocked(userId);
+    if (!profile?.name || !profile?.cpf) {
+      throw new Error("Preencha seus dados de cobrança antes de continuar.");
+    }
     const plan = PLANS[data.planId as PlanId];
     let value = plan.price;
     let coupon: string | null = null;
@@ -264,72 +261,72 @@ export const subscribePlan = createServerFn({ method: "POST" })
         coupon = c.code;
       }
     }
-    const customer = await getOrCreateCustomerForUser(userId, email);
+    const customer = buildCustomer(profile.name, email, profile.cpf);
     const externalRef = `s_${userId.slice(0, 50)}_${data.planId}`;
-    if (data.method === "CREDIT_CARD" && (!data.card || !data.holder)) {
-      throw new Error("Dados do cartão incompletos.");
+
+    let order;
+    if (data.method === "PIX") {
+      order = await createPixOrder({
+        productId: plan.productId,
+        customer,
+        externalReference: externalRef,
+      });
+    } else {
+      if (!data.card) throw new Error("Dados do cartão incompletos.");
+      order = await createCardOrder({
+        productId: plan.productId,
+        customer,
+        card: toCaktoCard(data.card),
+        externalReference: externalRef,
+      });
     }
-    const remoteIp = getRequestIP({ xForwardedFor: true }) || "127.0.0.1";
-    const sub = await createSubscription({
-      customerId: customer.id,
-      value,
-      billingType: data.method,
-      description: `NOUSX ${plan.name} — assinatura mensal`,
-      externalReference: externalRef,
-      card: data.card,
-      holder: data.holder,
-      remoteIp,
-    });
-    void coupon;
+
+    const nextRenewal = new Date();
+    nextRenewal.setDate(nextRenewal.getDate() + 30);
+
     await supabaseAdmin.from("user_subscriptions").insert({
       user_id: userId,
       plan_id: data.planId,
-      status: "pending",
-      asaas_subscription_id: sub.id,
-      expires_at: sub.nextDueDate ? new Date(sub.nextDueDate).toISOString() : null,
+      status: isPaid(order.status) ? "active" : "pending",
+      cakto_subscription_id: order.subscription_id ?? order.id,
+      expires_at: isPaid(order.status) ? nextRenewal.toISOString() : null,
     });
 
-    if (data.method === "PIX") {
-      // Fetch the first auto-generated payment of this subscription and pull its
-      // PIX QR code so the client can render it immediately.
-      try {
-        const firstPayment = await getFirstSubscriptionPayment(sub.id);
-        if (firstPayment) {
-          const qr = await getPixQrCode(firstPayment.id);
-          await supabaseAdmin.from("payment_history").insert({
-            user_id: userId,
-            amount: value,
-            type: "subscription",
-            status: "pending",
-            asaas_payment_id: firstPayment.id,
-            metadata: {
-              planId: data.planId,
-              method: "PIX",
-              coupon,
-              subscriptionId: sub.id,
-            },
-          });
-          return {
-            subscriptionId: sub.id,
-            status: sub.status,
-            method: "PIX" as const,
-            paymentId: firstPayment.id,
-            qrCodeImage: qr.encodedImage,
-            qrCodePayload: qr.payload,
-            expirationDate: qr.expirationDate,
-            value,
-          };
-        }
-      } catch (e) {
-        console.error("[subscribePlan] PIX QR fetch failed", e);
-        throw new Error("Não conseguimos gerar o QR Code PIX. Tente novamente.");
-      }
-      throw new Error("Cobrança PIX não foi gerada. Tente novamente.");
+    await supabaseAdmin.from("payment_history").insert({
+      user_id: userId,
+      amount: value,
+      type: "subscription",
+      status: isPaid(order.status) ? "confirmed" : "pending",
+      cakto_payment_id: order.id,
+      metadata: {
+        planId: data.planId,
+        method: data.method,
+        coupon,
+        email,
+        product_id: plan.productId,
+        subscription_id: order.subscription_id ?? order.id,
+      },
+    });
+
+    if (isPaid(order.status)) {
+      await creditUserOnce(order.id, userId, plan.credits, data.planId);
     }
 
+    if (data.method === "PIX") {
+      return {
+        subscriptionId: order.subscription_id ?? order.id,
+        status: order.status,
+        method: "PIX" as const,
+        paymentId: order.id,
+        qrCodeImage: order.pix_qr_image ?? order.qr_code ?? "",
+        qrCodePayload: order.pix_code ?? order.qr_code ?? "",
+        expirationDate: order.expires_at ?? null,
+        value,
+      };
+    }
     return {
-      subscriptionId: sub.id,
-      status: sub.status,
+      subscriptionId: order.subscription_id ?? order.id,
+      status: order.status,
       method: "CREDIT_CARD" as const,
     };
   });
@@ -339,7 +336,7 @@ export const getMySubscription = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await supabaseAdmin
       .from("user_subscriptions")
-      .select("id, plan_id, status, expires_at, asaas_subscription_id, created_at")
+      .select("id, plan_id, status, expires_at, cakto_subscription_id, created_at")
       .eq("user_id", context.userId)
       .in("status", ["active", "pending"])
       .order("created_at", { ascending: false })
@@ -354,16 +351,13 @@ export const cancelMySubscription = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { data: sub } = await supabaseAdmin
       .from("user_subscriptions")
-      .select("id, asaas_subscription_id")
+      .select("id, cakto_subscription_id")
       .eq("user_id", context.userId)
       .in("status", ["active", "pending"])
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (!sub) throw new Error("Nenhuma assinatura ativa.");
-    if (sub.asaas_subscription_id) {
-      try { await cancelSubscription(sub.asaas_subscription_id); } catch { /* ignore */ }
-    }
     await supabaseAdmin
       .from("user_subscriptions")
       .update({ status: "cancelled" })

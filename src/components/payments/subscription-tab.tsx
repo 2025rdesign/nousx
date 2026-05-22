@@ -208,7 +208,7 @@ function PlanCheckoutDialog({
   const plan = PLANS[planId];
   const [coupon, setCoupon] = useState<AppliedCoupon>(null);
   const [method, setMethod] = useState<"PIX" | "CREDIT_CARD">("CREDIT_CARD");
-  const { card, setCard, holder, setHolder, sanitized } = useCardForm(user?.email ?? "");
+  const { card, setCard, sanitized } = useCardForm(user?.email ?? "");
   const [stage, setStage] = useState<
     "customer" | "checkout" | "pix" | "success"
   >("customer");
@@ -228,12 +228,6 @@ function PlanCheckoutDialog({
   useEffect(() => {
     if (profileQ.data) {
       if (profileQ.data.ready) setStage("checkout");
-      setHolder((h) => ({
-        ...h,
-        name: h.name || profileQ.data!.name,
-        cpfCnpj: h.cpfCnpj || profileQ.data!.cpf,
-        email: profileQ.data!.email,
-      }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileQ.data]);
@@ -259,9 +253,9 @@ function PlanCheckoutDialog({
   const m = useMutation({
     mutationFn: () => {
       if (method === "CREDIT_CARD") {
-        const { card: c, holder: h } = sanitized();
+        const { card: c } = sanitized();
         return subscribe({
-          data: { planId, method: "CREDIT_CARD", couponCode: coupon?.code ?? null, card: c, holder: h },
+          data: { planId, method: "CREDIT_CARD", couponCode: coupon?.code ?? null, card: c },
         });
       }
       return subscribe({
@@ -382,7 +376,7 @@ function PlanCheckoutDialog({
               <TabsTrigger value="PIX">PIX</TabsTrigger>
             </TabsList>
             <TabsContent value="CREDIT_CARD" className="pt-3">
-              <CardFields card={card} setCard={setCard} holder={holder} setHolder={setHolder} />
+              <CardFields card={card} setCard={setCard} />
             </TabsContent>
             <TabsContent value="PIX" className="pt-3">
               <p className="text-sm text-muted-foreground">

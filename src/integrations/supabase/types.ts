@@ -249,7 +249,7 @@ export type Database = {
       payment_history: {
         Row: {
           amount: number
-          asaas_payment_id: string | null
+          cakto_payment_id: string | null
           created_at: string
           id: string
           metadata: Json | null
@@ -259,7 +259,7 @@ export type Database = {
         }
         Insert: {
           amount: number
-          asaas_payment_id?: string | null
+          cakto_payment_id?: string | null
           created_at?: string
           id?: string
           metadata?: Json | null
@@ -269,7 +269,7 @@ export type Database = {
         }
         Update: {
           amount?: number
-          asaas_payment_id?: string | null
+          cakto_payment_id?: string | null
           created_at?: string
           id?: string
           metadata?: Json | null
@@ -281,32 +281,35 @@ export type Database = {
       }
       profiles: {
         Row: {
-          asaas_customer_id: string | null
           avatar_id: string | null
           avatar_url: string | null
+          cakto_customer_id: string | null
           cpf: string | null
           created_at: string
           id: string
+          is_blocked: boolean
           name: string | null
           updated_at: string
         }
         Insert: {
-          asaas_customer_id?: string | null
           avatar_id?: string | null
           avatar_url?: string | null
+          cakto_customer_id?: string | null
           cpf?: string | null
           created_at?: string
           id: string
+          is_blocked?: boolean
           name?: string | null
           updated_at?: string
         }
         Update: {
-          asaas_customer_id?: string | null
           avatar_id?: string | null
           avatar_url?: string | null
+          cakto_customer_id?: string | null
           cpf?: string | null
           created_at?: string
           id?: string
+          is_blocked?: boolean
           name?: string | null
           updated_at?: string
         }
@@ -314,7 +317,7 @@ export type Database = {
       }
       user_subscriptions: {
         Row: {
-          asaas_subscription_id: string | null
+          cakto_subscription_id: string | null
           created_at: string
           expires_at: string | null
           id: string
@@ -324,7 +327,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          asaas_subscription_id?: string | null
+          cakto_subscription_id?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
@@ -334,7 +337,7 @@ export type Database = {
           user_id: string
         }
         Update: {
-          asaas_subscription_id?: string | null
+          cakto_subscription_id?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
