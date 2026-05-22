@@ -153,7 +153,6 @@ function StudioInner() {
   const [name, setName] = useState("");
   const [createProfile, setCreateProfile] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [blockExplicit, setBlockExplicit] = useState(false);
   const [creativity, setCreativity] = useState<"low" | "medium" | "high">("medium");
   const [negativePrompt, setNegativePrompt] = useState("");
   const [improving, setImproving] = useState(false);
@@ -195,7 +194,6 @@ function StudioInner() {
           appearance,
           aspectRatio: ratio,
           createProfile,
-          blockExplicitContent: blockExplicit,
           creativity,
           negativePrompt: negativePrompt.trim() || undefined,
         },
@@ -532,26 +530,6 @@ function StudioInner() {
                       </div>
                     </label>
                   )}
-
-                  <div className="space-y-2">
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <Switch checked={blockExplicit} onCheckedChange={setBlockExplicit} />
-                      <div className="flex-1">
-                        <div className="text-sm font-medium">🔞 Bloquear conteúdo adulto</div>
-                        <p className="text-xs text-muted-foreground">
-                          Padrão desligado. Quando ativo, evita nudez e conteúdo explícito.
-                        </p>
-                      </div>
-                    </label>
-                    {blockExplicit && /\b(nua|pelada|nude|naked|sem roupa|sem calcinha|seios|peito|bunda|genital|vagina|p[êe]nis)\b/i.test(appearance) && (
-                      <div className="flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-400">
-                        <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
-                        <span>
-                          Sua descrição contém conteúdo adulto. Ativar este filtro pode ignorar partes do seu prompt.
-                        </span>
-                      </div>
-                    )}
-                  </div>
 
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground">Nível de criatividade</Label>
