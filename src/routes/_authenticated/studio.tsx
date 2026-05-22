@@ -486,36 +486,89 @@ function StudioInner() {
               </div>
             </div>
 
-            {!activeProfile && (
-              <div className="rounded-lg border border-border">
-                <button
-                  type="button"
-                  className="w-full px-3 py-3 text-sm font-medium text-left"
-                  onClick={() => setShowAdvanced((v) => !v)}
-                >
-                  Avançado {showAdvanced ? "▾" : "▸"}
-                </button>
-                {showAdvanced && (
-                  <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
+            <div className="rounded-lg border border-border">
+              <button
+                type="button"
+                className="w-full px-3 py-2.5 text-xs font-medium text-left text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setShowAdvanced((v) => !v)}
+              >
+                Avançado {showAdvanced ? "▾" : "▸"}
+              </button>
+              {showAdvanced && (
+                <div className="px-3 pb-3 space-y-4 border-t border-border pt-3">
+                  {!activeProfile && (
                     <label className="flex items-start gap-3 cursor-pointer">
-                      <Switch
-                        checked={createProfile}
-                        onCheckedChange={setCreateProfile}
-                      />
+                      <Switch checked={createProfile} onCheckedChange={setCreateProfile} />
                       <div className="flex-1">
-                        <div className="text-sm font-medium">
-                          Salvar como personagem
-                        </div>
+                        <div className="text-sm font-medium">Salvar como personagem</div>
                         <p className="text-xs text-muted-foreground">
-                          Permite recriar o mesmo rosto em variações futuras. Para
-                          melhores resultados, descreva sem roupa ou com roupa mínima.
+                          Permite recriar o mesmo rosto em variações futuras.
                         </p>
                       </div>
                     </label>
+                  )}
+
+                  <div className="space-y-2">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <Switch checked={blockExplicit} onCheckedChange={setBlockExplicit} />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">🔞 Bloquear conteúdo adulto</div>
+                        <p className="text-xs text-muted-foreground">
+                          Padrão desligado. Quando ativo, evita nudez e conteúdo explícito.
+                        </p>
+                      </div>
+                    </label>
+                    {blockExplicit && /\b(nua|pelada|nude|naked|sem roupa|sem calcinha|seios|peito|bunda|genital|vagina|p[êe]nis)\b/i.test(appearance) && (
+                      <div className="flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-400">
+                        <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
+                        <span>
+                          Sua descrição contém conteúdo adulto. Ativar este filtro pode ignorar partes do seu prompt.
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
+
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Nível de criatividade</Label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {([
+                        ["low", "Conservador"],
+                        ["medium", "Equilibrado"],
+                        ["high", "Criativo"],
+                      ] as const).map(([v, l]) => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setCreativity(v)}
+                          className={cn(
+                            "h-8 px-2 text-[12px] rounded-md border transition-colors",
+                            creativity === v
+                              ? "border-primary text-primary bg-primary/10"
+                              : "border-border text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="negative" className="text-xs text-muted-foreground">
+                      Palavras a evitar
+                    </Label>
+                    <Input
+                      id="negative"
+                      value={negativePrompt}
+                      onChange={(e) => setNegativePrompt(e.target.value)}
+                      placeholder="Ex: deformado, borrado, texto..."
+                      maxLength={500}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
 
             <Button
               className="w-full"
