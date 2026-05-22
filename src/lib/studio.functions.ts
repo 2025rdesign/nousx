@@ -355,7 +355,6 @@ export const generateCharacter = createServerFn({ method: "POST" })
       if (data.poseId) {
         (body as Record<string, unknown>).pose = {
           id: data.poseId,
-          type: data.poseType ?? undefined,
           poseStrength: 50,
         };
       }
@@ -389,7 +388,6 @@ export const generateCharacter = createServerFn({ method: "POST" })
       if (data.poseId) {
         (body as Record<string, unknown>).pose = {
           id: data.poseId,
-          type: data.poseType ?? undefined,
           poseStrength: 50,
         };
       }
