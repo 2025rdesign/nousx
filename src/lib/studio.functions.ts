@@ -230,7 +230,7 @@ export const deleteCharacter = createServerFn({ method: "POST" })
 
 export const improvePrompt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { prompt: string; model?: "DEFAULT" | "REALISM" | "ANIME" }) =>
+  .inputValidator((d: { prompt: string; model?: "DEFAULT" | "REALISM" | "ANIME" | "TEMPORARY" | "ANIMA" }) =>
     z
       .object({
         prompt: z.string().min(1).max(2000),
