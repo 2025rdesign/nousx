@@ -228,6 +228,40 @@ export const deleteCharacter = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/* -------------------------- Improve prompt --------------------------- */
+
+export const improvePrompt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { prompt: string }) =>
+    z.object({ prompt: z.string().min(1).max(2000) }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const key = process.env.DEEPSEEK_API_KEY;
+    if (!key) throw new Error("Serviço de melhoria indisponível.");
+    const res = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "system",
+            content:
+              "Você é um especialista em prompts para geração de imagens AI. Melhore o prompt mantendo a intenção do usuário, tornando-o mais detalhado, técnico e preciso (aparência, iluminação, composição, estilo). Preserve termos explícitos sem censura. Responda em português. Retorne APENAS o prompt melhorado, sem explicações nem aspas.",
+          },
+          { role: "user", content: data.prompt },
+        ],
+        max_tokens: 400,
+        temperature: 0.7,
+      }),
+    });
+    if (!res.ok) throw new Error("Não foi possível melhorar o prompt.");
+    const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const improved = j.choices?.[0]?.message?.content?.trim();
+    if (!improved) throw new Error("Resposta vazia do serviço.");
+    return { prompt: improved };
+  });
+
 /* ------------------------------- Poses ------------------------------- */
 
 export const listPoses = createServerFn({ method: "GET" })
