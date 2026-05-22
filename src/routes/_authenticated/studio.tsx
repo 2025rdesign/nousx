@@ -840,10 +840,12 @@ function StudioInner() {
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6">
                     <Loader2 className="size-7 animate-spin text-primary" />
                     <p className="text-sm text-foreground font-medium text-center">
-                      Gerando sua imagem...
+                      {inQueue ? "Aguardando servidor disponível..." : "Gerando sua imagem..."}
                     </p>
                     <p className="text-xs text-muted-foreground text-center">
-                      {LOADING_TEXTS[loadingTextIdx]}
+                      {inQueue
+                        ? "Outros usuários estão gerando. Você está na fila."
+                        : LOADING_TEXTS[loadingTextIdx]}
                     </p>
                   </div>
                 </>
@@ -851,7 +853,25 @@ function StudioInner() {
               {!isLoading && result && (
                 <img src={result} alt="Resultado" className="w-full h-full object-contain lg:object-contain" />
               )}
-              {!isLoading && !result && (
+              {!isLoading && !result && gen.isError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
+                  <AlertTriangle className="size-7 text-destructive" />
+                  <p className="text-sm font-medium text-foreground">
+                    Não conseguimos gerar agora.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Seu crédito foi preservado. Tente novamente.
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={() => gen.mutate()}
+                    className="mt-1"
+                  >
+                    Tentar novamente
+                  </Button>
+                </div>
+              )}
+              {!isLoading && !result && !gen.isError && (
                 <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
                   A imagem aparecerá aqui.
                 </div>
