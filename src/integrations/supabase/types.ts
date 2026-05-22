@@ -336,6 +336,54 @@ export type Database = {
         }
         Relationships: []
       }
+      pix_payments: {
+        Row: {
+          amount_cents: number
+          coupon_code: string | null
+          created_at: string
+          external_id: string | null
+          id: string
+          kind: string
+          metadata: Json
+          paid_at: string | null
+          qr_code: string
+          status: string
+          target_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          coupon_code?: string | null
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          kind: string
+          metadata?: Json
+          paid_at?: string | null
+          qr_code?: string
+          status?: string
+          target_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          coupon_code?: string | null
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          kind?: string
+          metadata?: Json
+          paid_at?: string | null
+          qr_code?: string
+          status?: string
+          target_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_id: string | null
