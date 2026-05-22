@@ -388,7 +388,12 @@ function StudioInner() {
           </Button>
           <span className="text-sm font-semibold">Estúdio</span>
           <div className="flex-1" />
-          <CreditsPill balance={balance} onClick={() => setCreditsOpen(true)} compact />
+          <CreditsPill
+            balance={balance}
+            onClick={() => setCreditsOpen(true)}
+            compact
+            loading={creditsLoading}
+          />
         </div>
         <div className="grid grid-cols-3">
           {([
@@ -430,7 +435,11 @@ function StudioInner() {
               </Button>
             </div>
             <div className="hidden md:flex items-center justify-end">
-              <CreditsPill balance={balance} onClick={() => setCreditsOpen(true)} />
+              <CreditsPill
+                balance={balance}
+                onClick={() => setCreditsOpen(true)}
+                loading={creditsLoading}
+              />
             </div>
 
             {activeProfile ? (
