@@ -33,7 +33,7 @@ import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
 
 const STORAGE_KEY = "auraia_anon_chat_v1";
-const MSG_LIMIT = 10;
+const MSG_LIMIT = 5;
 
 interface AnonState {
   messages: ChatMsg[];
