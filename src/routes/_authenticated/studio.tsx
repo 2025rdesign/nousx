@@ -117,6 +117,11 @@ function StudioInner() {
   const [name, setName] = useState("");
   const [createProfile, setCreateProfile] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [blockExplicit, setBlockExplicit] = useState(false);
+  const [creativity, setCreativity] = useState<"low" | "medium" | "high">("medium");
+  const [negativePrompt, setNegativePrompt] = useState("");
+  const [improving, setImproving] = useState(false);
+  const improveFn = useServerFn(improvePrompt);
 
   // result panel
   const [result, setResult] = useState<string | null>(null);
@@ -154,7 +159,9 @@ function StudioInner() {
           appearance,
           aspectRatio: ratio,
           createProfile,
-          blockExplicitContent: false,
+          blockExplicitContent: blockExplicit,
+          creativity,
+          negativePrompt: negativePrompt.trim() || undefined,
         },
       });
     },
