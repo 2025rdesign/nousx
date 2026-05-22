@@ -386,6 +386,7 @@ export function ChatView({ conversationId }: Props) {
           disabled={sending}
           hasUltra={hasUltra}
           onOpenVoiceMode={() => setVoiceOpen(true)}
+          voiceModeActive={voiceOpen}
         />
         <VoiceModeModal
           open={voiceOpen}

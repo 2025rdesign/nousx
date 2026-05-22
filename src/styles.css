@@ -230,3 +230,9 @@
 @keyframes voice-rotate {
   to { transform: rotate(360deg); }
 }
+
+/* Sound wave icon */
+@keyframes sound-wave-pulse {
+  0%, 100% { transform: scaleY(0.6); }
+  50% { transform: scaleY(1.7); }
+}

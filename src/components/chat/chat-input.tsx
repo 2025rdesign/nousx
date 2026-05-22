@@ -1,12 +1,13 @@
 import { useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from "react";
 import TextareaAutosize from "react-textarea-autosize";
-import { FileText, Globe, Mic2, Paperclip, Send, Sparkles, X } from "lucide-react";
+import { FileText, Globe, Paperclip, Send, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
 import { extractFileText, type ExtractedFile } from "@/lib/file-extract";
 import { VoiceRecordButton } from "@/components/voice-record-button";
+import { SoundWaveIcon } from "./sound-wave-icon";
 
 interface Props {
   onSend: (
@@ -21,6 +22,7 @@ interface Props {
   onAnonRestricted?: () => void;
   hasUltra?: boolean;
   onOpenVoiceMode?: () => void;
+  voiceModeActive?: boolean;
 }
 
 export function ChatInput({
@@ -30,6 +32,7 @@ export function ChatInput({
   onAnonRestricted,
   hasUltra,
   onOpenVoiceMode,
+  voiceModeActive,
 }: Props) {
   const [text, setText] = useState("");
   const [image, setImage] = useState<string | null>(null);
@@ -231,28 +234,39 @@ export function ChatInput({
             <VoiceRecordButton disabled={disabled} value={text} onChange={setText} />
           )}
           {!anonMode && (
-            <button
-              type="button"
-              onClick={() => {
-                if (hasUltra) {
-                  onOpenVoiceMode?.();
-                } else {
-                  notify.error("Modo de voz exclusivo do plano Ultra.");
+            <>
+              <span
+                aria-hidden
+                className="mx-1 h-5 w-px bg-border"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (hasUltra) {
+                    onOpenVoiceMode?.();
+                  } else {
+                    notify.error("Modo de voz exclusivo do plano Ultra.");
+                  }
+                }}
+                aria-label="Modo de voz"
+                title={
+                  hasUltra
+                    ? "Iniciar modo de voz"
+                    : "Modo de voz exclusivo do plano Ultra"
                 }
-              }}
-              aria-label="Modo de voz"
-              title={
-                hasUltra ? "Iniciar modo de voz" : "Modo de voz exclusivo do plano Ultra"
-              }
-              className={cn(
-                "inline-flex items-center justify-center size-9 rounded-md transition-colors",
-                hasUltra
-                  ? "text-[#6C47FF] hover:bg-[#6C47FF]/10"
-                  : "opacity-40 cursor-not-allowed text-[#6C47FF]",
-              )}
-            >
-              <Mic2 className="size-4" />
-            </button>
+                className={cn(
+                  "inline-flex items-center justify-center size-9 rounded-md transition-colors",
+                  hasUltra
+                    ? "hover:bg-[#6C47FF]/10"
+                    : "opacity-40 cursor-not-allowed",
+                )}
+              >
+                <SoundWaveIcon
+                  active={voiceModeActive}
+                  color={voiceModeActive ? "#ffffff" : "#6C47FF"}
+                />
+              </button>
+            </>
           )}
           <Button
             type="button"
