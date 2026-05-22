@@ -33,7 +33,7 @@ export function CharacterCard({
         <img
           src={profile.base_image_url}
           alt={profile.name}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
         />
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted/60" />
