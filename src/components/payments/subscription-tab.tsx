@@ -193,7 +193,13 @@ function PlanCheckoutDialog({
   const [coupon, setCoupon] = useState<AppliedCoupon>(null);
   const [method, setMethod] = useState<"PIX" | "CREDIT_CARD">("CREDIT_CARD");
   const { card, setCard, holder, setHolder, sanitized } = useCardForm(user?.email ?? "");
-  const [stage, setStage] = useState<"customer" | "checkout">("customer");
+  const [stage, setStage] = useState<
+    "customer" | "checkout" | "pix" | "success"
+  >("customer");
+  const [pix, setPix] = useState<
+    { paymentId: string; image: string; payload: string } | null
+  >(null);
+  const [timeLeft, setTimeLeft] = useState(30 * 60);
 
   const fetchProfile = useServerFn(getCheckoutProfile);
   const saveProfile = useServerFn(saveCheckoutProfile);
@@ -233,6 +239,7 @@ function PlanCheckoutDialog({
   );
 
   const subscribe = useServerFn(subscribePlan);
+  const check = useServerFn(checkPayment);
   const m = useMutation({
     mutationFn: () => {
       if (method === "CREDIT_CARD") {
@@ -245,21 +252,85 @@ function PlanCheckoutDialog({
         data: { planId, method: "PIX", couponCode: coupon?.code ?? null },
       });
     },
-    onSuccess: () => {
+    onSuccess: (res: any) => {
+      if (res?.method === "PIX" && res.qrCodeImage) {
+        setPix({
+          paymentId: res.paymentId,
+          image: res.qrCodeImage,
+          payload: res.qrCodePayload,
+        });
+        setTimeLeft(30 * 60);
+        setStage("pix");
+        return;
+      }
+      // Card path — webhook will activate; show optimistic success
       notify.success("Plano ativado! 🚀");
       qc.invalidateQueries({ queryKey: ["my-subscription"] });
       qc.invalidateQueries({ queryKey: ["credits"] });
-      onOpenChange(false);
+      setStage("success");
     },
     onError: (e) => notify.error(e instanceof Error ? e.message : "Erro ao assinar."),
   });
 
+  // PIX polling — only confirms when Asaas webhook updates the subscription
+  const pollRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (stage !== "pix" || !pix) return;
+    pollRef.current = window.setInterval(async () => {
+      try {
+        const res = await check({ data: { paymentId: pix.paymentId } });
+        if (["CONFIRMED", "RECEIVED"].includes(res.status)) {
+          if (pollRef.current) clearInterval(pollRef.current);
+          notify.success("Plano ativado! 🚀");
+          qc.invalidateQueries({ queryKey: ["my-subscription"] });
+          qc.invalidateQueries({ queryKey: ["credits"] });
+          setStage("success");
+        }
+      } catch {
+        /* ignore transient errors */
+      }
+    }, 5000);
+    const timer = window.setInterval(
+      () => setTimeLeft((t) => Math.max(0, t - 1)),
+      1000,
+    );
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      clearInterval(timer);
+    };
+  }, [stage, pix, check, qc]);
+
+  function handleClose(v: boolean) {
+    onOpenChange(v);
+    if (!v) {
+      setTimeout(() => {
+        setStage("customer");
+        setPix(null);
+        setCoupon(null);
+        setTimeLeft(30 * 60);
+      }, 300);
+    }
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {stage === "customer" ? "Seus dados" : `Assinar ${plan.name}`}
+          <DialogTitle className="flex items-center gap-2">
+            {stage === "pix" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                onClick={() => setStage("checkout")}
+              >
+                <ArrowLeft className="size-4" />
+              </Button>
+            )}
+            {stage === "customer" && "Seus dados"}
+            {stage === "checkout" && `Assinar ${plan.name}`}
+            {stage === "pix" && "Pague com PIX"}
+            {stage === "success" && "Tudo certo!"}
           </DialogTitle>
         </DialogHeader>
         {stage === "customer" ? (
@@ -273,7 +344,7 @@ function PlanCheckoutDialog({
             onSubmit={(d) => saveProfileM.mutate(d)}
             submitLabel="Salvar e continuar"
           />
-        ) : (
+        ) : stage === "checkout" ? (
         <div className="space-y-4">
           <div className="rounded-lg bg-muted/40 p-3 flex items-center justify-between">
             <p className="text-sm">{plan.credits} créditos/mês</p>
@@ -299,7 +370,8 @@ function PlanCheckoutDialog({
             </TabsContent>
             <TabsContent value="PIX" className="pt-3">
               <p className="text-sm text-muted-foreground">
-                Toda renovação mensal será cobrada por PIX. Você receberá o QR Code por e-mail.
+                Você verá o QR Code na próxima etapa. A liberação é
+                automática assim que o PIX for confirmado.
               </p>
             </TabsContent>
           </Tabs>
@@ -313,7 +385,30 @@ function PlanCheckoutDialog({
             )}
           </Button>
         </div>
-        )}
+        ) : stage === "pix" && pix ? (
+          <div className="space-y-4">
+            <PixDisplay qrCodeImage={pix.image} payload={pix.payload} />
+            <CountdownTimer seconds={timeLeft} />
+            <p className="text-xs text-muted-foreground text-center">
+              Aguardando confirmação do pagamento...
+            </p>
+          </div>
+        ) : stage === "success" ? (
+          <div className="text-center space-y-4 py-4">
+            <div className="mx-auto size-16 rounded-full bg-success/20 flex items-center justify-center">
+              <Check className="size-8 text-success" />
+            </div>
+            <div>
+              <p className="text-lg font-semibold">Plano ativado! 🚀</p>
+              <p className="text-sm text-muted-foreground">
+                Seus {plan.credits} créditos já estão disponíveis.
+              </p>
+            </div>
+            <Button className="w-full" onClick={() => handleClose(false)}>
+              Fechar
+            </Button>
+          </div>
+        ) : null}
       </DialogContent>
     </Dialog>
   );
