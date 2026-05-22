@@ -82,6 +82,8 @@ export function ConversationSidebar({
   const { data: conversations = [] } = useQuery({
     queryKey: ["conversations"],
     queryFn: () => fetchList(),
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
   });
 
   const del = useMutation({
