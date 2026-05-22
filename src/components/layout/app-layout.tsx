@@ -20,7 +20,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getProfile } from "@/lib/chat.functions";
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -35,9 +35,18 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   const fetchProfile = useServerFn(getProfile);
   const { data: profile } = useQuery({
-    queryKey: ["profile"],
-    queryFn: () => fetchProfile(),
-    enabled: !!user,
+    queryKey: ["profile", user?.id ?? null],
+    queryFn: async () => {
+      try {
+        return await fetchProfile();
+      } catch (err) {
+        // Usuário não autenticado ou sessão ainda não hidratada — perfil anônimo.
+        return null;
+      }
+    },
+    enabled: !!user && !loading,
+    retry: false,
+    staleTime: 5 * 60_000,
   });
   const displayName =
     (profile?.name as string | undefined) ||
