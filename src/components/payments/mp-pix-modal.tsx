@@ -167,11 +167,12 @@ export function MpPixModal(props: PixModalProps) {
   };
 
   // Auto-generate when CPF is already saved
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (open && !pix && !create.isPending && savedCpf) {
       create.mutate(savedCpf);
     }
-  }, [open, savedCpf, pix, create]);
+  }, [open, savedCpf]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
