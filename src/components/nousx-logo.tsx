@@ -1,14 +1,17 @@
-import { cn } from "@/lib/utils";
+import { ThemeImage } from "./theme-image";
 
-const LOGO_URL =
+const DARK_LOGO =
   "https://central.daev.ca/wp-content/uploads/2026/05/FAVICON-AURA.png";
+const LIGHT_LOGO =
+  "https://central.daev.ca/wp-content/uploads/2026/05/FAVICON-AURA-SOMBRA.png";
 
 export function NousxLogo({ className }: { className?: string }) {
   return (
-    <img
-      src={LOGO_URL}
+    <ThemeImage
+      darkSrc={DARK_LOGO}
+      lightSrc={LIGHT_LOGO}
       alt="AuraIA"
-      className={cn("h-9 w-auto select-none", className)}
+      className={`h-9 w-auto select-none ${className ?? ""}`}
       draggable={false}
     />
   );
