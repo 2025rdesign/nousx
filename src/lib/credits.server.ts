@@ -18,7 +18,7 @@ function expiresAtForPack(packId: string | null | undefined): string | null {
   return t.toISOString();
 }
 
-async function recomputeBalance(userId: string) {
+export async function recomputeUserBalance(userId: string) {
   // Expire batches whose date has passed.
   await supabaseAdmin
     .from("credit_batches")
@@ -43,6 +43,8 @@ async function recomputeBalance(userId: string) {
     );
   return total;
 }
+
+const recomputeBalance = recomputeUserBalance;
 
 /**
  * Consumes `amount` credits for `userId`, deducting from batches with the
