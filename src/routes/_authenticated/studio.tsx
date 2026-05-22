@@ -563,7 +563,7 @@ function StudioInner() {
             {/* Pose selector */}
             <div className="space-y-2 rounded-lg border border-border p-3">
               <label className="flex items-center gap-3 cursor-pointer">
-                <Switch checked={poseEnabled} onCheckedChange={(v) => { setPoseEnabled(v); if (!v) setPoseId(null); }} />
+                <Switch checked={poseEnabled} onCheckedChange={(v) => { setPoseEnabled(v); if (!v) { setPoseId(null); setPoseType(null); } }} />
                 <div className="flex-1">
                   <div className="text-sm font-medium">Pose</div>
                   <p className="text-xs text-muted-foreground">
