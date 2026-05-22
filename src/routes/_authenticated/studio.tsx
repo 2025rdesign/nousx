@@ -167,6 +167,7 @@ function StudioInner() {
   const [poseId, setPoseId] = useState<string | null>(null);
   const [poseType, setPoseType] = useState<string | null>(null);
   const [highQuality, setHighQuality] = useState(false);
+  const [editModel, setEditModel] = useState<"CREATIVE" | "REALISM" | "QWEN_PRO">("CREATIVE");
 
   const { data: poses = [], isLoading: posesLoading, isError: posesError } = useQuery({
     queryKey: ["alive-poses"],
@@ -219,6 +220,8 @@ function StudioInner() {
             aspectRatio: ratio,
             poseId: poseEnabled ? poseId ?? undefined : undefined,
             poseType: poseEnabled ? poseType ?? undefined : undefined,
+            editModel,
+            detailLevel: highQuality ? "HIGH" : "MEDIUM",
           },
         });
       }
