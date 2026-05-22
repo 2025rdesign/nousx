@@ -342,7 +342,7 @@ export class VoiceSession {
     const bytes = base64ToUint8(b64);
     const floats = pcm16ToFloat(bytes);
     const buffer = this.outputCtx.createBuffer(1, floats.length, TARGET_RATE);
-    buffer.copyToChannel(floats, 0);
+    buffer.getChannelData(0).set(floats);
     const src = this.outputCtx.createBufferSource();
     src.buffer = buffer;
     src.connect(this.outputCtx.destination);
