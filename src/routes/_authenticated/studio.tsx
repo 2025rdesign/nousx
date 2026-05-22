@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { notify } from "@/lib/notify";
@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -275,6 +277,30 @@ function StudioInner() {
 
   const isLoading = gen.isPending;
 
+  // Simulated progress bar: fast to 85% in 8s, slow to 95%, jumps to 100% on success
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    if (!isLoading) {
+      if (result) {
+        setProgress(100);
+        const t = setTimeout(() => setProgress(0), 700);
+        return () => clearTimeout(t);
+      }
+      setProgress(0);
+      return;
+    }
+    setProgress(2);
+    const start = Date.now();
+    const iv = setInterval(() => {
+      const elapsed = (Date.now() - start) / 1000;
+      let p: number;
+      if (elapsed < 8) p = (elapsed / 8) * 85;
+      else p = Math.min(95, 85 + (elapsed - 8) * 0.5);
+      setProgress(p);
+    }, 120);
+    return () => clearInterval(iv);
+  }, [isLoading, result]);
+
   const Sidebar = (
     <div className="flex flex-col h-full bg-sidebar">
       <div className="p-3 border-b border-border">
@@ -288,8 +314,8 @@ function StudioInner() {
             setMobileSidebarOpen(false);
           }}
           className={cn(
-            "w-full flex items-center justify-center gap-2 rounded-md border border-dashed border-border py-3 text-sm",
-            !activeProfileId && "border-primary text-primary",
+            "w-full flex items-center justify-center gap-2 rounded-md border border-primary/60 text-primary hover:bg-primary/10 py-2.5 text-sm transition-colors",
+            !activeProfileId && "bg-primary/10",
           )}
         >
           <Plus className="size-4" />
@@ -370,7 +396,7 @@ function StudioInner() {
         {/* Center panel */}
         <section
           className={cn(
-            "lg:w-[400px] lg:shrink-0 lg:flex-none flex-1 min-w-0 overflow-auto lg:border-r lg:border-border",
+            "studio-scroll lg:w-[400px] lg:shrink-0 lg:flex-none flex-1 min-w-0 overflow-auto lg:border-r lg:border-border",
             "md:block",
             mobileTab === "criar" ? "block" : "hidden",
           )}
@@ -438,7 +464,7 @@ function StudioInner() {
                         <SelectItem value="REALISM">NOUSX Ultra HD</SelectItem>
                         <SelectItem value="ANIME">NOUSX Anime</SelectItem>
                         <SelectItem value="ANIMA">NOUSX Art</SelectItem>
-                        <SelectItem value="TEMPORARY">NOUSX Dream ✨</SelectItem>
+                        <SelectItem value="TEMPORARY">NOUSX Dream</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -499,7 +525,7 @@ function StudioInner() {
                       });
                       setAppearance(r.prompt);
                       if (r.negativePrompt) setNegativePrompt(r.negativePrompt);
-                      notify.success("✨ Prompt melhorado!");
+                      notify.success("Prompt melhorado!");
                     } catch (e) {
                       notify.error(e instanceof Error ? e.message : "Erro ao melhorar.");
                     } finally {
@@ -644,7 +670,7 @@ function StudioInner() {
               <div className="space-y-2 rounded-lg border border-border p-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex-1">
-                    <div className="text-sm font-medium">🎭 Rosto de referência</div>
+                    <div className="text-sm font-medium">Rosto de referência</div>
                     <p className="text-xs text-muted-foreground">
                       Reaproveite o rosto de uma imagem já gerada.
                     </p>
@@ -681,7 +707,7 @@ function StudioInner() {
                 className="w-full px-3 py-2.5 text-xs font-medium text-left text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => setShowAdvanced((v) => !v)}
               >
-                Avançado {showAdvanced ? "▾" : "▸"}
+                Avançado
               </button>
               {showAdvanced && (
                 <div className="px-3 pb-3 space-y-4 border-t border-border pt-3">
@@ -775,7 +801,12 @@ function StudioInner() {
           )}
         >
           <div className="p-3 md:p-6 space-y-4 lg:min-h-full lg:flex lg:flex-col">
-            <h3 className="text-sm font-semibold">Resultado</h3>
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold">Resultado</h3>
+              {(isLoading || progress > 0) && (
+                <Progress value={progress} className="h-1 bg-primary/15" />
+              )}
+            </div>
             <div
               className={cn(
                 "w-full mx-auto rounded-lg overflow-hidden bg-muted relative",
@@ -791,18 +822,18 @@ function StudioInner() {
                 )}
               >
               {isLoading && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-muted px-6">
-                  <Loader2 className="size-8 animate-spin text-primary" />
-                  <p className="text-sm text-foreground font-medium text-center">
-                    {LOADING_TEXTS[loadingTextIdx]}
-                  </p>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Gerando... isso pode levar até 1 minuto
-                  </p>
-                  <div className="w-full max-w-[220px] h-1.5 bg-background/60 rounded-full overflow-hidden">
-                    <div className="h-full w-1/3 bg-primary rounded-full animate-[progressSlide_1.5s_ease-in-out_infinite]" />
+                <>
+                  <Skeleton className="absolute inset-0 rounded-lg" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6">
+                    <Loader2 className="size-7 animate-spin text-primary" />
+                    <p className="text-sm text-foreground font-medium text-center">
+                      Gerando sua imagem...
+                    </p>
+                    <p className="text-xs text-muted-foreground text-center">
+                      {LOADING_TEXTS[loadingTextIdx]}
+                    </p>
                   </div>
-                </div>
+                </>
               )}
               {!isLoading && result && (
                 <img src={result} alt="Resultado" className="w-full h-full object-contain lg:object-contain" />
@@ -836,11 +867,11 @@ function StudioInner() {
 
             <div>
               <h4 className="text-sm font-semibold mb-2">Histórico</h4>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-1.5">
                 {history.map((c) => (
                   <div
                     key={c.id}
-                    className="relative group aspect-square lg:min-h-[160px] rounded-md overflow-hidden bg-muted cursor-pointer"
+                    className="relative group h-[120px] rounded-lg overflow-hidden bg-muted cursor-pointer transition-transform hover:scale-105"
                     onClick={() => {
                       if (c.image_url) {
                         setResult(c.image_url);
