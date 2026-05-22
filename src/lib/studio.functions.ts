@@ -307,9 +307,10 @@ const generateSchema = z.object({
   appearance: z.string().min(1).max(2000),
   aspectRatio: z.enum(["9:16", "16:9", "1:1", "4:5"]),
   poseId: z.string().optional().nullable(),
+  poseType: z.string().optional().nullable(),
   // new
   name: z.string().min(1).max(60).optional(),
-  model: z.enum(["DEFAULT", "REALISM", "ANIME"]).optional(),
+  model: z.enum(["DEFAULT", "REALISM", "ANIME", "TEMPORARY", "ANIMA"]).optional(),
   gender: z.enum(["FEMALE", "MALE", "TRANS"]).optional(),
   createProfile: z.boolean().optional(),
   negativePrompt: z.string().max(500).optional(),
