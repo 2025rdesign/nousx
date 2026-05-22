@@ -3,7 +3,111 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 const XAI_ENDPOINT = "https://api.x.ai/v1/images/generations";
-const XAI_IMAGE_MODEL = "grok-imagine-image";
+const XAI_IMAGE_MODEL = "grok-imagine-image-quality";
+const DEEPSEEK_ENDPOINT = "https://api.deepseek.com/chat/completions";
+
+type ImageFormat = "portrait" | "square" | "landscape" | null;
+
+function detectRequestedFormat(text: string): {
+  format: ImageFormat;
+  suffix: string;
+} {
+  const normalized = text.toLowerCase();
+
+  if (/\b(story|stories|vertical|9:16)\b/.test(normalized)) {
+    return {
+      format: "portrait",
+      suffix: ", vertical 9:16 format, portrait",
+    };
+  }
+
+  if (/\b(quadrado|square|1:1)\b/.test(normalized)) {
+    return {
+      format: "square",
+      suffix: ", square 1:1 format",
+    };
+  }
+
+  if (/\b(wide|horizontal|paisagem|16:9)\b/.test(normalized)) {
+    return {
+      format: "landscape",
+      suffix: ", landscape 16:9 format",
+    };
+  }
+
+  return { format: null, suffix: "" };
+}
+
+function buildCaption(rawPrompt: string): string {
+  const subject = rawPrompt
+    .trim()
+    .replace(/^por favor\s+/i, "")
+    .replace(
+      /^(gera(r)?|cria(r)?|faz(er)?|desenha(r)?|me\s+(mostra|manda|envia)|quero|preciso|gostaria(\s+de)?)\s+/i,
+      "",
+    )
+    .replace(
+      /^(uma?|umas?)\s+(imagem|imagens|foto|fotos|ilustra(c|ç)(a|ã)o(es)?|desenho|desenhos|arte|artes)\s+(de|do|da|dos|das)?\s*/i,
+      "",
+    )
+    .replace(/\b(story|stories|vertical|9:16|quadrado|square|1:1|wide|horizontal|paisagem|16:9)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .replace(/^[,:;.-]+|[,:;.-]+$/g, "")
+    .trim();
+
+  if (!subject) return "Aqui está sua imagem.";
+  if (/^(o|a|os|as|um|uma|uns|umas)\b/i.test(subject)) {
+    return `Aqui está ${subject.replace(/[.!?]+$/, "")}.`;
+  }
+  return `Aqui está a imagem de ${subject.replace(/[.!?]+$/, "")}.`;
+}
+
+async function generateTechnicalPrompt(rawPrompt: string, formatSuffix: string) {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+  if (!apiKey) {
+    throw new Error("DEEPSEEK_API_KEY ausente");
+  }
+
+  const res = await fetch(DEEPSEEK_ENDPOINT, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "deepseek-chat",
+      temperature: 0.2,
+      max_tokens: 300,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Transforme o pedido em um prompt técnico para geração de imagem em inglês. Retorne APENAS o prompt, sem explicações.",
+        },
+        {
+          role: "user",
+          content: rawPrompt,
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`DeepSeek ${res.status}: ${text.slice(0, 500)}`);
+  }
+
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const prompt = data.choices?.[0]?.message?.content?.trim().replace(/^['"]|['"]$/g, "");
+
+  if (!prompt) {
+    throw new Error("DeepSeek retornou prompt vazio");
+  }
+
+  return `${prompt}${formatSuffix}`;
+}
 
 export const Route = createFileRoute("/api/generate-image")({
   server: {
@@ -66,9 +170,9 @@ export const Route = createFileRoute("/api/generate-image")({
         } catch {
           return json({ error: "Requisição inválida." }, 400);
         }
-        const prompt = (body.prompt ?? "").trim();
-        if (!prompt) return json({ error: "Prompt vazio." }, 400);
-        if (prompt.length > 4000) return json({ error: "Prompt muito longo." }, 400);
+        const userPrompt = (body.prompt ?? "").trim();
+        if (!userPrompt) return json({ error: "Prompt vazio." }, 400);
+        if (userPrompt.length > 4000) return json({ error: "Prompt muito longo." }, 400);
 
         const apiKey = process.env.XAI_API_KEY;
         if (!apiKey) {
@@ -77,7 +181,15 @@ export const Route = createFileRoute("/api/generate-image")({
         }
 
         try {
-          console.log("[GENERATE-IMAGE] calling Grok xAI for prompt:", prompt.slice(0, 120));
+          const { format, suffix } = detectRequestedFormat(userPrompt);
+          console.log("[GENERATE-IMAGE] requested format:", format ?? "none");
+
+          const technicalPrompt = await generateTechnicalPrompt(userPrompt, suffix);
+          const caption = buildCaption(userPrompt);
+
+          console.log("[GENERATE-IMAGE] technical prompt:", technicalPrompt.slice(0, 200));
+          console.log("[GENERATE-IMAGE] Chamando API Grok...");
+
           const res = await fetch(XAI_ENDPOINT, {
             method: "POST",
             headers: {
@@ -86,9 +198,8 @@ export const Route = createFileRoute("/api/generate-image")({
             },
             body: JSON.stringify({
               model: XAI_IMAGE_MODEL,
-              prompt,
+              prompt: technicalPrompt,
               n: 1,
-              response_format: "url",
             }),
           });
           if (!res.ok) {
@@ -97,12 +208,13 @@ export const Route = createFileRoute("/api/generate-image")({
             return json({ error: "Não foi possível gerar a imagem." }, 500);
           }
           const data = (await res.json()) as {
-            data?: Array<{ url?: string; revised_prompt?: string }>;
+            data?: Array<{ url?: string }>;
+            images?: Array<{ url?: string }>;
           };
-          const url = data.data?.[0]?.url;
+          const url = data.data?.[0]?.url ?? data.images?.[0]?.url;
           if (!url) return json({ error: "Resposta inválida." }, 500);
           console.log("[GENERATE-IMAGE] image generated:", url);
-          return json({ url, revisedPrompt: data.data?.[0]?.revised_prompt ?? null }, 200);
+          return json({ url, caption }, 200);
         } catch (e) {
           console.error("[GENERATE-IMAGE] error", e);
           return json({ error: "Não foi possível gerar a imagem." }, 500);
