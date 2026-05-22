@@ -2,7 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { createCajupayPix } from "./cajupay.server";
+import { createCajupayPix, fetchCajupayPixStatus } from "./cajupay.server";
+import { markPixPaymentPaid } from "./cajupay-webhook.server";
 import {
   CREDIT_PACKS,
   PLANS,
@@ -146,10 +147,53 @@ export const getPixPaymentStatus = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { data: row } = await supabaseAdmin
       .from("pix_payments")
-      .select("id, status, paid_at, amount_cents, kind, target_id")
+      .select("*")
       .eq("id", data.paymentId)
       .eq("user_id", context.userId)
       .maybeSingle();
     if (!row) throw new Error("Cobrança não encontrada.");
-    return row;
+
+    // Fallback poll: if still pending and we have an external id, ask CajuPay
+    // directly. This makes the UI converge even if the webhook is late/missed.
+    if (row.status === "pending" && row.external_id) {
+      try {
+        const remote = await fetchCajupayPixStatus(String(row.external_id));
+        if (remote?.status === "paid") {
+          await markPixPaymentPaid(row, String(row.external_id));
+          return {
+            id: row.id,
+            status: "paid" as const,
+            paid_at: new Date().toISOString(),
+            amount_cents: row.amount_cents,
+            kind: row.kind,
+            target_id: row.target_id,
+          };
+        }
+        if (remote?.status === "failed" || remote?.status === "expired" || remote?.status === "refunded") {
+          await supabaseAdmin
+            .from("pix_payments")
+            .update({ status: remote.status })
+            .eq("id", row.id);
+          return {
+            id: row.id,
+            status: remote.status,
+            paid_at: row.paid_at,
+            amount_cents: row.amount_cents,
+            kind: row.kind,
+            target_id: row.target_id,
+          };
+        }
+      } catch (e) {
+        console.error("[CAJUPAY] poll fallback failed", e);
+      }
+    }
+
+    return {
+      id: row.id,
+      status: row.status,
+      paid_at: row.paid_at,
+      amount_cents: row.amount_cents,
+      kind: row.kind,
+      target_id: row.target_id,
+    };
   });
