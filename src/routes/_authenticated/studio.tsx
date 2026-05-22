@@ -464,7 +464,7 @@ function StudioInner() {
                         <SelectItem value="REALISM">NOUSX Ultra HD</SelectItem>
                         <SelectItem value="ANIME">NOUSX Anime</SelectItem>
                         <SelectItem value="ANIMA">NOUSX Art</SelectItem>
-                        <SelectItem value="TEMPORARY">NOUSX Dream ✨</SelectItem>
+                        <SelectItem value="TEMPORARY">NOUSX Dream</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -525,7 +525,7 @@ function StudioInner() {
                       });
                       setAppearance(r.prompt);
                       if (r.negativePrompt) setNegativePrompt(r.negativePrompt);
-                      notify.success("✨ Prompt melhorado!");
+                      notify.success("Prompt melhorado!");
                     } catch (e) {
                       notify.error(e instanceof Error ? e.message : "Erro ao melhorar.");
                     } finally {
@@ -670,7 +670,7 @@ function StudioInner() {
               <div className="space-y-2 rounded-lg border border-border p-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex-1">
-                    <div className="text-sm font-medium">🎭 Rosto de referência</div>
+                    <div className="text-sm font-medium">Rosto de referência</div>
                     <p className="text-xs text-muted-foreground">
                       Reaproveite o rosto de uma imagem já gerada.
                     </p>
@@ -707,7 +707,7 @@ function StudioInner() {
                 className="w-full px-3 py-2.5 text-xs font-medium text-left text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => setShowAdvanced((v) => !v)}
               >
-                Avançado {showAdvanced ? "▾" : "▸"}
+                Avançado
               </button>
               {showAdvanced && (
                 <div className="px-3 pb-3 space-y-4 border-t border-border pt-3">
