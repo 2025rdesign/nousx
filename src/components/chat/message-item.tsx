@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCodeCanvas } from "./code-canvas";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivePlan } from "@/hooks/use-active-plan";
 import { audioPlayerStore } from "./audio-player-store";
@@ -42,7 +41,6 @@ function getInlineImageUrl(content: string): string | null {
 function MessageItemInner({ msg }: { msg: ChatMsg }) {
   const isUser = msg.role === "user";
   const [copied, setCopied] = useState(false);
-  const [zoom, setZoom] = useState(false);
   const [loadingAudio, setLoadingAudio] = useState(false);
   const { open: openCanvas } = useCodeCanvas();
   const { hasActive } = useActivePlan();
@@ -50,6 +48,10 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
   const textContent = imageUrl
     ? msg.content.replace(imageUrl, "").replace(/!\[[^\]]*\]\(\s*\)/g, "").trim()
     : msg.content;
+
+  if (imageUrl && !isUser) {
+    console.log("[IMG 5] renderizando", { messageId: msg.id, imageUrl });
+  }
 
   const onCopy = async () => {
     await navigator.clipboard.writeText(textContent || msg.content);
@@ -116,38 +118,33 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
               src={imageUrl}
               alt=""
               className="mb-2 h-auto w-full max-w-[500px] rounded-xl object-contain"
+              loading="lazy"
+              decoding="async"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
             />
           ) : (
             <div className="mb-2">
-              <button
-                type="button"
-                onClick={() => setZoom(true)}
-                className="block w-full max-w-[500px] overflow-hidden rounded-xl border border-border transition-opacity hover:opacity-90"
-              >
-                <img
-                  src={imageUrl}
-                  alt={textContent || "Imagem gerada no chat"}
-                  className="h-auto w-full object-contain"
-                />
-              </button>
+              <img
+                src={imageUrl}
+                alt={textContent || "Imagem gerada no chat"}
+                className="h-auto w-full max-w-[500px] rounded-xl object-contain"
+                loading="lazy"
+                decoding="async"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
               <a
                 href={imageUrl}
-                download
+                download="aura-imagem.jpg"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-2 inline-flex text-[11px] text-muted-foreground transition-colors hover:text-foreground"
               >
                 Baixar imagem
               </a>
-              <Dialog open={zoom} onOpenChange={setZoom}>
-                <DialogContent className="max-w-4xl p-2 bg-background">
-                  <img
-                    src={imageUrl}
-                    alt={textContent || "Imagem gerada no chat"}
-                    className="w-full h-auto rounded-lg"
-                  />
-                </DialogContent>
-              </Dialog>
             </div>
           )
         )}
