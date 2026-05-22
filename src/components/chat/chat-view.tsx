@@ -17,39 +17,31 @@ import { CodeCanvasProvider } from "./code-canvas";
 import { notify } from "@/lib/notify";
 import type { ExtractedFile } from "@/lib/file-extract";
 
-const IMAGE_VERBS_RE =
-  /\b(ger(a|e|ar|ando)|cri(a|e|ar|ando|e\-?me)|fa[zç](a|e|er|endo)|desenh(a|e|ar|ando)|imagin(a|e|ar)|pint(a|e|ar)|render(iz)?(a|e|ar)?|design(a|e|ar)?|monta(r|e)?|produz(a|ir)|mostr(a|e|ar)|me\s+(d[êe]|d[áa]|mostr[ae])|quero|preciso|gostaria(\s+de)?)\b/i;
-const IMAGE_NOUNS_RE =
-  /\b(imagens?|fotos?|figuras?|desenhos?|ilustra[cç][aã]o(es)?|artes?|pinturas?|wallpapers?|capas?|logos?|logotipos?|[íi]cones?|avatares?|retratos?|posters?|p[ôo]steres?|render(s|iza[cç][aã]o)?|thumbs?|miniaturas?|cartazes?|banners?)\b/i;
-const IMAGE_STANDALONE_RE =
-  /^\s*(uma?|umas?)\s+(imagens?|fotos?|figuras?|desenhos?|ilustra[cç][aã]o(es)?|artes?|pinturas?|wallpapers?|capas?|logos?|logotipos?|[íi]cones?|avatares?|retratos?|posters?|p[ôo]steres?)\s+(de|do|da|dos|das|com|em|sobre)\b/i;
-const IMAGE_SIMPLE_RE =
-  /(gera|cria|faz|fazer|criar|gerar|quero|gostaria|preciso|me\s+(d[áa]|d[êe]|manda|mostra|envia)).{0,40}(imagens?|fotos?|ilustra[cç][aã]o(es)?|figuras?|desenhos?|picture|image|art(e|work)?|wallpaper|logo|[íi]cone|avatar|retrato|p[ôo]ster|banner|capa)/i;
+// Só gera imagem quando o usuário descreve o conteúdo após
+// "imagem / foto / ilustração / desenho / arte". Pedidos vagos
+// como "gera uma imagem" caem no DeepSeek, que pergunta o que ele quer.
+const IMAGE_INTENT_RE =
+  /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|mostr(?:a|e|ar)|me\s+(?:d[áa]|d[êe]|manda|mostra|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?)\b[^\n]{0,30}\b(imagens?|fotos?|ilustra[cç][aã]o(?:es)?|desenhos?|figuras?|artes?|pinturas?|wallpapers?|retratos?|p[ôo]steres?|banners?|capas?)\b([^\n]*)/i;
 
-// Pedido vago: verbo + "imagem/foto" SEM descrição do conteúdo.
-// Ex.: "gera uma imagem pra mim", "faz uma foto", "cria uma imagem".
-const IMAGE_VAGUE_RE =
-  /^\s*(por\s+favor[,\s]+)?(gera|gere|gerar|cria|crie|criar|faz|faça|fazer|desenha|desenhe|me\s+(d[áa]|d[êe]|manda|mostra|envia|gera|cria|faz)|quero|gostaria(\s+de)?|preciso(\s+de)?)\s+(uma?\s+)?(nova\s+)?(imagens?|fotos?|figuras?|desenhos?|ilustra[cç][aã]o(es)?|artes?|pinturas?)\s*(a[ií]|nova|legal|bonita|massa|top|incr[íi]vel|pra\s+mim|para\s+mim|aqui|agora|r[áa]pido)?\s*[\.\?!]*\s*$/i;
-
-function isVagueImageRequest(text: string): boolean {
-  if (!text) return false;
-  const t = text.trim();
-  if (!t) return false;
-  return IMAGE_VAGUE_RE.test(t);
-}
+const MIN_DESCRIPTION_CHARS = 10;
 
 function detectImageIntent(text: string): boolean {
   if (!text) return false;
   if (text.length > 800) return false;
   const t = text.trim();
   if (!t) return false;
-  // Simple "verb ... image-noun" within 40 chars
-  if (IMAGE_SIMPLE_RE.test(t)) return true;
-  // Verb + image noun anywhere in the message
-  if (IMAGE_NOUNS_RE.test(t) && IMAGE_VERBS_RE.test(t)) return true;
-  // Or starts with "uma imagem de ..."
-  if (IMAGE_STANDALONE_RE.test(t)) return true;
-  return false;
+  const match = IMAGE_INTENT_RE.exec(t);
+  if (!match) return false;
+  // O grupo 3 é o que vem DEPOIS de "imagem/foto/...".
+  // Exige pelo menos MIN_DESCRIPTION_CHARS de descrição real
+  // (ignorando pontuação, "pra mim", "por favor", etc.).
+  const after = (match[3] ?? "")
+    .replace(/[.!?,;:]+/g, " ")
+    .replace(/\b(pra|para)\s+mim\b/gi, " ")
+    .replace(/\bpor\s+favor\b/gi, " ")
+    .replace(/\b(agora|aqui|r[áa]pido|nova|legal|bonita|top|massa|incr[íi]vel)\b/gi, " ")
+    .trim();
+  return after.length >= MIN_DESCRIPTION_CHARS;
 }
 
 interface Props {
