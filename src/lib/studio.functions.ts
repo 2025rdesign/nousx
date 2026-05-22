@@ -374,18 +374,18 @@ export const generateCharacter = createServerFn({ method: "POST" })
       {
         const strength = Number.isFinite(Number(data.poseStrength))
           ? Math.round(Number(data.poseStrength))
-          : 80;
+          : 50;
         const userPrompt = (data.posePrompt ?? "").trim();
         let pose: Record<string, unknown> | null = null;
         if (data.poseId) {
           pose = {
             type: resolvePoseType(data.poseId),
             id: cleanPoseId(data.poseId),
-            strength,
+            poseStrength: strength,
           };
           if (userPrompt) pose.posePrompt = userPrompt;
         } else if (userPrompt) {
-          pose = { type: "CUSTOM", strength, posePrompt: userPrompt };
+          pose = { type: "CUSTOM", poseStrength: strength, posePrompt: userPrompt };
         }
         if (pose) {
           console.log("[POSE]", JSON.stringify(pose));
@@ -405,35 +405,33 @@ export const generateCharacter = createServerFn({ method: "POST" })
         throw new Error("Personagem sem imagem base. Gere uma imagem primeiro.");
       }
 
-      endpoint = `${ALIVEAI_BASE}/prompts/character-image`;
+      endpoint = `${ALIVEAI_BASE}/prompts/edit-image`;
+      const variationPrompt = `extract this person keep her appearance, skin color, face and body shape. ${translated}`;
       body = {
-        prompt: translated,
-        profileId: profile.base_media_id,
+        editModel: data.editModel ?? "CREATIVE",
+        mediaId: profile.base_media_id,
+        prompt: variationPrompt,
         aspectRatio: mapAspectRatio(data.aspectRatio),
-        highResolution: data.detailLevel === "HIGH",
-        characterStrength: 2,
-        improveFace: true,
-        improveBreasts: false,
-        improveVagina: false,
+        faceImproveEnabled: true,
+        faceImproveStrength: 7,
+        restoreFace: true,
+        cfg: 5,
       };
-      if (data.editModel) {
-        (body as Record<string, unknown>).editModel = data.editModel;
-      }
       {
         const strength = Number.isFinite(Number(data.poseStrength))
           ? Math.round(Number(data.poseStrength))
-          : 80;
+          : 50;
         const userPrompt = (data.posePrompt ?? "").trim();
         let pose: Record<string, unknown> | null = null;
         if (data.poseId) {
           pose = {
             type: resolvePoseType(data.poseId),
             id: cleanPoseId(data.poseId),
-            strength,
+            poseStrength: strength,
           };
           if (userPrompt) pose.posePrompt = userPrompt;
         } else if (userPrompt) {
-          pose = { type: "CUSTOM", strength, posePrompt: userPrompt };
+          pose = { type: "CUSTOM", poseStrength: strength, posePrompt: userPrompt };
         }
         if (pose) {
           console.log("[POSE]", JSON.stringify(pose));
@@ -442,6 +440,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
       }
       // Stash for fallback
       (body as any).__fallbackAppearance = profile.appearance || null;
+      console.log("[VARIATION]", JSON.stringify({ ...body, __fallbackAppearance: undefined }));
     }
 
     console.log("[DEBUG] About to call AliveAI", {
