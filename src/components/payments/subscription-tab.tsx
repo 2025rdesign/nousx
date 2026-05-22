@@ -1,38 +1,28 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Check, Loader2, ArrowLeft } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
 import { PLANS, applyDiscount, type PlanId } from "@/lib/payments-config";
 import {
-  subscribePlan,
+  startSubscriptionCheckout,
   cancelMySubscription,
   getMySubscription,
-  getCheckoutProfile,
-  saveCheckoutProfile,
-  checkPayment,
 } from "@/lib/payments.functions";
-import { useAuth } from "@/hooks/use-auth";
 import { CouponField, type AppliedCoupon } from "./coupon-field";
-import {
-  CardFields,
-  CustomerDataStep,
-  PixDisplay,
-  CountdownTimer,
-  useCardForm,
-} from "./payment-forms";
+
+const formatBRL = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
 
 export function SubscriptionTab() {
   const qc = useQueryClient();
@@ -77,7 +67,7 @@ export function SubscriptionTab() {
                 </Badge>
                 <h3 className="text-xl font-bold">{plan?.name}</h3>
                 <p className="text-sm text-muted-foreground">
-                  R$ {plan?.price.toFixed(2).replace(".", ",")}/mês
+                  {formatBRL(plan?.price ?? 0)}/mês
                 </p>
               </div>
               {sub.expires_at && (
@@ -148,11 +138,16 @@ export function SubscriptionTab() {
                   )}
                   <h3 className="text-xl font-bold">{plan.name}</h3>
                   <p className="mt-2 text-3xl font-bold">
-                    R$ {plan.price.toFixed(2).replace(".", ",")}
+                    {formatBRL(plan.price)}
                     <span className="text-sm font-normal text-muted-foreground">/mês</span>
                   </p>
-                  <p className={cn("text-xs mt-1", isUltra ? "text-accent font-medium" : "text-muted-foreground")}>
-                    R$ {perCredit.toFixed(2).replace(".", ",")} por crédito
+                  <p
+                    className={cn(
+                      "text-xs mt-1",
+                      isUltra ? "text-accent font-medium" : "text-muted-foreground",
+                    )}
+                  >
+                    {formatBRL(perCredit)} por crédito
                     {isUltra && savings > 0 && ` — economize ${savings}%`}
                   </p>
                 </div>
@@ -203,227 +198,62 @@ function PlanCheckoutDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const qc = useQueryClient();
-  const { user } = useAuth();
   const plan = PLANS[planId];
   const [coupon, setCoupon] = useState<AppliedCoupon>(null);
-  const [method, setMethod] = useState<"PIX" | "CREDIT_CARD">("CREDIT_CARD");
-  const { card, setCard, sanitized } = useCardForm(user?.email ?? "");
-  const [stage, setStage] = useState<
-    "customer" | "checkout" | "pix" | "success"
-  >("customer");
-  const [pix, setPix] = useState<
-    { paymentId: string; image: string; payload: string } | null
-  >(null);
-  const [timeLeft, setTimeLeft] = useState(30 * 60);
-
-  const fetchProfile = useServerFn(getCheckoutProfile);
-  const saveProfile = useServerFn(saveCheckoutProfile);
-  const profileQ = useQuery({
-    queryKey: ["checkout-profile"],
-    queryFn: () => fetchProfile(),
-    enabled: open,
-  });
-
-  useEffect(() => {
-    if (profileQ.data) {
-      if (profileQ.data.ready) setStage("checkout");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileQ.data]);
-
-  const saveProfileM = useMutation({
-    mutationFn: (vars: { name: string; cpf: string }) =>
-      saveProfile({ data: vars }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["checkout-profile"] });
-      setStage("checkout");
-    },
-    onError: (e) =>
-      notify.error(e instanceof Error ? e.message : "Erro ao salvar dados."),
-  });
 
   const finalPrice = useMemo(
     () => (coupon ? applyDiscount(plan.price, coupon.discountPercent) : plan.price),
     [plan.price, coupon],
   );
 
-  const subscribe = useServerFn(subscribePlan);
-  const check = useServerFn(checkPayment);
+  const start = useServerFn(startSubscriptionCheckout);
   const m = useMutation({
-    mutationFn: () => {
-      if (method === "CREDIT_CARD") {
-        const { card: c } = sanitized();
-        return subscribe({
-          data: { planId, method: "CREDIT_CARD", couponCode: coupon?.code ?? null, card: c },
-        });
-      }
-      return subscribe({
-        data: { planId, method: "PIX", couponCode: coupon?.code ?? null },
-      });
-    },
-    onSuccess: (res: any) => {
-      if (res?.redirectUrl) {
-        notify.success("Redirecionando para o checkout da Cakto...");
-        window.location.href = res.redirectUrl;
-        return;
-      }
-      if (res?.method === "PIX" && res.qrCodeImage) {
-        setPix({
-          paymentId: res.paymentId,
-          image: res.qrCodeImage,
-          payload: res.qrCodePayload,
-        });
-        setTimeLeft(30 * 60);
-        setStage("pix");
-        return;
-      }
-      // Card path — webhook will activate; show optimistic success
-      notify.success("Plano ativado! 🚀");
-      qc.invalidateQueries({ queryKey: ["my-subscription"] });
-      qc.invalidateQueries({ queryKey: ["credits"] });
-      setStage("success");
+    mutationFn: () => start({ data: { planId, couponCode: coupon?.code ?? null } }),
+    onSuccess: (res) => {
+      notify.success("Redirecionando para o checkout seguro...");
+      window.location.href = res.checkoutUrl;
     },
     onError: (e) => notify.error(e instanceof Error ? e.message : "Erro ao assinar."),
   });
 
-  // PIX polling — only confirms when Asaas webhook updates the subscription
-  const pollRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (stage !== "pix" || !pix) return;
-    pollRef.current = window.setInterval(async () => {
-      try {
-        const res = await check({ data: { paymentId: pix.paymentId } });
-        if (["CONFIRMED", "RECEIVED"].includes(res.status)) {
-          if (pollRef.current) clearInterval(pollRef.current);
-          notify.success("Plano ativado! 🚀");
-          qc.invalidateQueries({ queryKey: ["my-subscription"] });
-          qc.invalidateQueries({ queryKey: ["credits"] });
-          setStage("success");
-        }
-      } catch {
-        /* ignore transient errors */
-      }
-    }, 5000);
-    const timer = window.setInterval(
-      () => setTimeLeft((t) => Math.max(0, t - 1)),
-      1000,
-    );
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-      clearInterval(timer);
-    };
-  }, [stage, pix, check, qc]);
-
-  function handleClose(v: boolean) {
-    onOpenChange(v);
-    if (!v) {
-      setTimeout(() => {
-        setStage("customer");
-        setPix(null);
-        setCoupon(null);
-        setTimeLeft(30 * 60);
-      }, 300);
-    }
-  }
-
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-[#0A0A0F] border-border">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {stage === "pix" && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7"
-                onClick={() => setStage("checkout")}
-              >
-                <ArrowLeft className="size-4" />
-              </Button>
-            )}
-            {stage === "customer" && "Seus dados"}
-            {stage === "checkout" && `Assinar ${plan.name}`}
-            {stage === "pix" && "Pague com PIX"}
-            {stage === "success" && "Tudo certo!"}
-          </DialogTitle>
+          <DialogTitle>Assinar {plan.name}</DialogTitle>
         </DialogHeader>
-        {stage === "customer" ? (
-          <CustomerDataStep
-            initial={{
-              name: profileQ.data?.name ?? "",
-              cpf: profileQ.data?.cpf ?? "",
-            }}
-            email={profileQ.data?.email ?? user?.email ?? ""}
-            isPending={saveProfileM.isPending}
-            onSubmit={(d) => saveProfileM.mutate(d)}
-            submitLabel="Salvar e continuar"
-          />
-        ) : stage === "checkout" ? (
         <div className="space-y-4">
-          <div className="rounded-lg bg-muted/40 p-3 flex items-center justify-between">
-            <p className="text-sm">{plan.credits} créditos/mês</p>
+          <div className="rounded-lg bg-[#13131A] border border-[#1E1E2E] p-3 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-white">{plan.name}</p>
+              <p className="text-xs text-zinc-400">{plan.credits} créditos/mês</p>
+            </div>
             <div className="text-right">
               {coupon && (
-                <p className="text-xs text-muted-foreground line-through">
-                  R$ {plan.price.toFixed(2).replace(".", ",")}
-                </p>
+                <p className="text-xs text-zinc-500 line-through">{formatBRL(plan.price)}</p>
               )}
-              <p className="text-lg font-bold">
-                R$ {finalPrice.toFixed(2).replace(".", ",")}/mês
-              </p>
+              <p className="text-lg font-bold text-white">{formatBRL(finalPrice)}/mês</p>
             </div>
           </div>
           <CouponField value={coupon} onApply={setCoupon} />
-          <Tabs value={method} onValueChange={(v) => setMethod(v as any)}>
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="CREDIT_CARD">Cartão</TabsTrigger>
-              <TabsTrigger value="PIX">PIX</TabsTrigger>
-            </TabsList>
-            <TabsContent value="CREDIT_CARD" className="pt-3">
-              <CardFields card={card} setCard={setCard} />
-            </TabsContent>
-            <TabsContent value="PIX" className="pt-3">
-              <p className="text-sm text-muted-foreground">
-                Você verá o QR Code na próxima etapa. A liberação é
-                automática assim que o PIX for confirmado.
-              </p>
-            </TabsContent>
-          </Tabs>
-          <Button className="w-full" onClick={() => m.mutate()} disabled={m.isPending}>
+          <Button
+            className="w-full bg-[#6C47FF] hover:bg-[#7d5cff] text-white"
+            onClick={() => m.mutate()}
+            disabled={m.isPending}
+          >
             {m.isPending ? (
               <>
-                <Loader2 className="size-4 animate-spin" /> Processando...
+                <Loader2 className="size-4 animate-spin mr-2" /> Redirecionando...
               </>
             ) : (
-              `Confirmar — R$ ${finalPrice.toFixed(2).replace(".", ",")}/mês`
+              `Assinar — ${formatBRL(finalPrice)}/mês`
             )}
           </Button>
+          <p className="text-xs text-zinc-500 text-center">
+            Você será redirecionado para um checkout seguro. Sua assinatura será ativada
+            automaticamente após a confirmação.
+          </p>
         </div>
-        ) : stage === "pix" && pix ? (
-          <div className="space-y-4">
-            <PixDisplay qrCodeImage={pix.image} payload={pix.payload} />
-            <CountdownTimer seconds={timeLeft} />
-            <p className="text-xs text-muted-foreground text-center">
-              Aguardando confirmação do pagamento...
-            </p>
-          </div>
-        ) : stage === "success" ? (
-          <div className="text-center space-y-4 py-4">
-            <div className="mx-auto size-16 rounded-full bg-success/20 flex items-center justify-center">
-              <Check className="size-8 text-success" />
-            </div>
-            <div>
-              <p className="text-lg font-semibold">Plano ativado! 🚀</p>
-              <p className="text-sm text-muted-foreground">
-                Seus {plan.credits} créditos já estão disponíveis.
-              </p>
-            </div>
-            <Button className="w-full" onClick={() => handleClose(false)}>
-              Fechar
-            </Button>
-          </div>
-        ) : null}
       </DialogContent>
     </Dialog>
   );
