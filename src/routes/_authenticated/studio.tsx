@@ -823,27 +823,33 @@ function StudioInner() {
 
             <div>
               <h4 className="text-sm font-semibold mb-2">Histórico</h4>
-              <div className="grid grid-cols-3 gap-1.5">
-                {history.map((c) => (
-                  <div
-                    key={c.id}
-                    className="relative group h-[120px] rounded-lg overflow-hidden bg-muted cursor-pointer transition-transform hover:scale-105"
-                    onClick={() => {
-                      if (c.image_url) {
-                        setResult(c.image_url);
-                        setResultId(c.id);
-                        setMobileTab("resultado");
-                      }
-                    }}
-                  >
-                    {c.image_url && (
-                      <img
-                        src={c.image_url}
-                        alt={c.name || "Variação"}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+              {history.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  Nada por aqui ainda.
+                </p>
+              ) : (
+                <div className="columns-2 md:columns-3 gap-1.5 [column-fill:_balance]">
+                  {history.map((c) => (
+                    <div
+                      key={c.id}
+                      className="relative group mb-1.5 break-inside-avoid rounded-lg overflow-hidden bg-muted cursor-pointer"
+                      onClick={() => {
+                        if (c.image_url) {
+                          setResult(c.image_url);
+                          setResultId(c.id);
+                          setMobileTab("resultado");
+                        }
+                      }}
+                    >
+                      {c.image_url && (
+                        <img
+                          src={c.image_url}
+                          alt={c.name || "Variação"}
+                          loading="lazy"
+                          className="block w-full h-auto transition-transform duration-200 group-hover:scale-[1.03]"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                       <Button
                         size="icon"
                         variant="ghost"
@@ -872,15 +878,11 @@ function StudioInner() {
                       >
                         <Trash2 className="size-3.5" />
                       </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {history.length === 0 && (
-                  <p className="col-span-3 text-xs text-muted-foreground text-center py-4">
-                    Nada por aqui ainda.
-                  </p>
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>
