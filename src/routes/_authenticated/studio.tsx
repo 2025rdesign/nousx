@@ -445,8 +445,11 @@ function StudioInner() {
                   onClick={async () => {
                     try {
                       setImproving(true);
-                      const r = await improveFn({ data: { prompt: appearance.trim() } });
+                      const r = await improveFn({
+                        data: { prompt: appearance.trim(), model },
+                      });
                       setAppearance(r.prompt);
+                      if (r.negativePrompt) setNegativePrompt(r.negativePrompt);
                       notify.success("✨ Prompt melhorado!");
                     } catch (e) {
                       notify.error(e instanceof Error ? e.message : "Erro ao melhorar.");
@@ -577,13 +580,13 @@ function StudioInner() {
 
                   <div className="space-y-1.5">
                     <Label htmlFor="negative" className="text-xs text-muted-foreground">
-                      Palavras a evitar
+                      Prompt negativo
                     </Label>
                     <Input
                       id="negative"
                       value={negativePrompt}
                       onChange={(e) => setNegativePrompt(e.target.value)}
-                      placeholder="Ex: deformado, borrado, texto..."
+                      placeholder="O que você NÃO quer na imagem. Ex: deformado, borrado, má iluminação, texto, marcas d'água..."
                       maxLength={500}
                       className="h-9 text-sm"
                     />
