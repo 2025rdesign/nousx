@@ -95,6 +95,20 @@ async function pollPrompt(promptId: string): Promise<{ mediaId: string; mediaUrl
   throw new Error("Tempo limite de geração atingido. Tente novamente.");
 }
 
+async function logPromptPoseEcho(promptId: string) {
+  try {
+    const res = await fetch(`${ALIVEAI_BASE}/prompts/${promptId}`, {
+      headers: aliveHeaders(),
+    });
+    if (!res.ok) return;
+    const data = (await res.json()) as any;
+    const echoed = data?.originalPrompt?.pose ?? data?.promptContainer?.originalPrompt?.pose ?? data?.pose ?? null;
+    console.log("[POSE RESPONSE]", JSON.stringify(echoed));
+  } catch (err) {
+    console.warn("[POSE RESPONSE] fetch failed", err);
+  }
+}
+
 async function ensureCredits(_supabase: any, userId: string, cost: number) {
   const { recomputeUserBalance } = await import("./credits.server");
   const balance = await recomputeUserBalance(userId);
