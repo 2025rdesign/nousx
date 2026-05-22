@@ -61,17 +61,16 @@ export const Route = createFileRoute("/api/tts")({
         const apiKey = process.env.XAI_API_KEY;
         if (!apiKey) return json({ error: "TTS indisponível." }, 500);
 
-        const upstream = await fetch("https://api.x.ai/v1/audio/speech", {
+        const upstream = await fetch("https://api.x.ai/v1/tts", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "grok-tts",
-            input: text,
-            voice: "eve",
-            response_format: "mp3",
+            text,
+            voice_id: "ara",
+            language: "pt-BR",
           }),
         });
 
