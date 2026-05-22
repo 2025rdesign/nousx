@@ -396,7 +396,7 @@ function StudioInner() {
         {/* Center panel */}
         <section
           className={cn(
-            "lg:w-[400px] lg:shrink-0 lg:flex-none flex-1 min-w-0 overflow-auto lg:border-r lg:border-border",
+            "studio-scroll lg:w-[400px] lg:shrink-0 lg:flex-none flex-1 min-w-0 overflow-auto lg:border-r lg:border-border",
             "md:block",
             mobileTab === "criar" ? "block" : "hidden",
           )}
@@ -867,11 +867,11 @@ function StudioInner() {
 
             <div>
               <h4 className="text-sm font-semibold mb-2">Histórico</h4>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-1.5">
                 {history.map((c) => (
                   <div
                     key={c.id}
-                    className="relative group aspect-square lg:min-h-[160px] rounded-md overflow-hidden bg-muted cursor-pointer"
+                    className="relative group h-[120px] rounded-lg overflow-hidden bg-muted cursor-pointer transition-transform hover:scale-105"
                     onClick={() => {
                       if (c.image_url) {
                         setResult(c.image_url);
