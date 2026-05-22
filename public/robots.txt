@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /configuracoes
+Disallow: /api
+Sitemap: https://chataura.com.br/sitemap.xml
