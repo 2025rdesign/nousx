@@ -371,12 +371,24 @@ export const generateCharacter = createServerFn({ method: "POST" })
         improveVagina: false,
         negativeDetails: `${baseNeg}${userNeg ? ", " + userNeg : ""}`,
       };
-      if (data.poseId) {
-        (body as Record<string, unknown>).pose = {
-          type: resolvePoseType(data.poseId),
-          id: cleanPoseId(data.poseId),
-          strength: 80,
-        };
+      {
+        const strength = data.poseStrength ?? 80;
+        const userPrompt = (data.posePrompt ?? "").trim();
+        if (data.poseId) {
+          const p: Record<string, unknown> = {
+            type: resolvePoseType(data.poseId),
+            id: cleanPoseId(data.poseId),
+            strength,
+          };
+          if (userPrompt) p.posePrompt = userPrompt;
+          (body as Record<string, unknown>).pose = p;
+        } else if (userPrompt) {
+          (body as Record<string, unknown>).pose = {
+            type: "CUSTOM",
+            posePrompt: userPrompt,
+            strength,
+          };
+        }
       }
     } else {
       if (!data.profileId) throw new Error("Personagem não encontrado.");
