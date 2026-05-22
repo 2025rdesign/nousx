@@ -26,19 +26,28 @@ export const Route = createFileRoute("/api/generate-image")({
         }
         const userId = userData.user.id;
 
-        // Check active subscription
-        const { data: sub } = await supabase
+        // Check active subscription (fresh read, no caching)
+        const nowIso = new Date().toISOString();
+        const { data: subs, error: subErr } = await supabase
           .from("user_subscriptions")
-          .select("id, status, expires_at")
+          .select("id, plan_id, status, expires_at, created_at")
           .eq("user_id", userId)
-          .in("status", ["active"])
+          .eq("status", "active")
+          .gt("expires_at", nowIso)
           .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
 
-        const hasActive =
-          !!sub && (!sub.expires_at || new Date(sub.expires_at) > new Date());
+        console.log("[GENERATE-IMAGE] subscription check", {
+          userId,
+          now: nowIso,
+          subErr: subErr?.message ?? null,
+          subs,
+        });
+
+        const sub = subs?.[0] ?? null;
+        const hasActive = !!sub;
         if (!hasActive) {
+          console.log("[GENERATE-IMAGE] no active subscription for", userId);
           return json(
             {
               error: "subscription_required",
