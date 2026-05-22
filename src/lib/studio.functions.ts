@@ -317,7 +317,6 @@ const generateSchema = z.object({
   negativePrompt: z.string().max(500).optional(),
   creativity: z.enum(["low", "medium", "high"]).optional(),
   detailLevel: z.enum(["MEDIUM", "HIGH"]).optional(),
-  faceRefMediaId: z.string().optional().nullable(),
   // variation
   profileId: z.string().uuid().optional(),
 });
@@ -347,13 +346,9 @@ export const generateCharacter = createServerFn({ method: "POST" })
       const cfgMap = { low: 4, medium: 7, high: 10 } as const;
       const userNeg = (data.negativePrompt ?? "").trim();
       const baseNeg = "deformed, bad anatomy, extra fingers, missing fingers, bad hands, blurry, low quality, watermark, text";
-      const useFaceRef = !!data.faceRefMediaId;
-      const appearanceForApi = useFaceRef
-        ? `${translated}, same face, same person, face consistency`
-        : translated;
       body = {
         name: data.name,
-        appearance: appearanceForApi,
+        appearance: translated,
         detailLevel: data.detailLevel ?? "MEDIUM",
         model: data.model,
         gender: data.gender,
@@ -361,7 +356,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         cfg: cfgMap[data.creativity ?? "medium"],
         faceImproveEnabled: true,
         faceModel: "REALISM",
-        faceImproveStrength: useFaceRef ? 9.0 : 5,
+        faceImproveStrength: 5,
         improveBreasts: false,
         improveVagina: false,
         negativeDetails: `${baseNeg}${userNeg ? ", " + userNeg : ""}`,
@@ -372,9 +367,6 @@ export const generateCharacter = createServerFn({ method: "POST" })
           type: data.poseType ?? undefined,
           poseStrength: 50,
         };
-      }
-      if (useFaceRef) {
-        (body as Record<string, unknown>).faceImproveMediaId = data.faceRefMediaId;
       }
     } else {
       if (!data.profileId) throw new Error("Personagem não encontrado.");
