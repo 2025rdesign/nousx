@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Menu, Settings, LogOut, User as UserIcon, PanelLeft, Zap } from "lucide-react";
+import { Menu, Settings, LogOut, User as UserIcon, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,7 +20,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { getProfile } from "@/lib/chat.functions";
 import { getCredits } from "@/lib/credits.functions";
 import { CreditPurchaseModal } from "@/components/payments/credit-purchase-modal";
-import { cn } from "@/lib/utils";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { user, loading, signOut } = useAuth();
