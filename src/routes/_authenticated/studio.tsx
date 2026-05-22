@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { notify } from "@/lib/notify";
-import { AlertTriangle, ArrowLeft, Download, Globe, ImageIcon, Lock, Loader2, Maximize2, Plus, Sparkles as SparklesIcon, Trash2, User as UserIcon, Wand2, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Download, Globe, Lock, Loader2, Maximize2, Plus, Sparkles as SparklesIcon, Trash2, Wand2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CharacterCard } from "@/components/studio/character-card";
 import {
   listMyProfiles,
@@ -168,8 +167,6 @@ function StudioInner() {
   const [poseId, setPoseId] = useState<string | null>(null);
   const [poseType, setPoseType] = useState<string | null>(null);
   const [highQuality, setHighQuality] = useState(false);
-  const [faceRef, setFaceRef] = useState<{ mediaId: string; imageUrl: string } | null>(null);
-  const [faceRefOpen, setFaceRefOpen] = useState(false);
 
   const { data: poses = [], isLoading: posesLoading, isError: posesError } = useQuery({
     queryKey: ["alive-poses"],
@@ -177,12 +174,6 @@ function StudioInner() {
     enabled: poseEnabled,
     staleTime: 5 * 60_000,
     retry: 0,
-  });
-
-  const { data: allCharacters = [] } = useQuery({
-    queryKey: ["all-characters"],
-    queryFn: () => fetchChars({ data: {} }),
-    enabled: faceRefOpen,
   });
 
   const groupedPoses = useMemo(() => {
@@ -246,7 +237,6 @@ function StudioInner() {
           detailLevel: highQuality ? "HIGH" : "MEDIUM",
           poseId: poseEnabled ? poseId ?? undefined : undefined,
           poseType: poseEnabled ? poseType ?? undefined : undefined,
-          faceRefMediaId: faceRef?.mediaId,
         },
       });
     },
@@ -302,28 +292,27 @@ function StudioInner() {
   }, [isLoading, result]);
 
   const Sidebar = (
-    <div className="flex flex-col h-full bg-sidebar">
-      <div className="p-3 border-b border-border">
-        <h2 className="text-sm font-semibold">Personagens</h2>
+    <div className="flex flex-col h-full bg-[#0D0D14]">
+      <div className="px-4 pt-4 pb-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+          Personagens
+        </h2>
       </div>
-      <div className="p-2">
+      <div className="px-3 pb-2">
         <button
           type="button"
           onClick={() => {
             setActiveProfileId(null);
             setMobileSidebarOpen(false);
           }}
-          className={cn(
-            "w-full flex items-center justify-center gap-2 rounded-md border border-primary/60 text-primary hover:bg-primary/10 py-2.5 text-sm transition-colors",
-            !activeProfileId && "bg-primary/10",
-          )}
+          className="w-full h-9 flex items-center justify-center gap-2 rounded-md border border-[#6C47FF] bg-transparent text-white text-[13px] transition-colors hover:bg-[#6C47FF]/20"
         >
           <Plus className="size-4" />
           Novo personagem
         </button>
       </div>
-      <ScrollArea className="flex-1 px-2">
-        <div className="space-y-1 py-1">
+      <ScrollArea className="flex-1">
+        <div className="divide-y divide-white/[0.03]">
           {profiles.map((p) => (
             <CharacterCard
               key={p.id}
@@ -336,7 +325,7 @@ function StudioInner() {
             />
           ))}
           {profiles.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-6 px-2">
+            <p className="text-xs text-muted-foreground text-center py-6 px-3">
               Você ainda não criou personagens.
             </p>
           )}
@@ -349,7 +338,7 @@ function StudioInner() {
     <div className="h-full flex flex-col md:flex-row">
       <CreditPurchaseModal open={creditsOpen} onOpenChange={setCreditsOpen} />
       {/* Studio sidebar (desktop) */}
-      <aside className="hidden lg:flex w-[250px] shrink-0 border-r border-border">{Sidebar}</aside>
+      <aside className="hidden lg:flex w-[250px] shrink-0 border-r border-[#1a1a2e]">{Sidebar}</aside>
       <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
         <SheetContent side="left" className="p-0 w-72 hidden md:block lg:hidden">
           <SheetTitle className="sr-only">Personagens</SheetTitle>
@@ -424,9 +413,10 @@ function StudioInner() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{activeProfile.name}</div>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-success/15 text-success">
-                    Rosto preservado
-                  </span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="size-1.5 rounded-full bg-success" />
+                    <span className="text-[10px] text-success leading-none">Consistente</span>
+                  </div>
                 </div>
                 <Button
                   variant="ghost"
@@ -665,42 +655,6 @@ function StudioInner() {
               </label>
             )}
 
-            {/* Face reference */}
-            {!activeProfile && (
-              <div className="space-y-2 rounded-lg border border-border p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">Rosto de referência</div>
-                    <p className="text-xs text-muted-foreground">
-                      Reaproveite o rosto de uma imagem já gerada.
-                    </p>
-                  </div>
-                  {faceRef ? (
-                    <div className="relative">
-                      <img
-                        src={faceRef.imageUrl}
-                        alt="Rosto de referência"
-                        className="size-12 rounded-md object-cover border border-border"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setFaceRef(null)}
-                        className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-background border border-border flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground"
-                        aria-label="Remover"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <Button type="button" variant="outline" size="sm" onClick={() => setFaceRefOpen(true)}>
-                      <UserIcon className="size-3.5" />
-                      Escolher
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
             <div className="rounded-lg border border-border">
               <button
                 type="button"
@@ -782,7 +736,7 @@ function StudioInner() {
                   Gerando...
                 </>
               ) : activeProfile ? (
-                "Criar Variação"
+                "Criar Variacao"
               ) : createProfile ? (
                 "Gerar e Salvar Personagem"
               ) : (
@@ -939,42 +893,6 @@ function StudioInner() {
           {Sidebar}
         </section>
       </div>
-
-      {/* Face reference picker */}
-      <Dialog open={faceRefOpen} onOpenChange={setFaceRefOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Escolher rosto de referência</DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto">
-            {allCharacters.filter((c) => c.image_url && c.media_id).length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center text-sm text-muted-foreground">
-                <ImageIcon className="size-8 mb-2 opacity-50" />
-                Nenhuma imagem gerada ainda.
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {allCharacters
-                  .filter((c) => c.image_url && c.media_id)
-                  .slice(0, 20)
-                  .map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => {
-                        setFaceRef({ mediaId: c.media_id!, imageUrl: c.image_url! });
-                        setFaceRefOpen(false);
-                      }}
-                      className="aspect-square rounded-md overflow-hidden border border-border hover:border-primary hover:ring-2 hover:ring-primary/40 transition-all bg-muted"
-                    >
-                      <img src={c.image_url!} alt={c.name || "Geração"} className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Lightbox */}
       {lightboxOpen && result && (

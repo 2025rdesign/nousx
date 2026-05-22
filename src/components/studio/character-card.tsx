@@ -22,14 +22,14 @@ export function CharacterCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-2.5 rounded-md px-2 h-12 text-left transition-colors",
-        "hover:bg-white/[0.03]",
+        "w-full flex items-center gap-3 h-14 px-3 text-left transition-colors",
+        "hover:bg-white/[0.024]",
         active
-          ? "bg-primary/15 border-l-2 border-primary pl-[6px]"
+          ? "bg-[#6C47FF]/[0.08] border-l-2 border-[#6C47FF] pl-[10px]"
           : "border-l-2 border-transparent",
       )}
     >
-      <div className="size-10 shrink-0 rounded-lg bg-muted overflow-hidden">
+      <div className="size-9 shrink-0 rounded-md bg-muted overflow-hidden">
         {profile.base_image_url ? (
           <img
             src={profile.base_image_url}
@@ -39,13 +39,14 @@ export function CharacterCard({
         ) : null}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[13px] font-medium truncate leading-tight">
+        <div className="text-[13px] font-medium truncate leading-tight text-white">
           {profile.name}
         </div>
         {consistent && (
-          <span className="inline-block mt-0.5 text-[9px] px-1.5 py-0 rounded-full bg-success/15 text-success leading-4">
-            Consistente
-          </span>
+          <div className="flex items-center gap-1.5 mt-1">
+            <span className="size-1.5 rounded-full bg-success" />
+            <span className="text-[10px] text-success leading-none">Consistente</span>
+          </div>
         )}
       </div>
     </button>
