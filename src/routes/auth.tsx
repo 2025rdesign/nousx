@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { NousxLogo } from "@/components/nousx-logo";
 import { AuthStarfield } from "@/components/auth-starfield";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -37,7 +36,12 @@ function AuthPage() {
       <div className="flex-1 flex items-center justify-center px-4 py-12 md:w-1/2">
         <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
-          <NousxLogo className="text-4xl" />
+          <img
+            src="https://central.daev.ca/wp-content/uploads/2026/05/AURA-IA-IMAGEM-DASH.png"
+            alt="AuraIA"
+            className="md:hidden mx-auto h-[140px] w-auto object-contain select-none"
+            draggable={false}
+          />
           <p className="text-sm text-muted-foreground">
             IA livre, sem julgamentos.
           </p>
