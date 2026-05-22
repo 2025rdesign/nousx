@@ -140,15 +140,19 @@ async function createOrder(payload: Record<string, unknown>): Promise<CaktoOrder
 
 export function buildHostedCheckoutUrl(opts: {
   checkoutId: string;
-  customer: Customer;
+  customer?: Partial<Customer>;
   couponCode?: string | null;
+  externalReference?: string | null;
 }) {
   const url = new URL(`https://pay.cakto.com.br/${encodeURIComponent(opts.checkoutId)}`);
-  url.searchParams.set("name", opts.customer.name);
-  url.searchParams.set("email", opts.customer.email);
-  url.searchParams.set("confirmEmail", opts.customer.email);
-  url.searchParams.set("cpf", opts.customer.document);
+  if (opts.customer?.name) url.searchParams.set("name", opts.customer.name);
+  if (opts.customer?.email) {
+    url.searchParams.set("email", opts.customer.email);
+    url.searchParams.set("confirmEmail", opts.customer.email);
+  }
+  if (opts.customer?.document) url.searchParams.set("cpf", opts.customer.document);
   if (opts.couponCode) url.searchParams.set("coupon", opts.couponCode);
+  if (opts.externalReference) url.searchParams.set("ref", opts.externalReference);
   return url.toString();
 }
 
