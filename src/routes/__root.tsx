@@ -11,6 +11,7 @@ import {
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { FaviconTheme } from "@/components/theme-favicon";
 import { AuthProvider } from "@/hooks/use-auth";
 import { FloatingAudioPlayer } from "@/components/chat/audio-player";
 
@@ -132,6 +133,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "apple-touch-icon",
         href: "https://central.daev.ca/wp-content/uploads/2026/05/FAVICON-AURA.png",
       },
+      {
+        rel: "preload",
+        as: "image",
+        href: "https://central.daev.ca/wp-content/uploads/2026/05/FAVICON-AURA.png",
+      },
+      {
+        rel: "preload",
+        as: "image",
+        href: "https://central.daev.ca/wp-content/uploads/2026/05/FAVICON-AURA-SOMBRA.png",
+      },
+      {
+        rel: "preload",
+        as: "image",
+        href: "https://central.daev.ca/wp-content/uploads/2026/05/AURA-IA-IMAGEM-DASH.png",
+      },
+      {
+        rel: "preload",
+        as: "image",
+        href: "https://central.daev.ca/wp-content/uploads/2026/05/AURA-IA-IMAGEM-DASH-VARIANTE-MODO-CLARO.png",
+      },
       { rel: "manifest", href: "/manifest.json" },
       { rel: "canonical", href: "https://chataura.com.br" },
     ],
@@ -162,6 +183,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
+        <FaviconTheme />
         <AuthProvider>
           <Outlet />
           <Toaster position="top-center" richColors />
