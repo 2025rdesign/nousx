@@ -344,43 +344,55 @@ function StudioInner() {
               </div>
             ) : (
               <>
-                <Tabs value={model} onValueChange={(v) => setModel(v as any)}>
-                  <TabsList className="grid grid-cols-3 w-full">
-                    <TabsTrigger value="DEFAULT">Realista</TabsTrigger>
-                    <TabsTrigger value="REALISM">Fotografia HD</TabsTrigger>
-                    <TabsTrigger value="ANIME">Anime</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Ex: Aurora"
-                    maxLength={60}
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="name" className="text-xs text-muted-foreground">
+                      Nome
+                    </Label>
+                    <Input
+                      id="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Ex: Aurora"
+                      maxLength={60}
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Estilo</Label>
+                    <Select value={model} onValueChange={(v) => setModel(v as any)}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="DEFAULT">Realista</SelectItem>
+                        <SelectItem value="REALISM">Fotografia HD</SelectItem>
+                        <SelectItem value="ANIME">Anime</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Gênero</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {([
-                      ["FEMALE", "Feminino"],
-                      ["MALE", "Masculino"],
-                      ["TRANS", "Trans"],
-                    ] as const).map(([v, l]) => (
-                      <Button
-                        key={v}
-                        type="button"
-                        variant={gender === v ? "default" : "outline"}
-                        onClick={() => setGender(v)}
-                      >
-                        {l}
-                      </Button>
-                    ))}
-                  </div>
+                <div className="flex gap-1.5">
+                  {([
+                    ["FEMALE", "Feminino"],
+                    ["MALE", "Masculino"],
+                    ["TRANS", "Trans"],
+                  ] as const).map(([v, l]) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setGender(v)}
+                      className={cn(
+                        "h-8 px-3 text-[13px] rounded-md border transition-colors",
+                        gender === v
+                          ? "border-primary text-primary bg-primary/10"
+                          : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
+                      )}
+                    >
+                      {l}
+                    </button>
+                  ))}
                 </div>
               </>
             )}
