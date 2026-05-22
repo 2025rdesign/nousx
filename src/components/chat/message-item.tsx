@@ -22,11 +22,21 @@ export interface ChatMsg {
   streaming?: boolean;
 }
 
+function getInlineImageUrl(content: string): string | null {
+  const trimmed = content.trim();
+  if (/^(https?:\/\/\S+\.(png|jpe?g|webp|gif|avif))(\?\S*)?$/i.test(trimmed)) {
+    return trimmed;
+  }
+  return null;
+}
+
 function MessageItemInner({ msg }: { msg: ChatMsg }) {
   const isUser = msg.role === "user";
   const [copied, setCopied] = useState(false);
   const [zoom, setZoom] = useState(false);
   const { open: openCanvas } = useCodeCanvas();
+  const imageUrl = msg.image_url ?? getInlineImageUrl(msg.content);
+  const textContent = imageUrl === msg.content.trim() ? "" : msg.content;
 
   const onCopy = async () => {
     await navigator.clipboard.writeText(msg.content);
@@ -44,10 +54,10 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
             : "w-full px-4 text-foreground",
         )}
       >
-        {msg.image_url && (
+        {imageUrl && (
           isUser ? (
             <img
-              src={msg.image_url}
+              src={imageUrl}
               alt=""
               className="rounded-lg mb-2 max-h-72 object-cover"
             />
@@ -56,29 +66,28 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
               <button
                 type="button"
                 onClick={() => setZoom(true)}
-                className="block rounded-2xl overflow-hidden border border-border hover:opacity-90 transition-opacity"
+                className="block w-full max-w-3xl overflow-hidden rounded-xl border border-border transition-opacity hover:opacity-90"
               >
                 <img
-                  src={msg.image_url}
-                  alt=""
-                  className="max-h-[420px] w-auto object-contain"
+                  src={imageUrl}
+                  alt={textContent || "Imagem gerada no chat"}
+                  className="max-h-[520px] w-full object-cover"
                 />
               </button>
               <a
-                href={msg.image_url}
+                href={imageUrl}
                 download
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                className="mt-2 inline-flex text-[11px] text-muted-foreground transition-colors hover:text-foreground"
               >
-                <Download className="size-3" />
                 Baixar imagem
               </a>
               <Dialog open={zoom} onOpenChange={setZoom}>
                 <DialogContent className="max-w-4xl p-2 bg-background">
                   <img
-                    src={msg.image_url}
-                    alt=""
+                    src={imageUrl}
+                    alt={textContent || "Imagem gerada no chat"}
                     className="w-full h-auto rounded-lg"
                   />
                 </DialogContent>
@@ -87,10 +96,11 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
           )
         )}
         {isUser ? (
-          <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+          <p className="whitespace-pre-wrap leading-relaxed">{textContent}</p>
         ) : (
           <>
             {msg.reasoning && <ReasoningBlock text={msg.reasoning} />}
+            {textContent && (
             <div
               style={{
                 color: "#E0E0F0",
@@ -237,7 +247,7 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                 },
               }}
             >
-              {msg.content || "​"}
+              {textContent || "​"}
             </ReactMarkdown>
             {msg.streaming && (
               <span
@@ -247,9 +257,10 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
               />
             )}
             </div>
+            )}
           </>
         )}
-        {!isUser && msg.content && (
+        {!isUser && textContent && (
           <button
             type="button"
             onClick={onCopy}
