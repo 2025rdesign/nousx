@@ -155,8 +155,8 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
             {msg.reasoning && <ReasoningBlock text={msg.reasoning} />}
             {textContent && (
             <div
+              className="text-foreground"
               style={{
-                color: "#E0E0F0",
                 fontSize: "15px",
                 lineHeight: 1.7,
               }}
@@ -170,16 +170,17 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                 strong: ({ node: _n, ...props }) => (
                   <strong
                     {...props}
-                    style={{ fontWeight: 600, color: "#F0F0FF" }}
+                    className="text-foreground"
+                    style={{ fontWeight: 600 }}
                   />
                 ),
                 h1: ({ node: _n, ...props }) => (
                   <h2
                     {...props}
+                    className="text-foreground"
                     style={{
                       fontSize: "18px",
                       fontWeight: 600,
-                      color: "#F0F0FF",
                       margin: "16px 0 6px",
                     }}
                   />
@@ -187,10 +188,10 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                 h2: ({ node: _n, ...props }) => (
                   <h2
                     {...props}
+                    className="text-foreground"
                     style={{
                       fontSize: "16px",
                       fontWeight: 600,
-                      color: "#F0F0FF",
                       margin: "12px 0 4px",
                     }}
                   />
@@ -198,10 +199,10 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                 h3: ({ node: _n, ...props }) => (
                   <h3
                     {...props}
+                    className="text-foreground"
                     style={{
                       fontSize: "15px",
                       fontWeight: 600,
-                      color: "#F0F0FF",
                       margin: "10px 0 4px",
                     }}
                   />
@@ -234,10 +235,11 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                 blockquote: ({ node: _n, ...props }) => (
                   <blockquote
                     {...props}
+                    className="text-muted-foreground border-border"
                     style={{
-                      borderLeft: "3px solid #2A2A3A",
+                      borderLeftWidth: "3px",
+                      borderLeftStyle: "solid",
                       paddingLeft: "12px",
-                      color: "#A0A0B8",
                       margin: "12px 0",
                     }}
                   />
@@ -247,13 +249,12 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                     {...props}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ color: "#8B6FFF", textDecoration: "underline" }}
+                    className="text-primary underline"
                   />
                 ),
                 table: ({ node: _n, ...props }) => (
                   <div
-                    className="my-3 overflow-x-auto rounded-md border"
-                    style={{ background: "#13131A", borderColor: "#2A2A3A" }}
+                    className="my-3 overflow-x-auto rounded-md border bg-muted/30 border-border"
                   >
                     <table {...props} className="w-full text-xs" />
                   </div>
@@ -266,8 +267,7 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                     return (
                       <code
                         {...props}
-                        className="px-1.5 py-0.5 rounded text-[0.85em]"
-                        style={{ background: "#13131A", border: "1px solid #2A2A3A" }}
+                        className="px-1.5 py-0.5 rounded text-[0.85em] bg-muted border border-border"
                       >
                         {children}
                       </code>
@@ -275,12 +275,10 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                   }
                   return (
                     <div
-                      className="my-3 rounded-lg overflow-hidden border"
-                      style={{ background: "#13131A", borderColor: "#2A2A3A" }}
+                      className="my-3 rounded-lg overflow-hidden border bg-muted/40 border-border"
                     >
                       <div
-                        className="flex items-center justify-between px-3 py-1.5 border-b text-[11px] text-muted-foreground"
-                        style={{ borderColor: "#2A2A3A" }}
+                        className="flex items-center justify-between px-3 py-1.5 border-b border-border text-[11px] text-muted-foreground"
                       >
                         <span className="font-mono">{lang || "code"}</span>
                         <button
