@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
@@ -48,6 +48,14 @@ function Explore() {
     enabled: confirmed,
   });
 
+  // Defensive dedupe by id — the server already deduplicates, but this
+  // guarantees no duplicate cards reach the grid.
+  const uniqueImages = useMemo(() => dedupeById(images as any[]), [images]);
+  const uniqueCharacters = useMemo(
+    () => dedupeById(characters as any[]),
+    [characters],
+  );
+
   return (
     <div className="h-full overflow-auto">
       <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-4">
@@ -60,11 +68,11 @@ function Explore() {
           </TabsPrimitive.List>
 
           <TabsContent value="images" className="mt-4">
-            {images.length === 0 ? (
+            {uniqueImages.length === 0 ? (
               <EmptyExplore />
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {images.map((c: any) => (
+                {uniqueImages.map((c: any) => (
                   <Card
                     key={c.id}
                     imageUrl={c.image_url}
@@ -77,11 +85,11 @@ function Explore() {
           </TabsContent>
 
           <TabsContent value="characters" className="mt-4">
-            {characters.length === 0 ? (
+            {uniqueCharacters.length === 0 ? (
               <EmptyExplore />
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {characters.map((p: any) => (
+                {uniqueCharacters.map((p: any) => (
                   <Card
                     key={p.id}
                     imageUrl={p.base_image_url}
