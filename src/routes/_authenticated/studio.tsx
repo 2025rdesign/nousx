@@ -151,7 +151,7 @@ function StudioInner() {
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   // mode B (new) state
-  const [model, setModel] = useState<"DEFAULT" | "REALISM" | "ANIME">("DEFAULT");
+  const [model, setModel] = useState<"DEFAULT" | "REALISM" | "ANIME" | "TEMPORARY" | "ANIMA">("DEFAULT");
   const [gender, setGender] = useState<"FEMALE" | "MALE" | "TRANS">("FEMALE");
   const [name, setName] = useState("");
   const [createProfile, setCreateProfile] = useState(false);
@@ -164,6 +164,7 @@ function StudioInner() {
   // Pose, quality and face-ref state
   const [poseEnabled, setPoseEnabled] = useState(false);
   const [poseId, setPoseId] = useState<string | null>(null);
+  const [poseType, setPoseType] = useState<string | null>(null);
   const [highQuality, setHighQuality] = useState(false);
   const [faceRef, setFaceRef] = useState<{ mediaId: string; imageUrl: string } | null>(null);
   const [faceRefOpen, setFaceRefOpen] = useState(false);
@@ -183,11 +184,11 @@ function StudioInner() {
   });
 
   const groupedPoses = useMemo(() => {
-    const groups: Record<string, Array<{ id: string; name: string; thumbnail?: string }>> = {
+    const groups: Record<string, Array<{ id: string; name: string; type?: string | null; thumbnail?: string }>> = {
       Standing: [], Sitting: [], Lying: [], Kneeling: [], "All Fours": [], Other: [],
     };
-    for (const p of poses as Array<{ id: string; name: string; thumbnail?: string }>) {
-      const n = (p.name || "").toLowerCase();
+    for (const p of poses as Array<{ id: string; name: string; type?: string | null; thumbnail?: string }>) {
+      const n = `${p.name || ""} ${p.type || ""}`.toLowerCase();
       if (/all.?four|on all fours|doggy/.test(n)) groups["All Fours"].push(p);
       else if (/stand/.test(n)) groups.Standing.push(p);
       else if (/sit/.test(n)) groups.Sitting.push(p);
@@ -224,6 +225,7 @@ function StudioInner() {
             appearance,
             aspectRatio: ratio,
             poseId: poseEnabled ? poseId ?? undefined : undefined,
+            poseType: poseEnabled ? poseType ?? undefined : undefined,
           },
         });
       }
@@ -241,6 +243,7 @@ function StudioInner() {
           negativePrompt: negativePrompt.trim() || undefined,
           detailLevel: highQuality ? "HIGH" : "MEDIUM",
           poseId: poseEnabled ? poseId ?? undefined : undefined,
+          poseType: poseEnabled ? poseType ?? undefined : undefined,
           faceRefMediaId: faceRef?.mediaId,
         },
       });
