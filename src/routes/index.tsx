@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Loader2, LogIn, MessageSquarePlus, Settings, LogOut, User as UserIcon, Menu } from "lucide-react";
+import { Loader2, LogIn, MessageSquarePlus, Menu } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/layout/app-layout";
 import { ChatView } from "@/components/chat/chat-view";
@@ -144,12 +144,6 @@ function AnonShell() {
         <main className="flex-1 min-h-0 overflow-hidden">
           <AnonChatView onUsageChange={setUsage} />
         </main>
-        {/* unused icons to avoid TS warning */}
-        <span className="hidden">
-          <Settings />
-          <LogOut />
-          <UserIcon />
-        </span>
       </div>
     </div>
   );
