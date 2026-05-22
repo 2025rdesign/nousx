@@ -86,6 +86,72 @@ export async function createCajupayPix(input: CreatePixInput): Promise<CreatePix
   return { qrCode, externalId, raw: data };
 }
 
+// ---------- Fetch status (used as polling fallback when webhook is late) ----------
+
+export type CajupayStatus = "pending" | "paid" | "failed" | "expired" | "refunded" | "unknown";
+
+const PAID_VALUES = new Set([
+  "paid", "approved", "completed", "confirmed", "succeeded", "success", "settled",
+]);
+const FAILED_VALUES = new Set(["failed", "canceled", "cancelled", "denied", "rejected"]);
+const EXPIRED_VALUES = new Set(["expired"]);
+const REFUNDED_VALUES = new Set(["refunded", "chargeback", "disputed"]);
+
+function normalizeStatus(raw: string | undefined | null): CajupayStatus {
+  const v = String(raw || "").toLowerCase().trim();
+  if (!v) return "unknown";
+  if (PAID_VALUES.has(v)) return "paid";
+  if (FAILED_VALUES.has(v)) return "failed";
+  if (EXPIRED_VALUES.has(v)) return "expired";
+  if (REFUNDED_VALUES.has(v)) return "refunded";
+  return "pending";
+}
+
+export async function fetchCajupayPixStatus(
+  externalId: string,
+): Promise<{ status: CajupayStatus; raw: unknown } | null> {
+  const apiKey = process.env.CAJUPAY_API_KEY;
+  const apiSecret = process.env.CAJUPAY_API_SECRET;
+  if (!apiKey || !apiSecret || !externalId) return null;
+
+  // Try a few common endpoint shapes; first one that responds 2xx wins.
+  const candidates = [
+    `${CAJUPAY_BASE}/api/payments/pix/${encodeURIComponent(externalId)}`,
+    `${CAJUPAY_BASE}/api/payments/${encodeURIComponent(externalId)}`,
+    `${CAJUPAY_BASE}/api/charges/${encodeURIComponent(externalId)}`,
+  ];
+
+  for (const url of candidates) {
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          "X-API-Key": apiKey,
+          "X-API-Secret": apiSecret,
+          Accept: "application/json",
+        },
+      });
+      if (!res.ok) continue;
+      const text = await res.text();
+      let data: Record<string, unknown> = {};
+      try {
+        data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+      } catch {
+        continue;
+      }
+      const inner = (data.data as Record<string, unknown> | undefined) || data;
+      const rawStatus =
+        (inner.status as string | undefined) ||
+        (inner.payment_status as string | undefined) ||
+        (inner.state as string | undefined);
+      return { status: normalizeStatus(rawStatus), raw: data };
+    } catch (e) {
+      console.error("[CAJUPAY] status fetch error", url, e);
+    }
+  }
+  return null;
+}
+
 // ---------- HMAC webhook verification (X-CajuPay-Signature: t=...,v1=...) ----------
 
 function timingSafeEqHex(a: string, b: string) {

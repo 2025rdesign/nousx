@@ -59,6 +59,57 @@ async function activateSubscription(userId: string, planId: PlanId, externalId: 
   }
 }
 
+/**
+ * Apply "paid" outcome to a pix_payments row: idempotent.
+ * Used by both the webhook and the on-demand polling fallback.
+ */
+export async function markPixPaymentPaid(
+  payment: Record<string, unknown>,
+  externalIdHint?: string | null,
+): Promise<void> {
+  if (payment.status === "paid") return;
+  const userId = String(payment.user_id);
+  const kind = String(payment.kind);
+  const targetId = String(payment.target_id);
+  const paymentRowId = String(payment.id);
+  const finalExternalId =
+    (externalIdHint && String(externalIdHint)) ||
+    String(payment.external_id || "") ||
+    paymentRowId;
+
+  const { data: updated } = await supabaseAdmin
+    .from("pix_payments")
+    .update({
+      status: "paid",
+      paid_at: new Date().toISOString(),
+      external_id: finalExternalId,
+    })
+    .eq("id", paymentRowId)
+    .neq("status", "paid")
+    .select("id")
+    .maybeSingle();
+
+  if (!updated) return; // already processed by another path
+
+  if (kind === "credit") {
+    const pack = CREDIT_PACKS[targetId as CreditPackId];
+    if (pack) {
+      await creditUserOnce(finalExternalId, userId, pack.credits, targetId);
+    }
+  } else if (kind === "subscription") {
+    const plan = PLANS[targetId as PlanId];
+    if (plan) {
+      await activateSubscription(userId, targetId as PlanId, finalExternalId);
+      await creditUserOnce(finalExternalId, userId, plan.credits, targetId);
+    }
+  }
+
+  await supabaseAdmin
+    .from("payment_history")
+    .update({ status: "confirmed" })
+    .eq("cakto_payment_id", finalExternalId);
+}
+
 export async function handleCajupayWebhook(request: Request): Promise<Response> {
   const secret = process.env.CAJUPAY_WEBHOOK_SECRET;
   if (!secret) {
@@ -70,7 +121,11 @@ export async function handleCajupayWebhook(request: Request): Promise<Response> 
   const sigHeader = request.headers.get("x-cajupay-signature");
   const ok = await verifyCajupaySignature(raw, sigHeader, secret);
   if (!ok) {
-    console.warn("[CAJUPAY] signature mismatch");
+    console.warn("[CAJUPAY] signature mismatch", {
+      hasHeader: !!sigHeader,
+      headerPreview: sigHeader?.slice(0, 80),
+      bodyPreview: raw.slice(0, 200),
+    });
     return new Response("invalid_signature", { status: 401 });
   }
 
@@ -126,40 +181,7 @@ export async function handleCajupayWebhook(request: Request): Promise<Response> 
   if (payment.status === "paid") return new Response("ok", { status: 200 });
 
   if (PAID_EVENTS.has(type)) {
-    const userId = String(payment.user_id);
-    const kind = String(payment.kind);
-    const targetId = String(payment.target_id);
-    const paymentRowId = String(payment.id);
-    const finalExternalId = externalId || paymentRowId;
-
-    await supabaseAdmin
-      .from("pix_payments")
-      .update({
-        status: "paid",
-        paid_at: new Date().toISOString(),
-        external_id: finalExternalId,
-      })
-      .eq("id", paymentRowId);
-
-    if (kind === "credit") {
-      const pack = CREDIT_PACKS[targetId as CreditPackId];
-      if (pack) {
-        await creditUserOnce(finalExternalId, userId, pack.credits, targetId);
-      }
-    } else if (kind === "subscription") {
-      const plan = PLANS[targetId as PlanId];
-      if (plan) {
-        await activateSubscription(userId, targetId as PlanId, finalExternalId);
-        await creditUserOnce(finalExternalId, userId, plan.credits, targetId);
-      }
-    }
-
-    // mark payment_history confirmed
-    await supabaseAdmin
-      .from("payment_history")
-      .update({ status: "confirmed" })
-      .eq("cakto_payment_id", finalExternalId);
-
+    await markPixPaymentPaid(payment, externalId);
     return new Response("ok", { status: 200 });
   }
 
