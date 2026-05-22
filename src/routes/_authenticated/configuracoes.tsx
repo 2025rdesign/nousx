@@ -39,8 +39,6 @@ import {
 import { PLANS, type PlanId } from "@/lib/payments-config";
 import { PlanBadge, getPlanKey } from "@/components/plan-badge";
 import { Link } from "@tanstack/react-router";
-import { useState as useStateReact } from "react";
-void useStateReact;
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações — AuraIA" }] }),
