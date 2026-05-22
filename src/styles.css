@@ -179,6 +179,9 @@ button, a, [role="button"] {
   select {
     font-size: 16px !important;
   }
+  .mobile-icons-visible {
+    opacity: 1 !important;
+  }
 }
 /* Safe-area helpers for iPhone notch / home indicator */
 .safe-top { padding-top: env(safe-area-inset-top); }

@@ -147,7 +147,7 @@ export function ConversationSidebar({
     const active = currentId === c.id;
     const isEditing = editingId === c.id;
     return (
-      <li key={c.id} className="group relative">
+      <li key={c.id} className="group">
         {isEditing ? (
           <RenameInput
             initial={c.title || ""}
@@ -159,21 +159,32 @@ export function ConversationSidebar({
             }}
           />
         ) : (
-          <>
-            <Link
-              to="/c/$conversationId"
-              params={{ conversationId: c.id }}
-              onClick={onNavigate}
-              className={cn(
-                "block truncate rounded-md px-2 py-2 pr-20 text-sm transition-colors",
-                active
-                  ? "bg-secondary text-foreground"
-                  : "text-foreground/80 hover:bg-secondary/60",
-              )}
-            >
-              {(c.title || "Nova conversa").slice(0, 40)}
-            </Link>
-            <div className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5">
+          <div
+            onClick={(e) => {
+              const target = e.target as HTMLElement;
+              if (target.closest('button')) return;
+              navigate({ to: '/c/$conversationId', params: { conversationId: c.id } });
+              onNavigate();
+            }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                navigate({ to: '/c/$conversationId', params: { conversationId: c.id } });
+                onNavigate();
+              }
+            }}
+            className={cn(
+              "flex items-center gap-1 rounded-md px-2 py-1.5 transition-colors overflow-hidden min-w-0 cursor-pointer",
+              active
+                ? "bg-secondary text-foreground"
+                : "text-foreground/80 hover:bg-secondary/60",
+            )}
+          >
+            <span className="flex-1 min-w-0 truncate text-[13px] leading-tight select-none">
+              {c.title || "Nova conversa"}
+            </span>
+            <div className="flex-shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity mobile-icons-visible">
               <ActionBtn
                 label={c.pinned ? "Desafixar" : "Fixar"}
                 onClick={() =>
@@ -198,7 +209,7 @@ export function ConversationSidebar({
                 <Trash2 className="size-3.5" />
               </ActionBtn>
             </div>
-          </>
+          </div>
         )}
       </li>
     );
