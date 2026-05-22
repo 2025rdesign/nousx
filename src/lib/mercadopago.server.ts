@@ -101,3 +101,88 @@ export async function fetchMpPayment(paymentId: string | number): Promise<MpPaym
   }
   return (await res.json()) as MpPaymentDetails;
 }
+
+export type CreatePixInput = {
+  amount: number;
+  description: string;
+  payerEmail: string;
+  payerFirstName: string;
+  payerLastName?: string;
+  cpf: string; // 11 digits, no formatting
+  externalReference: string;
+  notificationUrl: string;
+  idempotencyKey: string;
+  expiresInMinutes?: number;
+};
+
+export type CreatePixResult = {
+  paymentId: string;
+  status: string;
+  qrCode: string;
+  qrCodeBase64: string;
+  ticketUrl?: string;
+  expiresAt: string;
+};
+
+export async function createMpPixPayment(input: CreatePixInput): Promise<CreatePixResult> {
+  const exp = new Date(Date.now() + (input.expiresInMinutes ?? 30) * 60 * 1000);
+  // MP requires ISO 8601 with offset, e.g. 2024-01-01T12:00:00.000-03:00
+  const isoWithOffset = exp.toISOString().replace("Z", "-00:00");
+
+  const body = {
+    transaction_amount: Math.round(input.amount * 100) / 100,
+    description: input.description,
+    payment_method_id: "pix",
+    payer: {
+      email: input.payerEmail,
+      first_name: input.payerFirstName,
+      last_name: input.payerLastName,
+      identification: { type: "CPF", number: input.cpf },
+    },
+    notification_url: input.notificationUrl,
+    external_reference: input.externalReference,
+    statement_descriptor: "AURAIA",
+    date_of_expiration: isoWithOffset,
+  };
+
+  const res = await fetch(`${MP_BASE}/v1/payments`, {
+    method: "POST",
+    headers: {
+      ...authHeaders(),
+      "X-Idempotency-Key": input.idempotencyKey,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const text = await res.text();
+  if (!res.ok) {
+    console.error("[MP] PIX create failed", res.status, text);
+    let msg = `Falha ao gerar PIX (${res.status})`;
+    try {
+      const j = JSON.parse(text) as { message?: string };
+      if (j.message) msg = j.message;
+    } catch {}
+    throw new Error(msg);
+  }
+  const json = JSON.parse(text) as {
+    id: number | string;
+    status: string;
+    date_of_expiration?: string;
+    point_of_interaction?: {
+      transaction_data?: {
+        qr_code?: string;
+        qr_code_base64?: string;
+        ticket_url?: string;
+      };
+    };
+  };
+  const td = json.point_of_interaction?.transaction_data ?? {};
+  return {
+    paymentId: String(json.id),
+    status: json.status,
+    qrCode: td.qr_code ?? "",
+    qrCodeBase64: td.qr_code_base64 ?? "",
+    ticketUrl: td.ticket_url,
+    expiresAt: json.date_of_expiration ?? exp.toISOString(),
+  };
+}
