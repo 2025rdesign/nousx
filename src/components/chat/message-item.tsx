@@ -58,19 +58,19 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
             <img
               src={imageUrl}
               alt=""
-              className="rounded-lg mb-2 max-h-72 object-cover"
+              className="mb-2 h-auto w-full max-w-[500px] rounded-xl object-contain"
             />
           ) : (
             <div className="mb-2">
               <button
                 type="button"
                 onClick={() => setZoom(true)}
-                className="block w-full max-w-3xl overflow-hidden rounded-xl border border-border transition-opacity hover:opacity-90"
+                className="block w-full max-w-[500px] overflow-hidden rounded-xl border border-border transition-opacity hover:opacity-90"
               >
                 <img
                   src={imageUrl}
                   alt={textContent || "Imagem gerada no chat"}
-                  className="max-h-[520px] w-full object-cover"
+                  className="h-auto w-full object-contain"
                 />
               </button>
               <a
