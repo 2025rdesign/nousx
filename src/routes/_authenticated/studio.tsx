@@ -3,7 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { notify } from "@/lib/notify";
-import { AlertTriangle, ArrowLeft, Download, Globe, Lock, Loader2, Maximize2, Plus, Sparkles as SparklesIcon, Trash2, Wand2, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Download, Globe, ImageIcon, Lock, Loader2, Maximize2, Plus, Sparkles as SparklesIcon, Trash2, User as UserIcon, Wand2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CharacterCard } from "@/components/studio/character-card";
 import {
   listMyProfiles,
@@ -26,6 +27,7 @@ import {
   improvePrompt,
   togglePublic,
   deleteCharacter,
+  listPoses,
 } from "@/lib/studio.functions";
 import { cn } from "@/lib/utils";
 import { CreditPurchaseModal } from "@/components/payments/credit-purchase-modal";
@@ -118,6 +120,7 @@ function StudioInner() {
   const toggleFn = useServerFn(togglePublic);
   const deleteFn = useServerFn(deleteCharacter);
   const fetchCredits = useServerFn(getCredits);
+  const fetchPoses = useServerFn(listPoses);
   const { data: creditsData } = useQuery({
     queryKey: ["credits"],
     queryFn: () => fetchCredits(),
@@ -157,6 +160,44 @@ function StudioInner() {
   const [negativePrompt, setNegativePrompt] = useState("");
   const [improving, setImproving] = useState(false);
   const improveFn = useServerFn(improvePrompt);
+
+  // Pose, quality and face-ref state
+  const [poseEnabled, setPoseEnabled] = useState(false);
+  const [poseId, setPoseId] = useState<string | null>(null);
+  const [highQuality, setHighQuality] = useState(false);
+  const [faceRef, setFaceRef] = useState<{ mediaId: string; imageUrl: string } | null>(null);
+  const [faceRefOpen, setFaceRefOpen] = useState(false);
+
+  const { data: poses = [] } = useQuery({
+    queryKey: ["alive-poses"],
+    queryFn: () => fetchPoses(),
+    enabled: poseEnabled,
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: allCharacters = [] } = useQuery({
+    queryKey: ["all-characters"],
+    queryFn: () => fetchChars({ data: {} }),
+    enabled: faceRefOpen,
+  });
+
+  const groupedPoses = useMemo(() => {
+    const groups: Record<string, Array<{ id: string; name: string; thumbnail?: string }>> = {
+      Standing: [], Sitting: [], Lying: [], Kneeling: [], "All Fours": [], Other: [],
+    };
+    for (const p of poses as Array<{ id: string; name: string; thumbnail?: string }>) {
+      const n = (p.name || "").toLowerCase();
+      if (/all.?four|on all fours|doggy/.test(n)) groups["All Fours"].push(p);
+      else if (/stand/.test(n)) groups.Standing.push(p);
+      else if (/sit/.test(n)) groups.Sitting.push(p);
+      else if (/ly(ing)?|lay/.test(n)) groups.Lying.push(p);
+      else if (/kneel/.test(n)) groups.Kneeling.push(p);
+      else groups.Other.push(p);
+    }
+    return groups;
+  }, [poses]);
+
+  const cost = highQuality ? 2 : 1;
 
   // result panel
   const [result, setResult] = useState<string | null>(null);
