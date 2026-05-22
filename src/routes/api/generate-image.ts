@@ -224,6 +224,17 @@ export const Route = createFileRoute("/api/generate-image")({
           const url = data.data?.[0]?.url ?? data.images?.[0]?.url;
           if (!url) return json({ error: "Resposta inválida." }, 500);
           console.log("[GENERATE-IMAGE] image generated:", url);
+          // Save to gallery (best-effort, never block response)
+          try {
+            await supabase.from("gallery").insert({
+              user_id: userId,
+              image_url: url,
+              source: "chat",
+              prompt: userPrompt.slice(0, 2000),
+            });
+          } catch (e) {
+            console.warn("[GENERATE-IMAGE] failed to save gallery row", e);
+          }
           return json({ url, caption }, 200);
         } catch (e) {
           console.error("[GENERATE-IMAGE] error", e);
