@@ -54,12 +54,13 @@ function buildCaption(rawPrompt: string): string {
     .replace(/\s+/g, " ")
     .replace(/^[,:;.-]+|[,:;.-]+$/g, "")
     .trim();
+  const cleanSubject = subject.replace(/^(de|do|da|dos|das)\s+/i, "").trim();
 
-  if (!subject) return "Aqui está sua imagem.";
-  if (/^(o|a|os|as|um|uma|uns|umas)\b/i.test(subject)) {
-    return `Aqui está ${subject.replace(/[.!?]+$/, "")}.`;
+  if (!cleanSubject) return "Aqui está sua imagem.";
+  if (/^(o|a|os|as|um|uma|uns|umas)\b/i.test(cleanSubject)) {
+    return `Aqui está ${cleanSubject.replace(/[.!?]+$/, "")}.`;
   }
-  return `Aqui está a imagem de ${subject.replace(/[.!?]+$/, "")}.`;
+  return `Aqui está a imagem de ${cleanSubject.replace(/[.!?]+$/, "")}.`;
 }
 
 async function generateTechnicalPrompt(rawPrompt: string, formatSuffix: string) {
