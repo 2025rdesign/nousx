@@ -237,7 +237,6 @@ function StudioInner() {
           detailLevel: highQuality ? "HIGH" : "MEDIUM",
           poseId: poseEnabled ? poseId ?? undefined : undefined,
           poseType: poseEnabled ? poseType ?? undefined : undefined,
-          faceRefMediaId: faceRef?.mediaId,
         },
       });
     },
