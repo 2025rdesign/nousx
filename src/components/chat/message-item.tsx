@@ -249,11 +249,7 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
               {textContent || "​"}
             </ReactMarkdown>
             {msg.streaming && (
-              <span
-                aria-hidden
-                className="inline-block w-[2px] h-[1em] align-[-0.15em] ml-[1px] bg-current animate-pulse"
-                style={{ background: "#8B6FFF" }}
-              />
+              <span aria-hidden className="stream-cursor" />
             )}
             </div>
             )}
