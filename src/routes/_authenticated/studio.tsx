@@ -434,9 +434,11 @@ function StudioInner() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="DEFAULT">Realista</SelectItem>
-                        <SelectItem value="REALISM">Fotografia HD</SelectItem>
-                        <SelectItem value="ANIME">Anime</SelectItem>
+                        <SelectItem value="DEFAULT">Creative v2</SelectItem>
+                        <SelectItem value="REALISM">Realismo Beta</SelectItem>
+                        <SelectItem value="ANIME">Anime & Cartoon</SelectItem>
+                        <SelectItem value="TEMPORARY">Dreamy Realism V2 ✨</SelectItem>
+                        <SelectItem value="ANIMA">Anima 1.0</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -592,7 +594,7 @@ function StudioInner() {
                               <button
                                 key={p.id}
                                 type="button"
-                                onClick={() => setPoseId(p.id)}
+                                onClick={() => { setPoseId(p.id); setPoseType(p.type ?? null); }}
                                 className={cn(
                                   "aspect-square rounded-md border overflow-hidden bg-muted text-[10px] flex items-end justify-center transition-colors",
                                   poseId === p.id
