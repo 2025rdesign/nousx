@@ -167,8 +167,6 @@ function StudioInner() {
   const [poseId, setPoseId] = useState<string | null>(null);
   const [poseType, setPoseType] = useState<string | null>(null);
   const [highQuality, setHighQuality] = useState(false);
-  const [faceRef, setFaceRef] = useState<{ mediaId: string; imageUrl: string } | null>(null);
-  const [faceRefOpen, setFaceRefOpen] = useState(false);
 
   const { data: poses = [], isLoading: posesLoading, isError: posesError } = useQuery({
     queryKey: ["alive-poses"],
@@ -176,12 +174,6 @@ function StudioInner() {
     enabled: poseEnabled,
     staleTime: 5 * 60_000,
     retry: 0,
-  });
-
-  const { data: allCharacters = [] } = useQuery({
-    queryKey: ["all-characters"],
-    queryFn: () => fetchChars({ data: {} }),
-    enabled: faceRefOpen,
   });
 
   const groupedPoses = useMemo(() => {
