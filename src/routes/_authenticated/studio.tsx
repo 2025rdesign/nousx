@@ -82,11 +82,22 @@ function CreditsPill({
   balance,
   onClick,
   compact,
+  loading,
 }: {
   balance: number;
   onClick: () => void;
   compact?: boolean;
+  loading?: boolean;
 }) {
+  if (loading) {
+    return (
+      <span
+        aria-label="Carregando créditos"
+        className="inline-block rounded-full bg-muted animate-pulse"
+        style={{ width: 60, height: 24 }}
+      />
+    );
+  }
   const danger = balance < 5;
   const empty = balance === 0;
   return (
@@ -123,7 +134,7 @@ function StudioInner() {
   const toggleFn = useServerFn(togglePublic);
   const deleteFn = useServerFn(deleteCharacter);
   const fetchCredits = useServerFn(getCredits);
-  const { data: creditsData } = useQuery({
+  const { data: creditsData, isLoading: creditsLoading } = useQuery({
     queryKey: ["credits"],
     queryFn: () => fetchCredits(),
     staleTime: 30_000,
