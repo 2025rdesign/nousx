@@ -10,13 +10,12 @@ async function getAccessToken(): Promise<string> {
   const clientId = process.env.CAKTO_CLIENT_ID;
   const clientSecret = process.env.CAKTO_CLIENT_SECRET;
   if (!clientId || !clientSecret) throw new Error("Gateway de pagamento não configurado.");
-  const res = await fetch(`${BASE}/auth/token`, {
+  const res = await fetch(`${BASE}/public_api/token/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
       client_id: clientId,
       client_secret: clientSecret,
-      grant_type: "client_credentials",
     }),
   });
   if (!res.ok) {
@@ -82,7 +81,7 @@ export async function createPixOrder(opts: {
   customer: Customer;
   externalReference?: string;
 }): Promise<CaktoOrder> {
-  return caktoFetch("/api/orders", {
+  return caktoFetch("/public_api/orders", {
     method: "POST",
     body: JSON.stringify({
       product_id: opts.productId,
@@ -99,7 +98,7 @@ export async function createCardOrder(opts: {
   card: CardData;
   externalReference?: string;
 }): Promise<CaktoOrder> {
-  return caktoFetch("/api/orders", {
+  return caktoFetch("/public_api/orders", {
     method: "POST",
     body: JSON.stringify({
       product_id: opts.productId,
@@ -115,7 +114,7 @@ export async function createCardOrder(opts: {
 }
 
 export async function getOrder(orderId: string): Promise<CaktoOrder> {
-  return caktoFetch(`/api/orders/${encodeURIComponent(orderId)}`, { method: "GET" });
+  return caktoFetch(`/public_api/orders/${encodeURIComponent(orderId)}`, { method: "GET" });
 }
 
 // Map status from Cakto to our normalized form
