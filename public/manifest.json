@@ -1,0 +1,21 @@
+{
+  "name": "AuraIA",
+  "short_name": "AuraIA",
+  "description": "IA sem censura — chat e geração de imagens",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0A0F",
+  "theme_color": "#6C47FF",
+  "icons": [
+    {
+      "src": "https://central.daev.ca/wp-content/uploads/2026/05/icone-logo-nousx-favicon-scaled.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "https://central.daev.ca/wp-content/uploads/2026/05/icone-logo-nousx-pwa-scaled.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -19,7 +19,7 @@ import { listPublicCharacters, listPublicProfiles } from "@/lib/studio.functions
 const AGE_KEY = "nousx-age-confirmed";
 
 export const Route = createFileRoute("/_authenticated/explorar")({
-  head: () => ({ meta: [{ title: "Explorar — NOUSX" }] }),
+  head: () => ({ meta: [{ title: "Explorar — AuraIA" }] }),
   component: Explore,
 });
 

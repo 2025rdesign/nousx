@@ -75,27 +75,42 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "NOUSX — IA sem censura" },
+      { title: "AuraIA — IA sem censura | Chat e Geração de Imagens" },
       {
         name: "description",
         content:
-          "NOUSX: chat com IA livre, sem restrições, e estúdio de criação de imagens.",
+          "AuraIA é uma inteligência artificial sem censura e sem filtros. Converse livremente, gere imagens realistas e explore sem limites.",
       },
-      { name: "author", content: "NOUSX" },
-      { property: "og:title", content: "NOUSX — IA sem censura" },
+      {
+        name: "keywords",
+        content:
+          "IA sem censura, inteligência artificial, chat IA, geração de imagem IA, AI sem filtro, chatbot livre",
+      },
+      { name: "author", content: "AuraIA" },
+      { name: "theme-color", content: "#6C47FF" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "AuraIA" },
+      { property: "og:title", content: "AuraIA — IA sem censura" },
       {
         property: "og:description",
         content:
-          "Chat livre e estúdio de imagens com IA. Sem julgamentos, sem censura.",
+          "Converse e crie sem limites com a AuraIA. Chat livre e geração de imagens sem censura.",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "NOUSX — IA sem censura" },
-      { name: "description", content: "Nousx: AI chat and image generation without censorship." },
-      { property: "og:description", content: "Nousx: AI chat and image generation without censorship." },
-      { name: "twitter:description", content: "Nousx: AI chat and image generation without censorship." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a8470638-82ac-4557-ab1b-94f54d466865/id-preview-0b593ce3--3ad60df5-a0cc-4c62-93ef-0c15cbff0153.lovable.app-1779400534210.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a8470638-82ac-4557-ab1b-94f54d466865/id-preview-0b593ce3--3ad60df5-a0cc-4c62-93ef-0c15cbff0153.lovable.app-1779400534210.png" },
+      { property: "og:url", content: "https://chataura.com.br" },
+      {
+        property: "og:image",
+        content:
+          "https://central.daev.ca/wp-content/uploads/2026/05/icone-logo-nousx-pwa-scaled.png",
+      },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "AuraIA — IA sem censura" },
+      { name: "twitter:description", content: "Converse e crie sem limites com a AuraIA." },
+      {
+        name: "twitter:image",
+        content:
+          "https://central.daev.ca/wp-content/uploads/2026/05/icone-logo-nousx-pwa-scaled.png",
+      },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -108,6 +123,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      {
+        rel: "icon",
+        href: "https://central.daev.ca/wp-content/uploads/2026/05/icone-logo-nousx-favicon-scaled.png",
+      },
+      {
+        rel: "apple-touch-icon",
+        href: "https://central.daev.ca/wp-content/uploads/2026/05/icone-logo-nousx-pwa-scaled.png",
+      },
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "canonical", href: "https://chataura.com.br" },
     ],
   }),
   shellComponent: RootShell,
