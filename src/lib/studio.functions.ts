@@ -276,7 +276,7 @@ export const listPoses = createServerFn({ method: "GET" })
   .handler(async () => {
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 5000);
+      const timer = setTimeout(() => controller.abort(), 8000);
       const res = await fetch(`${ALIVEAI_BASE}/poses`, {
         headers: aliveHeaders(),
         signal: controller.signal,
@@ -290,8 +290,9 @@ export const listPoses = createServerFn({ method: "GET" })
       console.log("[studio] listPoses count", list.length);
       return list.map((p: any) => ({
         id: p.id || p.poseId || p._id,
-        name: p.name || p.title || "Pose",
-        thumbnail: p.thumbnail || p.image || p.url || p.preview,
+        name: p.name || p.title || p.type || "Pose",
+        type: p.type || null,
+        thumbnail: p.mediaUrl || p.thumbnail || p.image || p.url || p.preview,
       }));
     } catch (e) {
       console.error("[studio] listPoses error", e instanceof Error ? e.message : e);
