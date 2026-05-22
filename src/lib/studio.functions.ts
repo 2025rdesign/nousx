@@ -520,6 +520,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
 
     const { mediaId, mediaUrl } = await pollPrompt(promptId);
     console.log("[DEBUG] Poll completed", { mediaId, mediaUrl });
+    await logPromptPoseEcho(promptId);
 
     let profileId: string | null = data.mode === "variation" ? data.profileId! : null;
 
