@@ -514,7 +514,12 @@ function StudioInner() {
                     try {
                       setImproving(true);
                       const r = await improveFn({
-                        data: { prompt: appearance.trim(), model },
+                        data: {
+                          prompt: appearance.trim(),
+                          model,
+                          characterName: activeProfile?.name,
+                          characterAppearance: activeProfile?.appearance ?? undefined,
+                        },
                       });
                       setAppearance(r.prompt);
                       if (r.negativePrompt) setNegativePrompt(r.negativePrompt);
@@ -638,9 +643,25 @@ function StudioInner() {
               )}
             </div>
 
+            {/* Edit model selector (variation only) */}
+            {activeProfile && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Modelo de edição</Label>
+                <Select value={editModel} onValueChange={(v) => setEditModel(v as any)}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CREATIVE">NOUSX Standard</SelectItem>
+                    <SelectItem value="REALISM">NOUSX Ultra HD</SelectItem>
+                    <SelectItem value="QWEN_PRO">NOUSX Pro Edit</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* High quality toggle */}
-            {!activeProfile && (
-              <label className="flex items-center gap-3 rounded-lg border border-border p-3 cursor-pointer">
+            <label className="flex items-center gap-3 rounded-lg border border-border p-3 cursor-pointer">
                 <Switch checked={highQuality} onCheckedChange={setHighQuality} />
                 <div className="flex-1">
                   <div className="text-sm font-medium flex items-center gap-2">
@@ -655,8 +676,7 @@ function StudioInner() {
                     Renderização em alto detalhe (HIGH). Consome 2 créditos.
                   </p>
                 </div>
-              </label>
-            )}
+            </label>
 
             <div className="rounded-lg border border-border">
               <button
