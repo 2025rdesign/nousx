@@ -13,7 +13,11 @@ export function isSpeechRecognitionSupported(): boolean {
 
 export interface UseSpeechRecognitionOptions {
   lang?: string;
-  onTranscript: (delta: string) => void;
+  /**
+   * Called on every result event (interim and final) with the full
+   * accumulated transcript for the current recording session.
+   */
+  onTranscript: (sessionText: string, isFinal: boolean) => void;
   onError?: (err: string) => void;
 }
 
@@ -25,7 +29,7 @@ export function useSpeechRecognition({
   const [supported, setSupported] = useState(false);
   const [recording, setRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
-  const finalIndexRef = useRef(0);
+  const finalTextRef = useRef("");
   const cbRef = useRef(onTranscript);
   const errRef = useRef(onError);
 
@@ -64,18 +68,26 @@ export function useSpeechRecognition({
     r.lang = lang;
     r.continuous = true;
     r.interimResults = true;
-    finalIndexRef.current = 0;
+    r.maxAlternatives = 1;
+    finalTextRef.current = "";
     r.onresult = (event: any) => {
+      let interim = "";
+      let newFinal = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const res = event.results[i];
-        if (res.isFinal) {
-          const text = res[0]?.transcript ?? "";
-          if (text) {
-            const needsSpace = !/[\s\n]$/.test(text);
-            cbRef.current(text + (needsSpace ? " " : ""));
-          }
-        }
+        const chunk = res[0]?.transcript ?? "";
+        if (res.isFinal) newFinal += chunk;
+        else interim += chunk;
       }
+      if (newFinal) {
+        finalTextRef.current = (finalTextRef.current + " " + newFinal)
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+      const combined = (finalTextRef.current + " " + interim)
+        .replace(/\s+/g, " ")
+        .trim();
+      cbRef.current(combined, newFinal.length > 0 && interim.length === 0);
     };
     r.onerror = (e: any) => {
       errRef.current?.(e?.error ?? "speech-error");
