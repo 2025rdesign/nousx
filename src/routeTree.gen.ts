@@ -25,6 +25,7 @@ import { Route as AuthenticatedCreditosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as ApiPublicChatAnonRouteImport } from './routes/api/public/chat-anon'
 import { Route as ApiPublicCaktoWebhookRouteImport } from './routes/api/public/cakto-webhook'
+import { Route as ApiPublicCajupayWebhookRouteImport } from './routes/api/public/cajupay-webhook'
 import { Route as AuthenticatedCConversationIdRouteImport } from './routes/_authenticated/c.$conversationId'
 
 const TermosRoute = TermosRouteImport.update({
@@ -107,6 +108,11 @@ const ApiPublicCaktoWebhookRoute = ApiPublicCaktoWebhookRouteImport.update({
   path: '/api/public/cakto-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCajupayWebhookRoute = ApiPublicCajupayWebhookRouteImport.update({
+  id: '/api/public/cajupay-webhook',
+  path: '/api/public/cajupay-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedCConversationIdRoute =
   AuthenticatedCConversationIdRouteImport.update({
     id: '/c/$conversationId',
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/tts': typeof ApiTtsRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
+  '/api/public/cajupay-webhook': typeof ApiPublicCajupayWebhookRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
   '/api/public/chat-anon': typeof ApiPublicChatAnonRoute
 }
@@ -147,6 +154,7 @@ export interface FileRoutesByTo {
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/tts': typeof ApiTtsRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
+  '/api/public/cajupay-webhook': typeof ApiPublicCajupayWebhookRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
   '/api/public/chat-anon': typeof ApiPublicChatAnonRoute
 }
@@ -167,6 +175,7 @@ export interface FileRoutesById {
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/tts': typeof ApiTtsRoute
   '/_authenticated/c/$conversationId': typeof AuthenticatedCConversationIdRoute
+  '/api/public/cajupay-webhook': typeof ApiPublicCajupayWebhookRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
   '/api/public/chat-anon': typeof ApiPublicChatAnonRoute
 }
@@ -187,6 +196,7 @@ export interface FileRouteTypes {
     | '/api/generate-image'
     | '/api/tts'
     | '/c/$conversationId'
+    | '/api/public/cajupay-webhook'
     | '/api/public/cakto-webhook'
     | '/api/public/chat-anon'
   fileRoutesByTo: FileRoutesByTo
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
     | '/api/generate-image'
     | '/api/tts'
     | '/c/$conversationId'
+    | '/api/public/cajupay-webhook'
     | '/api/public/cakto-webhook'
     | '/api/public/chat-anon'
   id:
@@ -224,6 +235,7 @@ export interface FileRouteTypes {
     | '/api/generate-image'
     | '/api/tts'
     | '/_authenticated/c/$conversationId'
+    | '/api/public/cajupay-webhook'
     | '/api/public/cakto-webhook'
     | '/api/public/chat-anon'
   fileRoutesById: FileRoutesById
@@ -238,6 +250,7 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiTtsRoute: typeof ApiTtsRoute
+  ApiPublicCajupayWebhookRoute: typeof ApiPublicCajupayWebhookRoute
   ApiPublicCaktoWebhookRoute: typeof ApiPublicCaktoWebhookRoute
   ApiPublicChatAnonRoute: typeof ApiPublicChatAnonRoute
 }
@@ -356,6 +369,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCaktoWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cajupay-webhook': {
+      id: '/api/public/cajupay-webhook'
+      path: '/api/public/cajupay-webhook'
+      fullPath: '/api/public/cajupay-webhook'
+      preLoaderRoute: typeof ApiPublicCajupayWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/c/$conversationId': {
       id: '/_authenticated/c/$conversationId'
       path: '/c/$conversationId'
@@ -398,9 +418,20 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiTtsRoute: ApiTtsRoute,
+  ApiPublicCajupayWebhookRoute: ApiPublicCajupayWebhookRoute,
   ApiPublicCaktoWebhookRoute: ApiPublicCaktoWebhookRoute,
   ApiPublicChatAnonRoute: ApiPublicChatAnonRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
