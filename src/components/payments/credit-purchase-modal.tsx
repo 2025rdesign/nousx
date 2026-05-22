@@ -10,7 +10,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Sparkles, Loader2, Check, ArrowLeft } from "lucide-react";
+import {
+  Sparkles,
+  Loader2,
+  Check,
+  ArrowLeft,
+  Gem,
+  Clock,
+  ShieldCheck,
+  Zap,
+  AlertTriangle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
 import { CREDIT_PACKS, applyDiscount, type CreditPackId } from "@/lib/payments-config";
@@ -20,6 +30,7 @@ import {
   getCheckoutProfile,
   saveCheckoutProfile,
 } from "@/lib/payments.functions";
+import { getCredits } from "@/lib/credits.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { CouponField, type AppliedCoupon } from "./coupon-field";
 import {
@@ -31,6 +42,50 @@ import {
 } from "./payment-forms";
 
 type Step = "select" | "customer" | "checkout" | "pix" | "success";
+
+// Per-pack metadata for display (price-per-image, expiry copy).
+const PACK_META: Record<
+  CreditPackId,
+  {
+    expiresDays: number | null;
+    badge?: { label: string; tone: "purple" | "gold" };
+    tag?: { label: string; tone: "muted" | "green" };
+    accent: "muted" | "purple" | "gold";
+    blurb: string;
+  }
+> = {
+  starter: {
+    expiresDays: 10,
+    tag: { label: "Para experimentar", tone: "muted" },
+    accent: "muted",
+    blurb: "Ideal para um primeiro teste.",
+  },
+  popular: {
+    expiresDays: 30,
+    badge: { label: "MAIS POPULAR", tone: "purple" },
+    accent: "purple",
+    blurb: "O melhor equilíbrio entre preço e quantidade.",
+  },
+  pro: {
+    expiresDays: null,
+    badge: { label: "MELHOR VALOR", tone: "gold" },
+    tag: { label: "Sem expiração", tone: "green" },
+    accent: "gold",
+    blurb: "Para quem usa o Estúdio com frequência.",
+  },
+};
+
+function formatBRL(v: number) {
+  return `R$ ${v.toFixed(2).replace(".", ",")}`;
+}
+function pricePerImage(p: { price: number; credits: number }) {
+  return p.price / p.credits;
+}
+function daysUntil(iso: string | null) {
+  if (!iso) return null;
+  const ms = new Date(iso).getTime() - Date.now();
+  return Math.max(0, Math.ceil(ms / 86_400_000));
+}
 
 export function CreditPurchaseModal({
   open,
