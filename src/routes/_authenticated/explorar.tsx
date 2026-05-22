@@ -184,6 +184,16 @@ function EmptyExplore() {
   );
 }
 
+function SkeletonGrid() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="aspect-square rounded-lg bg-muted/60 animate-pulse" />
+      ))}
+    </div>
+  );
+}
+
 function dedupeById<T extends { id: string }>(rows: T[]): T[] {
   const seen = new Set<string>();
   const out: T[] = [];
