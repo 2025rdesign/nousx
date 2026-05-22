@@ -14,7 +14,6 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiVoiceSessionRouteImport } from './routes/api/voice-session'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
@@ -49,11 +48,6 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiVoiceSessionRoute = ApiVoiceSessionRouteImport.update({
-  id: '/api/voice-session',
-  path: '/api/voice-session',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTtsRoute = ApiTtsRouteImport.update({
@@ -127,7 +121,6 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/tts': typeof ApiTtsRoute
-  '/api/voice-session': typeof ApiVoiceSessionRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
   '/api/public/chat-anon': typeof ApiPublicChatAnonRoute
@@ -145,7 +138,6 @@ export interface FileRoutesByTo {
   '/api/chat': typeof ApiChatRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/tts': typeof ApiTtsRoute
-  '/api/voice-session': typeof ApiVoiceSessionRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
   '/api/public/chat-anon': typeof ApiPublicChatAnonRoute
@@ -165,7 +157,6 @@ export interface FileRoutesById {
   '/api/chat': typeof ApiChatRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/tts': typeof ApiTtsRoute
-  '/api/voice-session': typeof ApiVoiceSessionRoute
   '/_authenticated/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
   '/api/public/chat-anon': typeof ApiPublicChatAnonRoute
@@ -185,7 +176,6 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/generate-image'
     | '/api/tts'
-    | '/api/voice-session'
     | '/c/$conversationId'
     | '/api/public/cakto-webhook'
     | '/api/public/chat-anon'
@@ -203,7 +193,6 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/generate-image'
     | '/api/tts'
-    | '/api/voice-session'
     | '/c/$conversationId'
     | '/api/public/cakto-webhook'
     | '/api/public/chat-anon'
@@ -222,7 +211,6 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/generate-image'
     | '/api/tts'
-    | '/api/voice-session'
     | '/_authenticated/c/$conversationId'
     | '/api/public/cakto-webhook'
     | '/api/public/chat-anon'
@@ -237,7 +225,6 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiTtsRoute: typeof ApiTtsRoute
-  ApiVoiceSessionRoute: typeof ApiVoiceSessionRoute
   ApiPublicCaktoWebhookRoute: typeof ApiPublicCaktoWebhookRoute
   ApiPublicChatAnonRoute: typeof ApiPublicChatAnonRoute
 }
@@ -277,13 +264,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/voice-session': {
-      id: '/api/voice-session'
-      path: '/api/voice-session'
-      fullPath: '/api/voice-session'
-      preLoaderRoute: typeof ApiVoiceSessionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/tts': {
@@ -397,10 +377,19 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiTtsRoute: ApiTtsRoute,
-  ApiVoiceSessionRoute: ApiVoiceSessionRoute,
   ApiPublicCaktoWebhookRoute: ApiPublicCaktoWebhookRoute,
   ApiPublicChatAnonRoute: ApiPublicChatAnonRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
