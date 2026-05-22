@@ -9,7 +9,20 @@ import { Button } from "@/components/ui/button";
 import { Sun, Moon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/components/theme-provider";
-import { getProfile, updateProfile } from "@/lib/chat.functions";
+import { getProfile, updateProfile, deleteAllConversations } from "@/lib/chat.functions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useNavigate } from "@tanstack/react-router";
+import { Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { notify } from "@/lib/notify";
 import { translateAuthError } from "@/lib/i18n-errors";
@@ -113,7 +126,64 @@ function GeneralTab() {
           </div>
         </CardContent>
       </Card>
+
+      <DangerZone />
     </div>
+  );
+}
+
+function DangerZone() {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const deleteAllFn = useServerFn(deleteAllConversations);
+  const deleteAll = useMutation({
+    mutationFn: () => deleteAllFn(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      notify.success("Todas as conversas foram excluídas.");
+      navigate({ to: "/" });
+    },
+    onError: () => notify.error("Não foi possível excluir as conversas."),
+  });
+
+  return (
+    <Card className="border-destructive/40 bg-card shadow-sm">
+      <CardContent className="pt-6 pb-6 space-y-4">
+        <div>
+          <h3 className="font-semibold mb-1">Excluir todas as conversas</h3>
+          <p className="text-sm text-muted-foreground">
+            Remove permanentemente todo o seu histórico de chats. Imagens da Galeria,
+            personagens do Estúdio e áudios não serão afetados.
+          </p>
+        </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" disabled={deleteAll.isPending}>
+              <Trash2 className="size-4 mr-2" />
+              {deleteAll.isPending ? "Excluindo..." : "Excluir todas as conversas"}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir todas as conversas?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. Todo o seu histórico de chats será
+                removido. Imagens, personagens e áudios permanecem intactos.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteAll.mutate()}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Excluir tudo
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardContent>
+    </Card>
   );
 }
 
