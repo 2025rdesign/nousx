@@ -222,6 +222,7 @@ function StudioInner() {
             profileId: activeProfile.id,
             appearance,
             aspectRatio: ratio,
+            poseId: poseEnabled ? poseId ?? undefined : undefined,
           },
         });
       }
@@ -237,6 +238,9 @@ function StudioInner() {
           createProfile,
           creativity,
           negativePrompt: negativePrompt.trim() || undefined,
+          detailLevel: highQuality ? "HIGH" : "MEDIUM",
+          poseId: poseEnabled ? poseId ?? undefined : undefined,
+          faceRefMediaId: faceRef?.mediaId,
         },
       });
     },
