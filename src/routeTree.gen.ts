@@ -13,7 +13,7 @@ import { Route as TermosRouteImport } from './routes/termos'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedStudioRouteImport } from './routes/_authenticated/studio'
@@ -44,10 +44,10 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AuthenticatedRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
   id: '/api/generate-image',
@@ -103,7 +103,7 @@ const AuthenticatedCConversationIdRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AuthenticatedIndexRoute
+  '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
@@ -119,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/api/public/chat-anon': typeof ApiPublicChatAnonRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
@@ -129,13 +130,13 @@ export interface FileRoutesByTo {
   '/studio': typeof AuthenticatedStudioRoute
   '/api/chat': typeof ApiChatRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
-  '/': typeof AuthenticatedIndexRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
   '/api/public/chat-anon': typeof ApiPublicChatAnonRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -147,7 +148,6 @@ export interface FileRoutesById {
   '/_authenticated/studio': typeof AuthenticatedStudioRoute
   '/api/chat': typeof ApiChatRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
-  '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
   '/api/public/chat-anon': typeof ApiPublicChatAnonRoute
@@ -171,6 +171,7 @@ export interface FileRouteTypes {
     | '/api/public/chat-anon'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/auth'
     | '/privacidade'
     | '/termos'
@@ -181,12 +182,12 @@ export interface FileRouteTypes {
     | '/studio'
     | '/api/chat'
     | '/api/generate-image'
-    | '/'
     | '/c/$conversationId'
     | '/api/public/cakto-webhook'
     | '/api/public/chat-anon'
   id:
     | '__root__'
+    | '/'
     | '/_authenticated'
     | '/auth'
     | '/privacidade'
@@ -198,13 +199,13 @@ export interface FileRouteTypes {
     | '/_authenticated/studio'
     | '/api/chat'
     | '/api/generate-image'
-    | '/_authenticated/'
     | '/_authenticated/c/$conversationId'
     | '/api/public/cakto-webhook'
     | '/api/public/chat-anon'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
@@ -245,12 +246,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/': {
-      id: '/_authenticated/'
+    '/': {
+      id: '/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/generate-image': {
       id: '/api/generate-image'
@@ -331,7 +332,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedExplorarRoute: typeof AuthenticatedExplorarRoute
   AuthenticatedGaleriaRoute: typeof AuthenticatedGaleriaRoute
   AuthenticatedStudioRoute: typeof AuthenticatedStudioRoute
-  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedCConversationIdRoute: typeof AuthenticatedCConversationIdRoute
 }
 
@@ -341,7 +341,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedExplorarRoute: AuthenticatedExplorarRoute,
   AuthenticatedGaleriaRoute: AuthenticatedGaleriaRoute,
   AuthenticatedStudioRoute: AuthenticatedStudioRoute,
-  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedCConversationIdRoute: AuthenticatedCConversationIdRoute,
 }
 
@@ -350,6 +349,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   PrivacidadeRoute: PrivacidadeRoute,
@@ -362,3 +362,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
