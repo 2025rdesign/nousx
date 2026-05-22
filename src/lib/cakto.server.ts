@@ -1,8 +1,29 @@
 // Cakto payments HTTP client (server-only).
 const BASE = "https://api.cakto.com.br";
+const PUBLIC_API_BASE = `${BASE}/public_api`;
 
 type TokenCache = { token: string; expiresAt: number };
 let tokenCache: TokenCache | null = null;
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+}
+
+function asNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const normalized = value.replace(",", ".");
+    const parsed = Number(normalized);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
 
 async function getAccessToken(): Promise<string> {
   const now = Date.now();
@@ -10,7 +31,7 @@ async function getAccessToken(): Promise<string> {
   const clientId = process.env.CAKTO_CLIENT_ID;
   const clientSecret = process.env.CAKTO_CLIENT_SECRET;
   if (!clientId || !clientSecret) throw new Error("Gateway de pagamento não configurado.");
-  const res = await fetch(`${BASE}/public_api/token/`, {
+   const res = await fetch(`${PUBLIC_API_BASE}/token/`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -64,8 +85,8 @@ export type CardData = {
 };
 
 export type CaktoOrder = {
-  id: string;
-  status: "pending" | "paid" | "cancelled" | "refunded" | string;
+  id?: string;
+  status?: "pending" | "paid" | "cancelled" | "refunded" | string;
   qr_code?: string;
   pix_code?: string;
   pix_qr_image?: string;
@@ -74,21 +95,73 @@ export type CaktoOrder = {
   customer?: { email?: string };
   expires_at?: string;
   subscription_id?: string;
+  checkoutUrl?: string;
+  raw?: unknown;
 };
+
+function normalizeOrder(raw: unknown): CaktoOrder {
+  const record = asRecord(raw) ?? {};
+  const customer = asRecord(record.customer);
+  const product = asRecord(record.product);
+  const subscription = asRecord(record.subscription);
+
+  return {
+    id: asString(record.id) ?? asString(record.order_id) ?? asString(record.uuid),
+    status: asString(record.status),
+    qr_code:
+      asString(record.qr_code) ?? asString(record.qrCode) ?? asString(record.pixQrCode),
+    pix_code:
+      asString(record.pix_code) ?? asString(record.pixCode) ?? asString(record.pix_payload),
+    pix_qr_image:
+      asString(record.pix_qr_image) ??
+      asString(record.pixQrImage) ??
+      asString(record.qr_code_image),
+    amount: asNumber(record.amount) ?? asNumber(record.baseAmount),
+    product_id: asString(record.product_id) ?? asString(product?.id),
+    customer: customer ? { email: asString(customer.email) } : undefined,
+    expires_at: asString(record.expires_at) ?? asString(record.due_date),
+    subscription_id:
+      asString(record.subscription_id) ??
+      asString(record.subscription) ??
+      asString(subscription?.id),
+    checkoutUrl: asString(record.checkoutUrl) ?? asString(record.checkout_url),
+    raw,
+  };
+}
+
+async function createOrder(payload: Record<string, unknown>): Promise<CaktoOrder> {
+  const raw = await caktoFetch("/public_api/orders/", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  console.log("[CAKTO] ordem criada:", JSON.stringify(raw));
+  return normalizeOrder(raw);
+}
+
+export function buildHostedCheckoutUrl(opts: {
+  checkoutId: string;
+  customer: Customer;
+  couponCode?: string | null;
+}) {
+  const url = new URL(`https://pay.cakto.com.br/${encodeURIComponent(opts.checkoutId)}`);
+  url.searchParams.set("name", opts.customer.name);
+  url.searchParams.set("email", opts.customer.email);
+  url.searchParams.set("confirmEmail", opts.customer.email);
+  url.searchParams.set("cpf", opts.customer.document);
+  if (opts.couponCode) url.searchParams.set("coupon", opts.couponCode);
+  return url.toString();
+}
 
 export async function createPixOrder(opts: {
   productId: string;
   customer: Customer;
   externalReference?: string;
 }): Promise<CaktoOrder> {
-  return caktoFetch("/public_api/orders", {
-    method: "POST",
-    body: JSON.stringify({
-      product_id: opts.productId,
-      payment_method: "pix",
-      customer: opts.customer,
-      external_reference: opts.externalReference,
-    }),
+  return createOrder({
+    product_id: opts.productId,
+    payment_method: "pix",
+    customer: opts.customer,
+    external_reference: opts.externalReference,
   });
 }
 
@@ -98,23 +171,24 @@ export async function createCardOrder(opts: {
   card: CardData;
   externalReference?: string;
 }): Promise<CaktoOrder> {
-  return caktoFetch("/public_api/orders", {
-    method: "POST",
-    body: JSON.stringify({
-      product_id: opts.productId,
-      payment_method: "credit_card",
-      customer: opts.customer,
-      card_number: opts.card.card_number,
-      card_holder: opts.card.card_holder,
-      card_expiry: opts.card.card_expiry,
-      card_cvv: opts.card.card_cvv,
-      external_reference: opts.externalReference,
-    }),
+  return createOrder({
+    product_id: opts.productId,
+    payment_method: "credit_card",
+    customer: opts.customer,
+    card_number: opts.card.card_number,
+    card_holder: opts.card.card_holder,
+    card_expiry: opts.card.card_expiry,
+    card_cvv: opts.card.card_cvv,
+    external_reference: opts.externalReference,
   });
 }
 
 export async function getOrder(orderId: string): Promise<CaktoOrder> {
-  return caktoFetch(`/public_api/orders/${encodeURIComponent(orderId)}`, { method: "GET" });
+  const raw = await caktoFetch(`/public_api/orders/${encodeURIComponent(orderId)}/`, {
+    method: "GET",
+  });
+  console.log("[CAKTO] consulta de ordem:", JSON.stringify(raw));
+  return normalizeOrder(raw);
 }
 
 // Map status from Cakto to our normalized form
