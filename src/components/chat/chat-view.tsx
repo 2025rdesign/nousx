@@ -16,6 +16,8 @@ import { MessageItem, TypingIndicator, type ChatMsg } from "./message-item";
 import { CodeCanvasProvider } from "./code-canvas";
 import { notify } from "@/lib/notify";
 import type { ExtractedFile } from "@/lib/file-extract";
+import { VoiceModeModal } from "./voice-mode-modal";
+import { useActivePlan } from "@/hooks/use-active-plan";
 
 // Só gera imagem quando o usuário descreve o conteúdo após
 // "imagem / foto / ilustração / desenho / arte". Pedidos vagos
@@ -55,6 +57,9 @@ export function ChatView({ conversationId }: Props) {
   const createConv = useServerFn(createConversation);
   const saveMsg = useServerFn(saveMessage);
   const rename = useServerFn(renameConversation);
+  const { planId, hasActive } = useActivePlan();
+  const hasUltra = hasActive && planId === "ultra";
+  const [voiceOpen, setVoiceOpen] = useState(false);
 
   const { data: dbMessages, isLoading: messagesLoading } = useQuery({
     queryKey: ["messages", conversationId],
@@ -376,7 +381,35 @@ export function ChatView({ conversationId }: Props) {
         ) : (
           <EmptyState />
         )}
-        <ChatInput onSend={handleSend} disabled={sending} />
+        <ChatInput
+          onSend={handleSend}
+          disabled={sending}
+          hasUltra={hasUltra}
+          onOpenVoiceMode={() => setVoiceOpen(true)}
+        />
+        <VoiceModeModal
+          open={voiceOpen}
+          onClose={async (summary) => {
+            setVoiceOpen(false);
+            if (!summary) return;
+            try {
+              let convId = conversationId;
+              if (!convId) {
+                const conv = await createConv({ data: { title: "Conversa por voz" } });
+                convId = conv.id;
+                queryClient.invalidateQueries({ queryKey: ["conversations"] });
+                navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
+              }
+              await saveMsg({
+                data: { conversationId: convId, role: "assistant", content: summary },
+              });
+              queryClient.invalidateQueries({ queryKey: ["messages", convId] });
+            } catch (e) {
+              console.error("[VOICE] save summary error", e);
+              notify.error("Não foi possível salvar o resumo.");
+            }
+          }}
+        />
       </div>
     </CodeCanvasProvider>
   );
