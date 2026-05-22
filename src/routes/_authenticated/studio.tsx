@@ -759,7 +759,7 @@ function StudioInner() {
         {/* Result panel */}
         <section
           className={cn(
-            "flex-1 lg:flex-1 lg:min-w-0 min-h-0 border-t lg:border-t-0 border-border bg-sidebar/40 overflow-y-auto",
+            "studio-scroll flex-1 lg:flex-1 lg:min-w-0 min-h-0 border-t lg:border-t-0 border-border bg-sidebar/40 overflow-y-auto",
             "md:block",
             mobileTab === "resultado" ? "block" : "hidden",
           )}
@@ -898,7 +898,7 @@ function StudioInner() {
         {/* Personagens panel (mobile only as tab) */}
         <section
           className={cn(
-            "flex-1 min-w-0 min-h-0 overflow-y-auto md:hidden",
+            "studio-scroll flex-1 min-w-0 min-h-0 overflow-y-auto md:hidden",
             mobileTab === "personagens" ? "block" : "hidden",
           )}
         >

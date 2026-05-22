@@ -315,6 +315,19 @@ const generateSchema = z.object({
 const REMOVE_BOTTOM = /calcinha|biqu[íi]ni de baixo|tire tudo|completamente nua|totalmente nua|panties|fully nude|completely naked/i;
 const REMOVE_CLOTHING = /sem roupa|nua|pelada|tire|tirar|naked|nude|undress|remove/i;
 
+function resolvePoseType(id: string): string {
+  const clean = id.replace(/^NSFW_/i, "").replace(/_depth$/i, "").toLowerCase();
+  if (clean.startsWith("standing")) return "STANDING";
+  if (clean.startsWith("lying")) return "LYING";
+  if (clean.startsWith("all_fours")) return "ALLFOURS";
+  if (clean.startsWith("kneeling")) return "KNEELING";
+  if (clean.startsWith("sitting")) return "SITTING";
+  if (clean.startsWith("squatting")) return "SQUATTING";
+  if (clean.startsWith("suspended")) return "SUSPENDED";
+  if (clean.startsWith("porn")) return "PORN";
+  return "CUSTOM";
+}
+
 export const generateCharacter = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => generateSchema.parse(d))
@@ -354,8 +367,9 @@ export const generateCharacter = createServerFn({ method: "POST" })
       };
       if (data.poseId) {
         (body as Record<string, unknown>).pose = {
+          type: resolvePoseType(data.poseId),
           id: data.poseId,
-          poseStrength: 50,
+          strength: 80,
         };
       }
     } else {
@@ -387,8 +401,9 @@ export const generateCharacter = createServerFn({ method: "POST" })
       }
       if (data.poseId) {
         (body as Record<string, unknown>).pose = {
+          type: resolvePoseType(data.poseId),
           id: data.poseId,
-          poseStrength: 50,
+          strength: 80,
         };
       }
       // Stash for fallback
