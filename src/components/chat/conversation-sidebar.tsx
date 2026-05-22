@@ -159,9 +159,8 @@ export function ConversationSidebar({
             }}
           />
         ) : (
-          <div className="flex items-center gap-1 rounded-md px-2 py-1.5 transition-colors overflow-hidden min-w-0"
+          <div
             onClick={(e) => {
-              // Prevent triggering Link via buttons
               const target = e.target as HTMLElement;
               if (target.closest('button')) return;
               navigate({ to: '/c/$conversationId', params: { conversationId: c.id } });
