@@ -8,7 +8,7 @@ export function NousxLogo({ className }: { className?: string }) {
         className,
       )}
     >
-      NOUS<span className="text-accent">X</span>
+      Aura<span style={{ color: "#6C47FF" }}>IA</span>
     </span>
   );
 }
