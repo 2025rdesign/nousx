@@ -3,9 +3,10 @@ import { useSyncExternalStore } from "react";
 interface PlayerState {
   id: string | null;
   blobUrl: string | null;
+  loading: boolean;
 }
 
-let state: PlayerState = { id: null, blobUrl: null };
+let state: PlayerState = { id: null, blobUrl: null, loading: false };
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -22,6 +23,17 @@ export const audioPlayerStore = {
   get() {
     return state;
   },
+  showLoading(id: string) {
+    if (state.blobUrl) {
+      try {
+        URL.revokeObjectURL(state.blobUrl);
+      } catch {
+        /* ignore */
+      }
+    }
+    state = { id, blobUrl: null, loading: true };
+    emit();
+  },
   open(id: string, blobUrl: string) {
     if (state.blobUrl && state.blobUrl !== blobUrl) {
       try {
@@ -30,7 +42,7 @@ export const audioPlayerStore = {
         /* ignore */
       }
     }
-    state = { id, blobUrl };
+    state = { id, blobUrl, loading: false };
     emit();
   },
   close() {
@@ -41,7 +53,7 @@ export const audioPlayerStore = {
         /* ignore */
       }
     }
-    state = { id: null, blobUrl: null };
+    state = { id: null, blobUrl: null, loading: false };
     emit();
   },
 };
