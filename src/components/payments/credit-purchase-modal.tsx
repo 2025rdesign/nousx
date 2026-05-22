@@ -117,6 +117,22 @@ export function CreditPurchaseModal({
   const check = useServerFn(checkPayment);
   const fetchProfile = useServerFn(getCheckoutProfile);
   const saveProfile = useServerFn(saveCheckoutProfile);
+  const fetchCredits = useServerFn(getCredits);
+
+  const creditsQ = useQuery({
+    queryKey: ["credits"],
+    queryFn: () => fetchCredits(),
+    enabled: open,
+  });
+  const balance = creditsQ.data?.balance ?? 0;
+  const totalPurchased = creditsQ.data?.totalPurchased ?? 0;
+  const nextExpiresAt = creditsQ.data?.nextExpiresAt ?? null;
+  const nonExpiringRemaining = creditsQ.data?.nonExpiringRemaining ?? 0;
+  const expiresInDays = daysUntil(nextExpiresAt);
+  const hasOnlyNonExpiring = balance > 0 && nonExpiringRemaining === balance;
+  const usedPercent = totalPurchased > 0
+    ? Math.min(100, Math.round(((totalPurchased - balance) / totalPurchased) * 100))
+    : 0;
 
   const profileQ = useQuery({
     queryKey: ["checkout-profile"],
