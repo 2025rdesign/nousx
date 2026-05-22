@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { FileText, Globe, Paperclip, Send, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,9 +17,11 @@ interface Props {
     webSearch: boolean,
   ) => void;
   disabled?: boolean;
+  anonMode?: boolean;
+  onAnonRestricted?: () => void;
 }
 
-export function ChatInput({ onSend, disabled }: Props) {
+export function ChatInput({ onSend, disabled, anonMode, onAnonRestricted }: Props) {
   const [text, setText] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [file, setFile] = useState<ExtractedFile | null>(null);
@@ -27,6 +29,16 @@ export function ChatInput({ onSend, disabled }: Props) {
   const [reasoning, setReasoning] = useState(false);
   const [webSearch, setWebSearch] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  function blockAnon(e: MouseEvent | Event) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onAnonRestricted) onAnonRestricted();
+    else
+      notify.error(
+        "Funcionalidade disponível para usuários cadastrados. Crie sua conta grátis!",
+      );
+  }
 
   function handleSubmit() {
     const t = text.trim();
@@ -145,37 +157,70 @@ export function ChatInput({ onSend, disabled }: Props) {
             type="button"
             variant="ghost"
             size="icon"
-            onClick={() => fileRef.current?.click()}
+            onClick={(e) => (anonMode ? blockAnon(e) : fileRef.current?.click())}
             aria-label="Anexar arquivo"
+            className={cn(anonMode && "opacity-35 cursor-not-allowed hover:bg-transparent")}
           >
             <Paperclip className="size-4" />
           </Button>
-          <Toggle
-            pressed={reasoning}
-            onPressedChange={setReasoning}
-            size="sm"
-            aria-label="Modo raciocínio"
-            className="gap-1 text-xs data-[state=on]:bg-accent/15 data-[state=on]:text-accent"
-          >
-            <Sparkles className="size-3.5" />
-            Raciocínio
-          </Toggle>
-          <Toggle
-            pressed={webSearch}
-            onPressedChange={setWebSearch}
-            size="sm"
-            aria-label="Busca web"
-            className="gap-1 text-xs data-[state=on]:bg-accent/15 data-[state=on]:text-accent"
-          >
-            <Globe className="size-3.5" />
-            Busca web
-          </Toggle>
+          {anonMode ? (
+            <>
+              <button
+                type="button"
+                onClick={blockAnon}
+                aria-label="Modo raciocínio"
+                className="inline-flex items-center gap-1 h-8 px-2 rounded-md text-xs opacity-35 cursor-not-allowed"
+              >
+                <Sparkles className="size-3.5" />
+                Raciocínio
+              </button>
+              <button
+                type="button"
+                onClick={blockAnon}
+                aria-label="Busca web"
+                className="inline-flex items-center gap-1 h-8 px-2 rounded-md text-xs opacity-35 cursor-not-allowed"
+              >
+                <Globe className="size-3.5" />
+                Busca web
+              </button>
+            </>
+          ) : (
+            <>
+              <Toggle
+                pressed={reasoning}
+                onPressedChange={setReasoning}
+                size="sm"
+                aria-label="Modo raciocínio"
+                className="gap-1 text-xs data-[state=on]:bg-accent/15 data-[state=on]:text-accent"
+              >
+                <Sparkles className="size-3.5" />
+                Raciocínio
+              </Toggle>
+              <Toggle
+                pressed={webSearch}
+                onPressedChange={setWebSearch}
+                size="sm"
+                aria-label="Busca web"
+                className="gap-1 text-xs data-[state=on]:bg-accent/15 data-[state=on]:text-accent"
+              >
+                <Globe className="size-3.5" />
+                Busca web
+              </Toggle>
+            </>
+          )}
           <div className="flex-1" />
-          <VoiceRecordButton
-            disabled={disabled}
-            value={text}
-            onChange={setText}
-          />
+          {anonMode ? (
+            <button
+              type="button"
+              onClick={blockAnon}
+              aria-label="Gravar voz"
+              className="inline-flex items-center justify-center size-9 rounded-md opacity-35 cursor-not-allowed"
+            >
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+            </button>
+          ) : (
+            <VoiceRecordButton disabled={disabled} value={text} onChange={setText} />
+          )}
           <Button
             type="button"
             size="icon"
