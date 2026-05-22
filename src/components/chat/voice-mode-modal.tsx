@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, MicOff, SkipForward, X, Loader2 } from "lucide-react";
-import { VoiceSession, type VoiceState, type VoiceTurn } from "@/lib/voice-session";
+import type { VoiceSession, VoiceState, VoiceTurn } from "@/lib/voice-session";
 
 interface Props {
   open: boolean;
@@ -20,6 +20,7 @@ export function VoiceModeModal({ open, onClose }: Props) {
   const sessionRef = useRef<VoiceSession | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const rafRef = useRef<number | null>(null);
+  const mountedRef = useRef(false);
 
   const [state, setState] = useState<VoiceState>("connecting");
   const [error, setError] = useState<string | null>(null);
@@ -29,39 +30,79 @@ export function VoiceModeModal({ open, onClose }: Props) {
   const [history, setHistory] = useState<VoiceTurn[]>([]);
   const [bars, setBars] = useState<number[]>(() => Array(20).fill(0));
 
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
+  const startSession = useCallback(async () => {
+    if (typeof window === "undefined" || !mountedRef.current) return;
+
+    const { VoiceSession } = await import("@/lib/voice-session");
+    if (!mountedRef.current) return;
 
     const session = new VoiceSession({
-      state: (s) => !cancelled && setState(s),
-      error: (m) => !cancelled && setError(m),
-      userTranscript: (t) => !cancelled && setUserText(t),
-      assistantTranscript: (t) => !cancelled && setAssistantText(t),
+      state: (s) => {
+        if (!mountedRef.current) return;
+        setState(s);
+      },
+      error: (message) => {
+        if (!mountedRef.current) return;
+        setError(message);
+      },
+      userTranscript: (text) => {
+        if (!mountedRef.current) return;
+        setUserText(text);
+      },
+      assistantTranscript: (text) => {
+        if (!mountedRef.current) return;
+        setAssistantText(text);
+      },
       turn: (turn) => {
-        if (cancelled) return;
+        if (!mountedRef.current) return;
         setHistory((prev) => [...prev, turn].slice(-4));
         if (turn.role === "user") setUserText("");
         if (turn.role === "assistant") setAssistantText("");
       },
       analyser: (node) => {
+        if (!mountedRef.current) return;
         analyserRef.current = node;
       },
     });
-    sessionRef.current = session;
-    void session.start();
 
-    return () => {
-      cancelled = true;
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      void session.close();
-      sessionRef.current = null;
-      analyserRef.current = null;
-    };
-  }, [open]);
+    const previousSession = sessionRef.current;
+    sessionRef.current = session;
+    setState("connecting");
+    setError(null);
+
+    if (previousSession) {
+      await previousSession.close();
+    }
+
+    if (!mountedRef.current) {
+      await session.close();
+      return;
+    }
+
+    await session.start();
+  }, []);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || typeof window === "undefined") return;
+
+    mountedRef.current = true;
+    void startSession();
+
+    return () => {
+      mountedRef.current = false;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      const activeSession = sessionRef.current;
+      sessionRef.current = null;
+      analyserRef.current = null;
+      if (activeSession) {
+        void activeSession.close();
+      }
+    };
+  }, [open, startSession]);
+
+  useEffect(() => {
+    if (!open || typeof window === "undefined") return;
+
     const tick = () => {
       const an = analyserRef.current;
       if (an) {
@@ -86,6 +127,7 @@ export function VoiceModeModal({ open, onClose }: Props) {
   }, [open]);
 
   function handleEnd() {
+    void sessionRef.current?.close();
     const summary = buildSummary([
       ...history,
       ...(userText ? [{ role: "user" as const, text: userText }] : []),
@@ -99,17 +141,7 @@ export function VoiceModeModal({ open, onClose }: Props) {
     setHistory([]);
     setUserText("");
     setAssistantText("");
-    const session = new VoiceSession({
-      state: setState,
-      error: setError,
-      userTranscript: setUserText,
-      assistantTranscript: setAssistantText,
-      turn: (t) => setHistory((p) => [...p, t].slice(-4)),
-      analyser: (n) => (analyserRef.current = n),
-    });
-    sessionRef.current?.close();
-    sessionRef.current = session;
-    void session.start();
+    void startSession();
   }
 
   function toggleMute() {
