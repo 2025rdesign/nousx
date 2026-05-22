@@ -419,6 +419,28 @@ function StudioInner() {
                   <X className="size-4" />
                 </Button>
               </div>
+            ) : null}
+
+            {activeProfile && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Modelo de edição</Label>
+                <Select value={editModel} onValueChange={(v) => setEditModel(v as any)}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CREATIVE">NOUSX Standard</SelectItem>
+                    <SelectItem value="REALISM">NOUSX Ultra HD</SelectItem>
+                    <SelectItem value="QWEN_PRO">NOUSX Pro Edit</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {!activeProfile ? (
+              <>
+                {null}
+              </>
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
