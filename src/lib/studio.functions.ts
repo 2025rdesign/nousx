@@ -336,16 +336,18 @@ export const generateCharacter = createServerFn({ method: "POST" })
       const userNeg = (data.negativePrompt ?? "").trim();
       const baseNeg = "deformed, bad anatomy, extra fingers, missing fingers, bad hands, blurry, low quality, watermark, text";
       const blockNeg = data.blockExplicitContent
-        ? ", nudity, nude, naked, explicit, nsfw, sexual, genitals"
+        ? ", nudity, nude, naked, explicit, genitals, nsfw, sexual"
         : "";
+      const appearanceForApi = data.blockExplicitContent
+        ? `${translated}, safe for work, fully clothed`
+        : translated;
       body = {
         name: data.name,
-        appearance: translated,
+        appearance: appearanceForApi,
         detailLevel: "MEDIUM",
         model: data.model,
         gender: data.gender,
         aspectRatio: mapAspectRatio(data.aspectRatio),
-        blockExplicitContent: !!data.blockExplicitContent,
         cfg: cfgMap[data.creativity ?? "medium"],
         faceImproveEnabled: false,
         faceImproveStrength: 5.0,
