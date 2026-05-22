@@ -365,7 +365,7 @@ function resolvePoseType(id: string): string {
   const clean = cleanPoseId(id).replace(/^NSFW_/i, "").toLowerCase();
   if (clean.startsWith("standing")) return "STANDING";
   if (clean.startsWith("lying")) return "LYING";
-  if (clean.startsWith("all_fours")) return "ALLFOURS";
+  if (clean.startsWith("all_fours") || clean.startsWith("allfours")) return "ALL_FOURS";
   if (clean.startsWith("kneeling")) return "KNEELING";
   if (clean.startsWith("sitting")) return "SITTING";
   if (clean.startsWith("squatting")) return "SQUATTING";
