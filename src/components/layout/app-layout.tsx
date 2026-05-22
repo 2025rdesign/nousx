@@ -135,7 +135,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </DropdownMenu>
         </header>
 
-        <main className="flex-1 min-h-0 overflow-hidden">{children}</main>
+        <main className="flex-1 min-h-0 overflow-hidden chat-bg-gradient">{children}</main>
         <footer className="shrink-0 border-t border-border bg-background/80 px-4 py-1.5 flex items-center justify-center gap-3 text-[11px] text-muted-foreground">
           <Link to="/termos" className="hover:text-foreground transition-colors">
             Termos
