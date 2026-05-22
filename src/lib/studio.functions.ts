@@ -262,6 +262,8 @@ const generateSchema = z.object({
   gender: z.enum(["FEMALE", "MALE", "TRANS"]).optional(),
   createProfile: z.boolean().optional(),
   blockExplicitContent: z.boolean().optional(),
+  negativePrompt: z.string().max(500).optional(),
+  creativity: z.enum(["low", "medium", "high"]).optional(),
   // variation
   profileId: z.string().uuid().optional(),
 });
