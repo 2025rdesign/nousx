@@ -258,14 +258,7 @@ function StudioInner() {
           </Button>
           <span className="text-sm font-semibold">Estúdio</span>
           <div className="flex-1" />
-          <button
-            type="button"
-            onClick={() => setCreditsOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium hover:border-accent hover:text-accent transition-colors"
-          >
-            <Sparkles className="size-3.5 text-accent" />
-            {balance}
-          </button>
+          <CreditsPill balance={balance} onClick={() => setCreditsOpen(true)} compact />
         </div>
         <div className="grid grid-cols-3">
           {([
@@ -306,14 +299,7 @@ function StudioInner() {
               </Button>
             </div>
             <div className="hidden md:flex items-center justify-end">
-              <button
-                type="button"
-                onClick={() => setCreditsOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium hover:border-accent hover:text-accent transition-colors"
-              >
-                <Sparkles className="size-3.5 text-accent" />
-                {balance} créditos
-              </button>
+              <CreditsPill balance={balance} onClick={() => setCreditsOpen(true)} />
             </div>
 
             {activeProfile ? (
