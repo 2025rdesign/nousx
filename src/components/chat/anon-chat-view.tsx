@@ -1,9 +1,24 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { Link } from "@tanstack/react-router";
-import TextareaAutosize from "react-textarea-autosize";
-import { Send, Sparkles, ArrowRight } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import {
+  Plus,
+  Settings,
+  Wand2,
+  Image as ImageIcon,
+  Compass,
+  Menu,
+  PanelLeft,
+  LogIn,
+  ArrowRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { NousxLogo } from "@/components/nousx-logo";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { ChatInput } from "./chat-input";
+import { EmptyState } from "./empty-state";
 import { MessageItem, TypingIndicator, type ChatMsg } from "./message-item";
 import {
   Dialog,
@@ -13,70 +28,126 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { notify } from "@/lib/notify";
 
-const FREE_LIMIT = 10;
-const STORAGE_KEY = "auraia_anon_usage_v1";
+const STORAGE_KEY = "auraia_anon_chat_v1";
+const MSG_LIMIT = 10;
 
-interface Usage {
-  count: number;
+interface AnonState {
+  messages: ChatMsg[];
+  userMessageCount: number;
+  title: string | null;
+  updatedAt: number;
 }
 
-function loadUsage(): Usage {
-  if (typeof window === "undefined") return { count: 0 };
+function loadState(): AnonState {
+  if (typeof window === "undefined")
+    return { messages: [], userMessageCount: 0, title: null, updatedAt: Date.now() };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { count: 0 };
-    const v = JSON.parse(raw) as Usage;
-    return { count: Math.max(0, Math.min(FREE_LIMIT, Number(v?.count) || 0)) };
+    if (!raw) return { messages: [], userMessageCount: 0, title: null, updatedAt: Date.now() };
+    const v = JSON.parse(raw) as AnonState;
+    return {
+      messages: Array.isArray(v?.messages) ? v.messages : [],
+      userMessageCount: Number(v?.userMessageCount) || 0,
+      title: v?.title ?? null,
+      updatedAt: Number(v?.updatedAt) || Date.now(),
+    };
   } catch {
-    return { count: 0 };
+    return { messages: [], userMessageCount: 0, title: null, updatedAt: Date.now() };
   }
 }
 
-function saveUsage(u: Usage) {
+function saveState(s: AnonState) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
   } catch {
     /* ignore */
   }
 }
 
-export function AnonChatView({ onUsageChange }: { onUsageChange?: (n: number) => void }) {
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
+export function AnonChatView() {
+  const navigate = useNavigate();
+  const [state, setState] = useState<AnonState>(() => loadState());
   const [streaming, setStreaming] = useState<ChatMsg | null>(null);
   const [awaitingReply, setAwaitingReply] = useState(false);
   const [sending, setSending] = useState(false);
-  const [text, setText] = useState("");
-  const [usage, setUsage] = useState<Usage>(() => loadUsage());
-  const [blockedOpen, setBlockedOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [limitOpen, setLimitOpen] = useState(false);
+  const [gateOpen, setGateOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    onUsageChange?.(usage.count);
-  }, [usage.count, onUsageChange]);
+  const messages = state.messages;
+  const hasContent = messages.length > 0 || streaming || awaitingReply;
+  const limitReached = state.userMessageCount >= MSG_LIMIT;
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    scrollRef.current?.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [messages, streaming]);
 
-  const limitReached = usage.count >= FREE_LIMIT;
+  function openGate() {
+    setGateOpen(true);
+  }
 
-  async function handleSend() {
-    const t = text.trim();
-    if (!t || sending) return;
-    if (limitReached) {
-      setBlockedOpen(true);
+  function openLimit() {
+    setLimitOpen(true);
+  }
+
+  function handleNewChat() {
+    if (state.messages.length === 0) {
+      setMobileOpen(false);
       return;
     }
+    openGate();
+  }
+
+  function handleRestrictedNav() {
+    openGate();
+  }
+
+  function handleInputRestricted() {
+    notify.error(
+      "Funcionalidade disponível para usuários cadastrados. Crie sua conta grátis!",
+    );
+  }
+
+  async function handleSend(text: string) {
+    if (!text.trim() || sending) return;
+    if (limitReached) {
+      openLimit();
+      return;
+    }
+
     setSending(true);
     setAwaitingReply(true);
-    const userMsg: ChatMsg = { id: `u-${Date.now()}`, role: "user", content: t };
-    const nextMsgs = [...messages, userMsg];
-    setMessages(nextMsgs);
-    setText("");
+
+    const userMsg: ChatMsg = {
+      id: `u-${Date.now()}`,
+      role: "user",
+      content: text,
+    };
+    const nextMessages = [...messages, userMsg];
+    const nextCount = state.userMessageCount + 1;
+    const nextTitle = state.title ?? text.slice(0, 40);
+    const intermediate: AnonState = {
+      messages: nextMessages,
+      userMessageCount: nextCount,
+      title: nextTitle,
+      updatedAt: Date.now(),
+    };
+    setState(intermediate);
+    saveState(intermediate);
 
     try {
-      const history = nextMsgs.map((m) => ({ role: m.role, content: m.content }));
+      const history = nextMessages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
       const res = await fetch("/api/public/chat-anon", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -130,24 +201,33 @@ export function AnonChatView({ onUsageChange }: { onUsageChange?: (n: number) =>
         role: "assistant",
         content: accum || "Desculpe, não consegui responder agora.",
       };
-      setMessages((prev) => [...prev, finalMsg]);
+      const finalMessages = [...nextMessages, finalMsg];
+      const finalState: AnonState = {
+        messages: finalMessages,
+        userMessageCount: nextCount,
+        title: nextTitle,
+        updatedAt: Date.now(),
+      };
+      setState(finalState);
+      saveState(finalState);
       setStreaming(null);
 
-      const newCount = Math.min(FREE_LIMIT, usage.count + 1);
-      const u = { count: newCount };
-      setUsage(u);
-      saveUsage(u);
-      if (newCount >= FREE_LIMIT) setBlockedOpen(true);
+      if (nextCount >= MSG_LIMIT) {
+        setTimeout(() => openLimit(), 400);
+      }
     } catch (err) {
       console.error(err);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `err-${Date.now()}`,
-          role: "assistant",
-          content: "Algo deu errado. Tente novamente.",
-        },
-      ]);
+      const errMsg: ChatMsg = {
+        id: `err-${Date.now()}`,
+        role: "assistant",
+        content: "Algo deu errado. Tente novamente.",
+      };
+      const errState: AnonState = {
+        ...intermediate,
+        messages: [...nextMessages, errMsg],
+      };
+      setState(errState);
+      saveState(errState);
       setStreaming(null);
     } finally {
       setAwaitingReply(false);
@@ -155,123 +235,246 @@ export function AnonChatView({ onUsageChange }: { onUsageChange?: (n: number) =>
     }
   }
 
-  function onKey(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  }
+  const navItems = useMemo(
+    () => [
+      { label: "Estúdio", icon: Wand2 },
+      { label: "Galeria", icon: ImageIcon },
+      { label: "Explorar", icon: Compass },
+    ],
+    [],
+  );
 
-  const hasContent = messages.length > 0 || streaming || awaitingReply;
-  const showWarn = usage.count >= 8 && usage.count < FREE_LIMIT;
-
-  return (
-    <div className="h-full flex flex-col">
-      {showWarn && (
-        <div className="shrink-0 border-b border-border bg-accent/10 px-4 py-2 text-xs text-center text-foreground">
-          Você usou <strong>{usage.count} de {FREE_LIMIT}</strong> mensagens gratuitas.{" "}
-          <Link to="/auth" className="underline font-medium" style={{ color: "#6C47FF" }}>
-            Crie sua conta grátis e ganhe 5 créditos para gerar imagens.
-          </Link>
-        </div>
-      )}
-
-      {hasContent ? (
-        <div ref={scrollRef} className="flex-1 overflow-y-auto">
-          <div className="w-full max-w-3xl mx-auto px-3 md:px-4 py-6 space-y-4">
-            {messages.map((m) => (
-              <MessageItem key={m.id} msg={m} />
-            ))}
-            {streaming && <MessageItem msg={streaming} />}
-            {awaitingReply && !streaming && <TypingIndicator mode="default" />}
-          </div>
-        </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto flex items-center justify-center px-6">
-          <div className="text-center space-y-3 max-w-md">
-            <div
-              className="inline-flex items-center justify-center size-12 rounded-2xl"
-              style={{ background: "#6C47FF22", color: "#6C47FF" }}
-            >
-              <Sparkles className="size-6" />
-            </div>
-            <h1 className="text-2xl font-semibold">Converse com a AuraIA</h1>
-            <p className="text-sm text-muted-foreground">
-              IA sem censura, sem julgamentos. Experimente grátis — você tem{" "}
-              <strong>{FREE_LIMIT - usage.count} mensagens</strong> para testar.
-            </p>
-          </div>
-        </div>
-      )}
-
-      <div className="w-full max-w-3xl mx-auto px-3 md:px-4 pb-4 pt-2">
-        <div className="rounded-2xl border border-border bg-card shadow-sm focus-within:border-accent transition-colors">
-          <TextareaAutosize
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={onKey}
-            placeholder={
-              limitReached
-                ? "Limite gratuito atingido. Crie uma conta para continuar."
-                : "Pergunte qualquer coisa..."
-            }
-            minRows={1}
-            maxRows={6}
-            disabled={limitReached}
-            className="w-full resize-none bg-transparent px-4 pt-3 pb-1 text-sm text-foreground placeholder:text-muted-foreground outline-none disabled:opacity-60"
-          />
-          <div className="flex items-center gap-1 px-2 pb-2">
-            <span className="text-[11px] text-muted-foreground pl-2">
-              {usage.count}/{FREE_LIMIT} mensagens grátis ·{" "}
-              <Link to="/auth" className="underline" style={{ color: "#6C47FF" }}>
-                Criar conta
-              </Link>
-            </span>
-            <div className="flex-1" />
-            <Button
-              type="button"
-              size="icon"
-              onClick={handleSend}
-              disabled={!text.trim() || sending || limitReached}
-              className="rounded-lg"
-              aria-label="Enviar"
-            >
-              <Send className="size-4" />
-            </Button>
-          </div>
-        </div>
-        <p className="text-[10px] text-muted-foreground text-center mt-2">
-          Pode cometer erros. Verifique informações importantes.
-        </p>
+  const sidebar = (
+    <div className="flex flex-col h-full w-full bg-sidebar">
+      <div className="p-3 border-b border-border">
+        <Link to="/" className="flex items-center justify-center py-2">
+          <NousxLogo className="text-xl" />
+        </Link>
       </div>
 
-      <Dialog
-        open={blockedOpen}
-        onOpenChange={(open) => {
-          if (!limitReached) setBlockedOpen(open);
-          // when limit reached, ignore outside click — only close via buttons
-        }}
-      >
-        <DialogContent
-          className="sm:max-w-md"
-          onPointerDownOutside={(e) => limitReached && e.preventDefault()}
-          onEscapeKeyDown={(e) => limitReached && e.preventDefault()}
+      <div className="p-2">
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-2"
+          onClick={handleNewChat}
         >
+          <Plus className="size-4" />
+          Nova conversa
+        </Button>
+      </div>
+
+      <nav className="px-2 pb-2 space-y-0.5">
+        {navItems.map((it) => (
+          <button
+            key={it.label}
+            type="button"
+            onClick={handleRestrictedNav}
+            className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground/80 hover:bg-secondary/60 hover:text-foreground transition-colors"
+          >
+            <it.icon className="size-4" />
+            {it.label}
+          </button>
+        ))}
+      </nav>
+
+      <ScrollArea className="flex-1 px-2">
+        <div className="space-y-4 py-2">
+          {messages.length > 0 ? (
+            <div>
+              <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Hoje
+              </div>
+              <ul className="space-y-0.5">
+                <li>
+                  <div
+                    className={cn(
+                      "block truncate rounded-md px-2 py-2 text-sm",
+                      "bg-secondary text-foreground",
+                    )}
+                  >
+                    {(state.title || "Nova conversa").slice(0, 40)}
+                  </div>
+                </li>
+              </ul>
+            </div>
+          ) : (
+            <p className="px-2 py-6 text-xs text-muted-foreground text-center">
+              Sem conversas ainda.
+            </p>
+          )}
+        </div>
+      </ScrollArea>
+
+      <div className="p-2 border-t border-border">
+        <button
+          type="button"
+          onClick={handleRestrictedNav}
+          className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground/80 hover:bg-secondary/60 hover:text-foreground transition-colors"
+        >
+          <Settings className="size-4" />
+          Configurações
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="h-screen w-full flex bg-background text-foreground overflow-hidden">
+      {!collapsed && (
+        <aside className="hidden md:flex w-64 shrink-0 border-r border-border bg-sidebar">
+          {sidebar}
+        </aside>
+      )}
+
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="p-0 w-72 bg-sidebar border-border">
+          {sidebar}
+        </SheetContent>
+      </Sheet>
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="h-14 shrink-0 flex items-center gap-2 px-3 md:px-4 border-b border-border bg-background/80 backdrop-blur">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Abrir menu"
+          >
+            <Menu className="size-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden md:inline-flex"
+            onClick={() => setCollapsed((v) => !v)}
+            aria-label={collapsed ? "Mostrar sidebar" : "Esconder sidebar"}
+          >
+            <PanelLeft className="size-5" />
+          </Button>
+          <Link to="/" className="md:hidden">
+            <NousxLogo className="text-lg" />
+          </Link>
+          <div className="flex-1" />
+          <ThemeToggle />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate({ to: "/auth" })}
+            className="hidden sm:inline-flex"
+          >
+            <LogIn className="size-4 mr-1" />
+            Entrar
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => navigate({ to: "/auth" })}
+            style={{ background: "#6C47FF" }}
+          >
+            Criar conta
+          </Button>
+        </header>
+
+        <main className="flex-1 min-h-0 overflow-hidden">
+          <div className="h-full flex flex-col">
+            {hasContent ? (
+              <div ref={scrollRef} className="flex-1 overflow-y-auto">
+                <div className="w-full max-w-3xl mx-auto px-3 md:px-4 py-6 space-y-4">
+                  {messages.map((m) => (
+                    <MessageItem key={m.id} msg={m} />
+                  ))}
+                  {streaming && <MessageItem msg={streaming} />}
+                  {awaitingReply && !streaming && <TypingIndicator mode="default" />}
+                </div>
+              </div>
+            ) : (
+              <EmptyState />
+            )}
+            <ChatInput
+              onSend={(t) => handleSend(t)}
+              disabled={sending}
+              anonMode
+              onAnonRestricted={handleInputRestricted}
+            />
+          </div>
+        </main>
+
+        <footer className="shrink-0 border-t border-border bg-background/80 px-4 py-1.5 flex items-center justify-center gap-3 text-[11px] text-muted-foreground">
+          <Link to="/termos" className="hover:text-foreground transition-colors">
+            Termos
+          </Link>
+          <span aria-hidden>·</span>
+          <Link to="/privacidade" className="hover:text-foreground transition-colors">
+            Privacidade
+          </Link>
+          <span aria-hidden>·</span>
+          <span>© AuraIA</span>
+        </footer>
+      </div>
+
+      {/* Modal: nova conversa / nav restrita */}
+      <Dialog open={gateOpen} onOpenChange={setGateOpen}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Suas mensagens gratuitas acabaram</DialogTitle>
+            <DialogTitle>Crie sua conta grátis</DialogTitle>
             <DialogDescription className="pt-2">
-              Crie uma conta grátis e continue sem limites. Bônus: ganhe{" "}
+              Tenha conversas ilimitadas e ganhe{" "}
               <strong>5 créditos</strong> para gerar imagens sem censura no Estúdio.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex flex-col sm:flex-col gap-2 pt-2">
-            <Button asChild className="w-full" style={{ background: "#6C47FF" }}>
-              <Link to="/auth">
-                Criar conta grátis <ArrowRight className="size-4 ml-1" />
-              </Link>
+            <Button
+              className="w-full"
+              style={{ background: "#6C47FF" }}
+              onClick={() => navigate({ to: "/auth" })}
+            >
+              Criar conta grátis <ArrowRight className="size-4 ml-1" />
             </Button>
-            <Button asChild variant="ghost" className="w-full">
-              <Link to="/auth">Já tenho conta — fazer login</Link>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => navigate({ to: "/auth" })}
+            >
+              Fazer login
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal bloqueante: limite atingido */}
+      <Dialog
+        open={limitOpen}
+        onOpenChange={(open) => {
+          // Bloqueante: só fecha via navegação
+          if (open) setLimitOpen(true);
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-md [&>button]:hidden"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>Você chegou ao limite gratuito</DialogTitle>
+            <DialogDescription className="pt-2">
+              Crie sua conta — é totalmente grátis — para continuar sem limites e ganhar{" "}
+              <strong>5 créditos</strong> para gerar imagens sem censura.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col sm:flex-col gap-2 pt-2">
+            <Button
+              className="w-full"
+              style={{ background: "#6C47FF" }}
+              onClick={() => navigate({ to: "/auth" })}
+            >
+              Criar conta grátis <ArrowRight className="size-4 ml-1" />
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => navigate({ to: "/auth" })}
+            >
+              Já tenho conta — fazer login
             </Button>
           </DialogFooter>
         </DialogContent>
