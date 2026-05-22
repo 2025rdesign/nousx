@@ -11,7 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Check, Loader2, Sparkles, ArrowLeft } from "lucide-react";
+import { Check, Loader2, ArrowLeft } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
 import { PLANS, applyDiscount, type PlanId } from "@/lib/payments-config";
@@ -122,6 +123,9 @@ export function SubscriptionTab() {
         {(Object.keys(PLANS) as PlanId[]).map((id) => {
           const plan = PLANS[id];
           const isUltra = id === "ultra";
+          const perCredit = plan.price / plan.credits;
+          const basePerCredit = PLANS.plus.price / PLANS.plus.credits;
+          const savings = Math.round((1 - perCredit / basePerCredit) * 100);
           return (
             <Card
               key={id}
@@ -132,15 +136,24 @@ export function SubscriptionTab() {
             >
               {isUltra && (
                 <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 bg-accent text-accent-foreground">
-                  Mais popular
+                  {plan.tagline}
                 </Badge>
               )}
               <CardContent className="pt-6 pb-6 space-y-4">
                 <div>
+                  {!isUltra && (
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">
+                      {plan.tagline}
+                    </p>
+                  )}
                   <h3 className="text-xl font-bold">{plan.name}</h3>
                   <p className="mt-2 text-3xl font-bold">
                     R$ {plan.price.toFixed(2).replace(".", ",")}
                     <span className="text-sm font-normal text-muted-foreground">/mês</span>
+                  </p>
+                  <p className={cn("text-xs mt-1", isUltra ? "text-accent font-medium" : "text-muted-foreground")}>
+                    R$ {perCredit.toFixed(2).replace(".", ",")} por crédito
+                    {isUltra && savings > 0 && ` — economize ${savings}%`}
                   </p>
                 </div>
                 <ul className="space-y-2 text-sm">
@@ -163,9 +176,12 @@ export function SubscriptionTab() {
           );
         })}
       </div>
-      <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5">
-        <Sparkles className="size-3.5 text-accent" />
-        Os créditos do plano são adicionados todo mês automaticamente.
+      <p className="text-xs text-muted-foreground text-center">
+        Precisa de mais créditos? Compre pacotes avulsos no{" "}
+        <Link to="/studio" className="text-accent hover:underline font-medium">
+          Estúdio
+        </Link>
+        .
       </p>
       {openPlan && (
         <PlanCheckoutDialog
