@@ -74,6 +74,43 @@ function StudioPage() {
   return <StudioInner />;
 }
 
+function CreditsPill({
+  balance,
+  onClick,
+  compact,
+}: {
+  balance: number;
+  onClick: () => void;
+  compact?: boolean;
+}) {
+  const danger = balance < 5;
+  const empty = balance === 0;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={empty ? "Sem créditos" : `${balance} créditos`}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+        danger
+          ? "border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20"
+          : "border-border bg-card hover:border-accent hover:text-accent",
+        empty && "animate-pulse",
+      )}
+    >
+      {danger ? (
+        <AlertTriangle className="size-3.5" />
+      ) : (
+        <SparklesIcon className="size-3.5 text-accent" />
+      )}
+      <span>
+        {balance}
+        {!compact && " créditos"}
+      </span>
+    </button>
+  );
+}
+
 function StudioInner() {
   const qc = useQueryClient();
   const fetchProfiles = useServerFn(listMyProfiles);
