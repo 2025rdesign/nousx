@@ -177,7 +177,7 @@ export const buyCredits = createServerFn({ method: "POST" })
           error instanceof Error ? error.message : String(error),
         );
       }
-      const orderId = resolveOrderId(order) ?? pack.productId;
+      const orderId = resolveOrderId(order);
       const redirectUrl =
         order?.checkoutUrl ??
         buildHostedCheckoutUrl({
@@ -185,7 +185,9 @@ export const buyCredits = createServerFn({ method: "POST" })
           customer,
           couponCode: coupon,
         });
-      const hasPixPayload = Boolean(order?.pix_qr_image || order?.qr_code || order?.pix_code);
+      const canUseDirectPix = Boolean(
+        orderId && (order?.pix_qr_image || order?.qr_code || order?.pix_code),
+      );
       await supabaseAdmin.from("payment_history").insert({
         user_id: userId,
         amount: value,
@@ -205,11 +207,11 @@ export const buyCredits = createServerFn({ method: "POST" })
       });
       return {
         method: "PIX" as const,
-        paymentId: orderId,
+        paymentId: orderId ?? pack.productId,
         qrCodeImage: order?.pix_qr_image ?? order?.qr_code ?? "",
         qrCodePayload: order?.pix_code ?? order?.qr_code ?? "",
         expirationDate: order?.expires_at ?? null,
-        redirectUrl: hasPixPayload ? null : redirectUrl,
+        redirectUrl: canUseDirectPix ? null : redirectUrl,
         value,
       };
     }
@@ -344,7 +346,7 @@ export const subscribePlan = createServerFn({ method: "POST" })
       }
     }
 
-    const orderId = resolveOrderId(order) ?? plan.productId;
+    const orderId = resolveOrderId(order);
     const redirectUrl =
       order?.checkoutUrl ??
       buildHostedCheckoutUrl({
@@ -352,7 +354,9 @@ export const subscribePlan = createServerFn({ method: "POST" })
         customer,
         couponCode: coupon,
       });
-    const hasPixPayload = Boolean(order?.pix_qr_image || order?.qr_code || order?.pix_code);
+    const canUseDirectPix = Boolean(
+      orderId && (order?.pix_qr_image || order?.qr_code || order?.pix_code),
+    );
 
     const nextRenewal = new Date();
     nextRenewal.setDate(nextRenewal.getDate() + 30);
@@ -361,7 +365,7 @@ export const subscribePlan = createServerFn({ method: "POST" })
       user_id: userId,
       plan_id: data.planId,
       status: order && isPaid(order.status) ? "active" : "pending",
-      cakto_subscription_id: order?.subscription_id ?? resolveOrderId(order),
+      cakto_subscription_id: order?.subscription_id ?? orderId,
       expires_at: order && isPaid(order.status) ? nextRenewal.toISOString() : null,
     });
 
@@ -377,7 +381,7 @@ export const subscribePlan = createServerFn({ method: "POST" })
         coupon,
         email,
         product_id: plan.productId,
-        subscription_id: order?.subscription_id ?? resolveOrderId(order),
+        subscription_id: order?.subscription_id ?? orderId,
         external_reference: externalRef,
         hosted_checkout_url: redirectUrl,
       },
@@ -389,22 +393,22 @@ export const subscribePlan = createServerFn({ method: "POST" })
 
     if (data.method === "PIX") {
       return {
-        subscriptionId: order?.subscription_id ?? orderId,
+        subscriptionId: order?.subscription_id ?? orderId ?? plan.productId,
         status: order?.status ?? "pending",
         method: "PIX" as const,
-        paymentId: orderId,
+        paymentId: orderId ?? plan.productId,
         qrCodeImage: order?.pix_qr_image ?? order?.qr_code ?? "",
         qrCodePayload: order?.pix_code ?? order?.qr_code ?? "",
         expirationDate: order?.expires_at ?? null,
-        redirectUrl: hasPixPayload ? null : redirectUrl,
+        redirectUrl: canUseDirectPix ? null : redirectUrl,
         value,
       };
     }
     return {
-      subscriptionId: order?.subscription_id ?? orderId,
+      subscriptionId: order?.subscription_id ?? orderId ?? plan.productId,
       status: order?.status ?? "REDIRECT",
       method: "CREDIT_CARD" as const,
-      paymentId: orderId,
+      paymentId: orderId ?? plan.productId,
       redirectUrl,
     };
   });
