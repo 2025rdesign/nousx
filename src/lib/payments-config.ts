@@ -1,9 +1,12 @@
 // Shared client-safe pricing config
 export type CreditPackId = "starter" | "popular" | "pro";
-export const CREDIT_PACKS: Record<CreditPackId, { name: string; credits: number; price: number; popular?: boolean }> = {
-  starter: { name: "Starter", credits: 20, price: 14.9 },
-  popular: { name: "Popular", credits: 60, price: 34.9, popular: true },
-  pro: { name: "Pro", credits: 150, price: 79.9 },
+export const CREDIT_PACKS: Record<
+  CreditPackId,
+  { name: string; credits: number; price: number; productId: string; popular?: boolean }
+> = {
+  starter: { name: "Starter", credits: 20, price: 14.9, productId: "kqgddod" },
+  popular: { name: "Popular", credits: 60, price: 34.9, productId: "3eq6p9f", popular: true },
+  pro: { name: "Pro", credits: 150, price: 79.9, productId: "36venb6" },
 };
 
 export type PlanId = "plus" | "ultra";
@@ -11,6 +14,7 @@ export const PLANS: Record<PlanId, {
   name: string;
   credits: number;
   price: number;
+  productId: string;
   tagline: string;
   highlight?: boolean;
   features: string[];
@@ -18,7 +22,8 @@ export const PLANS: Record<PlanId, {
   plus: {
     name: "Plus",
     credits: 30,
-    price: 39.9,
+    price: 29.9,
+    productId: "36i2qxd",
     tagline: "Ideal para começar",
     features: [
       "30 créditos por mês",
@@ -31,7 +36,8 @@ export const PLANS: Record<PlanId, {
   ultra: {
     name: "Ultra",
     credits: 80,
-    price: 67.9,
+    price: 57.9,
+    productId: "ouavt87",
     tagline: "Mais popular",
     highlight: true,
     features: [
