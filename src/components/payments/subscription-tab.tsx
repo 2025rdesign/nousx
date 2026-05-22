@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Check, Loader2, Sparkles } from "lucide-react";
+import { Check, Loader2, Sparkles, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
 import { PLANS, applyDiscount, type PlanId } from "@/lib/payments-config";
@@ -21,10 +21,17 @@ import {
   getMySubscription,
   getCheckoutProfile,
   saveCheckoutProfile,
+  checkPayment,
 } from "@/lib/payments.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { CouponField, type AppliedCoupon } from "./coupon-field";
-import { CardFields, CustomerDataStep, useCardForm } from "./payment-forms";
+import {
+  CardFields,
+  CustomerDataStep,
+  PixDisplay,
+  CountdownTimer,
+  useCardForm,
+} from "./payment-forms";
 
 export function SubscriptionTab() {
   const qc = useQueryClient();
@@ -60,11 +67,13 @@ export function SubscriptionTab() {
     const plan = PLANS[sub.plan_id as PlanId];
     return (
       <div className="space-y-4">
-        <Card className="border-accent/40 bg-accent/5 shadow-sm">
+        <Card className="border-success/40 bg-success/5 shadow-sm">
           <CardContent className="pt-6 pb-6 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <Badge className="bg-accent text-accent-foreground mb-2">Plano ativo</Badge>
+                <Badge className="mb-2 bg-success text-success-foreground hover:bg-success">
+                  ● Plano {plan?.name} ativo
+                </Badge>
                 <h3 className="text-xl font-bold">{plan?.name}</h3>
                 <p className="text-sm text-muted-foreground">
                   R$ {plan?.price.toFixed(2).replace(".", ",")}/mês
