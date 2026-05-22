@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import {
   Download,
   Music2,
@@ -68,7 +68,7 @@ export function FloatingAudioPlayer() {
     a.currentTime = Math.max(0, Math.min(a.duration || 0, a.currentTime + delta));
   };
 
-  const handleBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleBarClick = (e: MouseEvent<HTMLDivElement>) => {
     const a = audioRef.current;
     if (!a || !duration) return;
     const rect = e.currentTarget.getBoundingClientRect();
