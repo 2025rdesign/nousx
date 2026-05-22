@@ -13,7 +13,7 @@ import { Route as TermosRouteImport } from './routes/termos'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedStudioRouteImport } from './routes/_authenticated/studio'
@@ -21,6 +21,7 @@ import { Route as AuthenticatedGaleriaRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedExplorarRouteImport } from './routes/_authenticated/explorar'
 import { Route as AuthenticatedCreditosRouteImport } from './routes/_authenticated/creditos'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as ApiPublicChatAnonRouteImport } from './routes/api/public/chat-anon'
 import { Route as ApiPublicCaktoWebhookRouteImport } from './routes/api/public/cakto-webhook'
 import { Route as AuthenticatedCConversationIdRouteImport } from './routes/_authenticated/c.$conversationId'
 
@@ -43,10 +44,10 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AuthenticatedRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
   id: '/api/generate-image',
@@ -84,6 +85,11 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicChatAnonRoute = ApiPublicChatAnonRouteImport.update({
+  id: '/api/public/chat-anon',
+  path: '/api/public/chat-anon',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicCaktoWebhookRoute = ApiPublicCaktoWebhookRouteImport.update({
   id: '/api/public/cakto-webhook',
   path: '/api/public/cakto-webhook',
@@ -97,7 +103,7 @@ const AuthenticatedCConversationIdRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AuthenticatedIndexRoute
+  '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
@@ -110,8 +116,10 @@ export interface FileRoutesByFullPath {
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
+  '/api/public/chat-anon': typeof ApiPublicChatAnonRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
@@ -122,12 +130,13 @@ export interface FileRoutesByTo {
   '/studio': typeof AuthenticatedStudioRoute
   '/api/chat': typeof ApiChatRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
-  '/': typeof AuthenticatedIndexRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
+  '/api/public/chat-anon': typeof ApiPublicChatAnonRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -139,9 +148,9 @@ export interface FileRoutesById {
   '/_authenticated/studio': typeof AuthenticatedStudioRoute
   '/api/chat': typeof ApiChatRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
-  '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
+  '/api/public/chat-anon': typeof ApiPublicChatAnonRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -159,8 +168,10 @@ export interface FileRouteTypes {
     | '/api/generate-image'
     | '/c/$conversationId'
     | '/api/public/cakto-webhook'
+    | '/api/public/chat-anon'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/auth'
     | '/privacidade'
     | '/termos'
@@ -171,11 +182,12 @@ export interface FileRouteTypes {
     | '/studio'
     | '/api/chat'
     | '/api/generate-image'
-    | '/'
     | '/c/$conversationId'
     | '/api/public/cakto-webhook'
+    | '/api/public/chat-anon'
   id:
     | '__root__'
+    | '/'
     | '/_authenticated'
     | '/auth'
     | '/privacidade'
@@ -187,12 +199,13 @@ export interface FileRouteTypes {
     | '/_authenticated/studio'
     | '/api/chat'
     | '/api/generate-image'
-    | '/_authenticated/'
     | '/_authenticated/c/$conversationId'
     | '/api/public/cakto-webhook'
+    | '/api/public/chat-anon'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
@@ -200,6 +213,7 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiPublicCaktoWebhookRoute: typeof ApiPublicCaktoWebhookRoute
+  ApiPublicChatAnonRoute: typeof ApiPublicChatAnonRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -232,12 +246,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/': {
-      id: '/_authenticated/'
+    '/': {
+      id: '/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/generate-image': {
       id: '/api/generate-image'
@@ -288,6 +302,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/chat-anon': {
+      id: '/api/public/chat-anon'
+      path: '/api/public/chat-anon'
+      fullPath: '/api/public/chat-anon'
+      preLoaderRoute: typeof ApiPublicChatAnonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cakto-webhook': {
       id: '/api/public/cakto-webhook'
       path: '/api/public/cakto-webhook'
@@ -311,7 +332,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedExplorarRoute: typeof AuthenticatedExplorarRoute
   AuthenticatedGaleriaRoute: typeof AuthenticatedGaleriaRoute
   AuthenticatedStudioRoute: typeof AuthenticatedStudioRoute
-  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedCConversationIdRoute: typeof AuthenticatedCConversationIdRoute
 }
 
@@ -321,7 +341,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedExplorarRoute: AuthenticatedExplorarRoute,
   AuthenticatedGaleriaRoute: AuthenticatedGaleriaRoute,
   AuthenticatedStudioRoute: AuthenticatedStudioRoute,
-  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedCConversationIdRoute: AuthenticatedCConversationIdRoute,
 }
 
@@ -330,6 +349,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   PrivacidadeRoute: PrivacidadeRoute,
@@ -337,6 +357,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiPublicCaktoWebhookRoute: ApiPublicCaktoWebhookRoute,
+  ApiPublicChatAnonRoute: ApiPublicChatAnonRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
