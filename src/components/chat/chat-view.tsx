@@ -28,10 +28,7 @@ const IMAGE_INTENT_RE =
 const MIN_DESCRIPTION_CHARS = 10;
 
 const IMAGE_FOLLOW_UP_RE =
-  /\b(a\s+mesma|mesm[ao]s?|igual|parecid[ao]s?|fa[cç]a|deixe|coloque|troque|mude|ajuste|edite|refa[cç]a|regenere|varia[cç][aã]o|vers[aã]o|mais|menos|sem|com)\b/i;
-
-const VISUAL_EDIT_CUE_RE =
-  /\b(mulher|homem|pessoa|modelo|rosto|corpo|cabelo|olhos?|pele|roupa|biqu[ií]ni|lingerie|pose|fundo|cen[aá]rio|praia|areia|luz|ilumina[cç][aã]o|estilo|realista|sensual|sexy|vertical|story|stories|9:16|16:9|1:1|quadrado)\b/i;
+  /\b(a\s+mesma|mesm[ao]s?|igual|parecid[ao]s?|fa[cçz](?:a|er|endo)?|faz|deixe|coloque|troque|mude|ajuste|edite|refa[cç]a|regenere|varia[cç][aã]o|vers[aã]o|mais|menos|sem|com|agora|tamb[eé]m|t[aá]|ela|ele|tirando|usando|vestindo|sentad[ao]|deitad[ao]|em\s+p[eé])\b/i;
 
 function detectImageIntent(text: string): boolean {
   if (!text) return false;
@@ -71,7 +68,11 @@ function detectImageFollowUp(text: string, hasPreviousAssistantImage: boolean): 
   if (!hasPreviousAssistantImage) return false;
   const trimmed = text.trim();
   if (!trimmed || trimmed.length > 500) return false;
-  return IMAGE_FOLLOW_UP_RE.test(trimmed) && VISUAL_EDIT_CUE_RE.test(trimmed);
+  // Se há imagem anterior do assistente e o usuário envia mensagem curta,
+  // tratamos como edit/follow-up de imagem. Mensagens longas/perguntas
+  // ainda exigem a palavra-chave de follow-up.
+  if (trimmed.length <= 120) return true;
+  return IMAGE_FOLLOW_UP_RE.test(trimmed);
 }
 
 interface Props {
