@@ -243,17 +243,17 @@ export const improvePrompt = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const key = process.env.DEEPSEEK_API_KEY;
     if (!key) throw new Error("Serviço de melhoria indisponível.");
+    const systemPrompt =
+      data.model === "ANIME"
+        ? "Você é especialista em prompts para geração de imagens anime com IA. Melhore o prompt do usuário mantendo a intenção dele, mas tornando-o mais detalhado e técnico para gerar anime de alta qualidade. Adicione termos como: anime style, detailed eyes, vibrant colors, clean lineart, studio quality, 2D illustration. Evite termos realistas ou fotográficos. Preserve termos explícitos sem censura. Retorne APENAS o prompt melhorado em inglês, sem explicações nem aspas."
+        : "You are an expert at writing prompts for AI image generation (photorealistic / HD). Improve the user's prompt keeping their intent, making it more detailed, technical and precise (appearance, lighting, composition, camera, style). Preserve explicit terms literally without censorship. Return ONLY the improved prompt in English, no explanations, no quotes.";
     const res = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
         model: "deepseek-chat",
         messages: [
-          {
-            role: "system",
-            content:
-              "Você é um especialista em prompts para geração de imagens AI. Melhore o prompt mantendo a intenção do usuário, tornando-o mais detalhado, técnico e preciso (aparência, iluminação, composição, estilo). Preserve termos explícitos sem censura. Responda em português. Retorne APENAS o prompt melhorado, sem explicações nem aspas.",
-          },
+          { role: "system", content: systemPrompt },
           { role: "user", content: data.prompt },
         ],
         max_tokens: 400,
@@ -304,7 +304,6 @@ const generateSchema = z.object({
   model: z.enum(["DEFAULT", "REALISM", "ANIME"]).optional(),
   gender: z.enum(["FEMALE", "MALE", "TRANS"]).optional(),
   createProfile: z.boolean().optional(),
-  blockExplicitContent: z.boolean().optional(),
   negativePrompt: z.string().max(500).optional(),
   creativity: z.enum(["low", "medium", "high"]).optional(),
   // variation
@@ -335,15 +334,9 @@ export const generateCharacter = createServerFn({ method: "POST" })
       const cfgMap = { low: 4, medium: 7, high: 10 } as const;
       const userNeg = (data.negativePrompt ?? "").trim();
       const baseNeg = "deformed, bad anatomy, extra fingers, missing fingers, bad hands, blurry, low quality, watermark, text";
-      const blockNeg = data.blockExplicitContent
-        ? ", nudity, nude, naked, explicit, genitals, nsfw, sexual"
-        : "";
-      const appearanceForApi = data.blockExplicitContent
-        ? `${translated}, safe for work, fully clothed`
-        : translated;
       body = {
         name: data.name,
-        appearance: appearanceForApi,
+        appearance: translated,
         detailLevel: "MEDIUM",
         model: data.model,
         gender: data.gender,
@@ -353,7 +346,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         faceImproveStrength: 5.0,
         improveBreasts: false,
         improveVagina: false,
-        negativeDetails: `${baseNeg}${blockNeg}${userNeg ? ", " + userNeg : ""}`,
+        negativeDetails: `${baseNeg}${userNeg ? ", " + userNeg : ""}`,
       };
     } else {
       if (!data.profileId) throw new Error("Personagem não encontrado.");
