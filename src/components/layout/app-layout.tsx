@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Menu, Settings, LogOut, User as UserIcon, PanelLeft, ArrowLeft } from "lucide-react";
+import { Menu, Settings, LogOut, User as UserIcon, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
