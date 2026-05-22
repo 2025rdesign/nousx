@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Sparkles,
-  Loader2,
   Gem,
   Clock,
   ShieldCheck,
