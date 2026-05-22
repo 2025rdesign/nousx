@@ -11,22 +11,36 @@ export const PLANS: Record<PlanId, {
   name: string;
   credits: number;
   price: number;
+  tagline: string;
+  highlight?: boolean;
   features: string[];
 }> = {
   plus: {
     name: "Plus",
-    credits: 80,
-    price: 29.9,
-    features: ["80 créditos por mês", "Geração de imagem no chat", "Acesso ao Estúdio"],
+    credits: 30,
+    price: 39.9,
+    tagline: "Ideal para começar",
+    features: [
+      "30 créditos por mês",
+      "Geração de imagem no chat",
+      "Mensagens ilimitadas no chat",
+      "Suporte prioritário",
+      "Acesso antecipado a novidades",
+    ],
   },
   ultra: {
     name: "Ultra",
-    credits: 200,
-    price: 57.9,
+    credits: 80,
+    price: 67.9,
+    tagline: "Mais popular",
+    highlight: true,
     features: [
-      "200 créditos por mês",
+      "80 créditos por mês",
       "Geração de imagem no chat",
-      "Prioridade de processamento",
+      "Mensagens ilimitadas no chat",
+      "Suporte VIP 24h",
+      "Acesso antecipado a novidades",
+      "Prioridade máxima na fila de geração",
     ],
   },
 };
