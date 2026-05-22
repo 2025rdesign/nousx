@@ -39,7 +39,7 @@ import { POSES, POSE_CATEGORIES } from "@/data/poses";
 export const Route = createFileRoute("/_authenticated/studio")({
   head: () => ({
     meta: [
-      { title: "Estúdio — NOUSX" },
+      { title: "Estúdio — AuraIA" },
       { name: "description", content: "Crie personagens e variações com IA." },
     ],
   }),

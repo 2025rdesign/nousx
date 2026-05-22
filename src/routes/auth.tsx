@@ -15,8 +15,8 @@ import { Loader2 } from "lucide-react";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Entrar — NOUSX" },
-      { name: "description", content: "Acesse o NOUSX e converse sem limites." },
+      { title: "Entrar — AuraIA" },
+      { name: "description", content: "Acesse a AuraIA e converse sem limites." },
     ],
   }),
   component: AuthPage,

@@ -12,7 +12,7 @@ import {
 } from "@/lib/studio.functions";
 
 export const Route = createFileRoute("/_authenticated/galeria")({
-  head: () => ({ meta: [{ title: "Galeria — NOUSX" }] }),
+  head: () => ({ meta: [{ title: "Galeria — AuraIA" }] }),
   component: Gallery,
 });
 

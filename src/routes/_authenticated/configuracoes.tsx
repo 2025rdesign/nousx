@@ -18,7 +18,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { SubscriptionTab } from "@/components/payments/subscription-tab";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
-  head: () => ({ meta: [{ title: "Configurações — NOUSX" }] }),
+  head: () => ({ meta: [{ title: "Configurações — AuraIA" }] }),
   component: SettingsPage,
 });
 
