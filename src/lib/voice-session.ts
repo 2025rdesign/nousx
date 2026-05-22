@@ -72,6 +72,26 @@ function pcm16ToFloat(bytes: Uint8Array): Float32Array {
 
 const TARGET_RATE = 24000;
 
+function isBrowserVoiceRuntime() {
+  return typeof window !== "undefined" && typeof navigator !== "undefined";
+}
+
+function getAudioContextCtor(): typeof AudioContext {
+  if (!isBrowserVoiceRuntime()) {
+    throw new Error("Modo de voz só pode ser iniciado no navegador.");
+  }
+
+  const audioContextCtor =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+
+  if (!audioContextCtor) {
+    throw new Error("Seu navegador não suporta áudio em tempo real.");
+  }
+
+  return audioContextCtor;
+}
+
 export class VoiceSession {
   private ws: WebSocket | null = null;
   private micStream: MediaStream | null = null;
@@ -108,6 +128,10 @@ export class VoiceSession {
   }
 
   async start() {
+    if (!isBrowserVoiceRuntime()) {
+      throw new Error("Modo de voz só pode ser iniciado no navegador.");
+    }
+
     this.setState("connecting");
     try {
       const { data: sess } = await supabase.auth.getSession();
@@ -143,6 +167,11 @@ export class VoiceSession {
   private openSocket(ephemeral: string, model: string): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
+        if (typeof WebSocket === "undefined") {
+          reject(new Error("Seu navegador não suporta conexão de voz em tempo real."));
+          return;
+        }
+
         const url = `wss://api.x.ai/v1/realtime?model=${encodeURIComponent(model)}`;
         // Pass ephemeral token via subprotocol — standard pattern for realtime APIs
         // since browser WebSocket cannot set Authorization headers.
@@ -201,6 +230,10 @@ export class VoiceSession {
   }
 
   private async openMic() {
+    if (!isBrowserVoiceRuntime() || !navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Seu navegador não permite acesso ao microfone.");
+    }
+
     this.micStream = await navigator.mediaDevices.getUserMedia({
       audio: {
         echoCancellation: true,
@@ -209,9 +242,7 @@ export class VoiceSession {
       },
     });
 
-    const Ctx: typeof AudioContext =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const Ctx = getAudioContextCtor();
     this.inputCtx = new Ctx();
     this.outputCtx = new Ctx({ sampleRate: TARGET_RATE });
     this.nextStartTime = this.outputCtx.currentTime;
