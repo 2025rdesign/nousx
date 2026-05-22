@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createMpPixPayment, fetchMpPayment } from "./mercadopago.server";
-import { processMpPayment } from "@/routes/api/mp-webhook";
+import { processMpPayment } from "./mp-webhook.server";
 import {
   CREDIT_PACKS,
   PLANS,
