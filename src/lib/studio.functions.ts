@@ -68,7 +68,7 @@ async function translateToEnglish(text: string): Promise<string> {
 }
 
 async function pollPrompt(promptId: string): Promise<{ mediaId: string; mediaUrl: string }> {
-  const maxAttempts = 60;
+  const maxAttempts = 48; // 48 * 2.5s = 120s (2 min)
   const interval = 2500;
 
   for (let i = 0; i < maxAttempts; i++) {
@@ -275,16 +275,26 @@ export const listPoses = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
     try {
-      const res = await fetch(`${ALIVEAI_BASE}/poses`, { headers: aliveHeaders() });
-      if (!res.ok) return [];
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(`${ALIVEAI_BASE}/poses`, {
+        headers: aliveHeaders(),
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timer));
+      if (!res.ok) {
+        console.error("[studio] listPoses upstream", res.status);
+        return [];
+      }
       const j = await res.json();
       const list = Array.isArray(j) ? j : j.poses || j.data || [];
+      console.log("[studio] listPoses count", list.length);
       return list.map((p: any) => ({
         id: p.id || p.poseId || p._id,
         name: p.name || p.title || "Pose",
         thumbnail: p.thumbnail || p.image || p.url || p.preview,
       }));
-    } catch {
+    } catch (e) {
+      console.error("[studio] listPoses error", e instanceof Error ? e.message : e);
       return [];
     }
   });
@@ -336,16 +346,19 @@ export const generateCharacter = createServerFn({ method: "POST" })
       const userNeg = (data.negativePrompt ?? "").trim();
       const baseNeg = "deformed, bad anatomy, extra fingers, missing fingers, bad hands, blurry, low quality, watermark, text";
       const useFaceRef = !!data.faceRefMediaId;
+      const appearanceForApi = useFaceRef
+        ? `${translated}, same face, same person, face consistency`
+        : translated;
       body = {
         name: data.name,
-        appearance: translated,
+        appearance: appearanceForApi,
         detailLevel: data.detailLevel ?? "MEDIUM",
         model: data.model,
         gender: data.gender,
         aspectRatio: mapAspectRatio(data.aspectRatio),
         cfg: cfgMap[data.creativity ?? "medium"],
         faceImproveEnabled: useFaceRef,
-        faceImproveStrength: useFaceRef ? 7.0 : 5.0,
+        faceImproveStrength: useFaceRef ? 9.0 : 5.0,
         improveBreasts: false,
         improveVagina: false,
         negativeDetails: `${baseNeg}${userNeg ? ", " + userNeg : ""}`,
@@ -360,7 +373,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
       if (!data.profileId) throw new Error("Personagem não encontrado.");
       const { data: profile, error: pErr } = await supabase
         .from("character_profiles")
-        .select("id, name, base_media_id")
+        .select("id, name, appearance, base_media_id")
         .eq("id", data.profileId)
         .eq("user_id", userId)
         .maybeSingle();
@@ -393,6 +406,8 @@ export const generateCharacter = createServerFn({ method: "POST" })
           faceImproveStrength: 5.0,
         };
       }
+      // Stash for fallback
+      (body as any).__fallbackAppearance = profile.appearance || null;
     }
 
     console.log("[DEBUG] About to call AliveAI", {
@@ -403,11 +418,42 @@ export const generateCharacter = createServerFn({ method: "POST" })
       bodyKeys: Object.keys(body),
     });
 
-    const res = await fetch(endpoint, {
+    let res = await fetch(endpoint, {
       method: "POST",
       headers: aliveHeaders(),
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ...body, __fallbackAppearance: undefined }),
     });
+    if (!res.ok && data.mode === "variation") {
+      const txt = await res.text().catch(() => "");
+      console.error("[studio] edit-image failed, attempting fallback", { status: res.status, response: txt.slice(0, 300) });
+      const fallbackAppearance: string | null = (body as any).__fallbackAppearance ?? null;
+      const baseAppearance = fallbackAppearance
+        ? await translateToEnglish(fallbackAppearance)
+        : "";
+      const combined = baseAppearance
+        ? `${baseAppearance}. ${translated}`
+        : translated;
+      endpoint = `${ALIVEAI_BASE}/prompts`;
+      body = {
+        name: `variation-${Date.now()}`,
+        appearance: combined,
+        detailLevel: "MEDIUM",
+        model: "DEFAULT",
+        gender: "FEMALE",
+        aspectRatio: mapAspectRatio(data.aspectRatio),
+        cfg: 7,
+        faceImproveEnabled: false,
+        faceImproveStrength: 5.0,
+        improveBreasts: false,
+        improveVagina: false,
+        negativeDetails: "deformed, bad anatomy, extra fingers, missing fingers, bad hands, blurry, low quality, watermark, text",
+      };
+      res = await fetch(endpoint, {
+        method: "POST",
+        headers: aliveHeaders(),
+        body: JSON.stringify(body),
+      });
+    }
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
       console.error("[studio] upstream error", { status: res.status, endpoint, body, response: txt });

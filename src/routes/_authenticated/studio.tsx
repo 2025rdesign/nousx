@@ -168,11 +168,12 @@ function StudioInner() {
   const [faceRef, setFaceRef] = useState<{ mediaId: string; imageUrl: string } | null>(null);
   const [faceRefOpen, setFaceRefOpen] = useState(false);
 
-  const { data: poses = [] } = useQuery({
+  const { data: poses = [], isLoading: posesLoading, isError: posesError } = useQuery({
     queryKey: ["alive-poses"],
     queryFn: () => fetchPoses(),
     enabled: poseEnabled,
     staleTime: 5 * 60_000,
+    retry: 0,
   });
 
   const { data: allCharacters = [] } = useQuery({
@@ -567,8 +568,15 @@ function StudioInner() {
               </label>
               {poseEnabled && (
                 <div className="space-y-3 pt-1">
-                  {poses.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Carregando poses...</p>
+                  {posesLoading ? (
+                    <p className="text-xs text-muted-foreground flex items-center gap-2">
+                      <Loader2 className="size-3 animate-spin" />
+                      Carregando poses...
+                    </p>
+                  ) : posesError || poses.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Poses indisponíveis no momento.
+                    </p>
                   ) : (
                     Object.entries(groupedPoses).map(([group, items]) =>
                       items.length === 0 ? null : (
@@ -770,10 +778,17 @@ function StudioInner() {
               )}
             >
               {isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-muted animate-pulse">
-                  <p className="text-sm text-muted-foreground px-4 text-center">
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-muted px-6">
+                  <Loader2 className="size-8 animate-spin text-primary" />
+                  <p className="text-sm text-foreground font-medium text-center">
                     {LOADING_TEXTS[loadingTextIdx]}
                   </p>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Gerando... isso pode levar até 1 minuto
+                  </p>
+                  <div className="w-full max-w-[220px] h-1.5 bg-background/60 rounded-full overflow-hidden">
+                    <div className="h-full w-1/3 bg-primary rounded-full animate-[progressSlide_1.5s_ease-in-out_infinite]" />
+                  </div>
                 </div>
               )}
               {!isLoading && result && (
