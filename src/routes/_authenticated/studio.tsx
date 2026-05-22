@@ -292,28 +292,27 @@ function StudioInner() {
   }, [isLoading, result]);
 
   const Sidebar = (
-    <div className="flex flex-col h-full bg-sidebar">
-      <div className="p-3 border-b border-border">
-        <h2 className="text-sm font-semibold">Personagens</h2>
+    <div className="flex flex-col h-full bg-[#0D0D14]">
+      <div className="px-4 pt-4 pb-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+          Personagens
+        </h2>
       </div>
-      <div className="p-2">
+      <div className="px-3 pb-2">
         <button
           type="button"
           onClick={() => {
             setActiveProfileId(null);
             setMobileSidebarOpen(false);
           }}
-          className={cn(
-            "w-full flex items-center justify-center gap-2 rounded-md border border-primary/60 text-primary hover:bg-primary/10 py-2.5 text-sm transition-colors",
-            !activeProfileId && "bg-primary/10",
-          )}
+          className="w-full h-9 flex items-center justify-center gap-2 rounded-md border border-[#6C47FF] bg-transparent text-white text-[13px] transition-colors hover:bg-[#6C47FF]/20"
         >
           <Plus className="size-4" />
           Novo personagem
         </button>
       </div>
-      <ScrollArea className="flex-1 px-2">
-        <div className="space-y-1 py-1">
+      <ScrollArea className="flex-1">
+        <div className="divide-y divide-white/[0.03]">
           {profiles.map((p) => (
             <CharacterCard
               key={p.id}
@@ -326,7 +325,7 @@ function StudioInner() {
             />
           ))}
           {profiles.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-6 px-2">
+            <p className="text-xs text-muted-foreground text-center py-6 px-3">
               Você ainda não criou personagens.
             </p>
           )}
@@ -339,7 +338,7 @@ function StudioInner() {
     <div className="h-full flex flex-col md:flex-row">
       <CreditPurchaseModal open={creditsOpen} onOpenChange={setCreditsOpen} />
       {/* Studio sidebar (desktop) */}
-      <aside className="hidden lg:flex w-[250px] shrink-0 border-r border-border">{Sidebar}</aside>
+      <aside className="hidden lg:flex w-[250px] shrink-0 border-r border-[#1a1a2e]">{Sidebar}</aside>
       <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
         <SheetContent side="left" className="p-0 w-72 hidden md:block lg:hidden">
           <SheetTitle className="sr-only">Personagens</SheetTitle>
@@ -736,7 +735,7 @@ function StudioInner() {
                   Gerando...
                 </>
               ) : activeProfile ? (
-                "Criar Variação"
+                "Criar Variacao"
               ) : createProfile ? (
                 "Gerar e Salvar Personagem"
               ) : (
