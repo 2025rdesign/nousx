@@ -62,6 +62,7 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
     const text = (textContent || msg.content || "").trim();
     if (!text) return;
     setLoadingAudio(true);
+    audioPlayerStore.showLoading(msg.id);
     try {
       const { data: sess } = await supabase.auth.getSession();
       const token = sess.session?.access_token;
