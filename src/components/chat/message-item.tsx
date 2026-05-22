@@ -6,7 +6,6 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
-  Download,
   PanelRightOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -39,7 +38,7 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
   const textContent = imageUrl === msg.content.trim() ? "" : msg.content;
 
   const onCopy = async () => {
-    await navigator.clipboard.writeText(msg.content);
+    await navigator.clipboard.writeText(textContent || msg.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -293,9 +292,6 @@ export function TypingIndicator({
     return (
       <div className="flex justify-start w-full">
         <div className="px-4 w-full max-w-sm">
-          <div className="text-sm mb-2" style={{ color: "#6C47FF" }}>
-            ✨ Gerando imagem...
-          </div>
           <div
             className="rounded-2xl border border-border animate-pulse"
             style={{
