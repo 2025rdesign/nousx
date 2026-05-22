@@ -28,11 +28,11 @@ import {
   improvePrompt,
   togglePublic,
   deleteCharacter,
-  listPoses,
 } from "@/lib/studio.functions";
 import { cn } from "@/lib/utils";
 import { CreditPurchaseModal } from "@/components/payments/credit-purchase-modal";
 import { getCredits } from "@/lib/credits.functions";
+import { POSES, POSE_CATEGORIES } from "@/data/poses";
 
 export const Route = createFileRoute("/_authenticated/studio")({
   head: () => ({
