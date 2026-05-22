@@ -60,8 +60,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     staleTime: 30_000,
   });
   const balance = creditsData?.balance ?? 0;
-  const lowCredits = balance < 5;
-  const showCreditsPill = pathname === "/studio" || pathname === "/estudio";
+  void balance;
   const displayName =
     (profile?.name as string | undefined) ||
     (user?.user_metadata?.name as string | undefined) ||
@@ -110,23 +109,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <NousxLogo className="text-lg" />
           </Link>
           <div className="flex-1" />
-          {user && showCreditsPill && (
-            <button
-              type="button"
-              onClick={() => setCreditsOpen(true)}
-              aria-label={`${balance} créditos — comprar mais`}
-              title={lowCredits ? "Poucos créditos restantes" : `${balance} créditos`}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors",
-                lowCredits
-                  ? "border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20"
-                  : "border-accent/40 bg-accent/10 text-accent hover:bg-accent/20",
-              )}
-            >
-              <Zap className="size-3.5" />
-              <span>{balance} cr</span>
-            </button>
-          )}
           <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
