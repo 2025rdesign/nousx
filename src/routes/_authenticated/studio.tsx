@@ -683,23 +683,6 @@ function StudioInner() {
               )}
             </div>
 
-            {/* Edit model selector (variation only) */}
-            {activeProfile && (
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Modelo de edição</Label>
-                <Select value={editModel} onValueChange={(v) => setEditModel(v as any)}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="CREATIVE">NOUSX Standard</SelectItem>
-                    <SelectItem value="REALISM">NOUSX Ultra HD</SelectItem>
-                    <SelectItem value="QWEN_PRO">NOUSX Pro Edit</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
             {/* High quality toggle */}
             <label className="flex items-center gap-3 rounded-lg border border-border p-3 cursor-pointer">
                 <Switch checked={highQuality} onCheckedChange={setHighQuality} />
