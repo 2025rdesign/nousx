@@ -144,13 +144,13 @@ export async function handleCajupayWebhook(request: Request): Promise<Response> 
     if (kind === "credit") {
       const pack = CREDIT_PACKS[targetId as CreditPackId];
       if (pack) {
-        await creditUserOnce(finalExternalId, userId, pack.credits, pack.id);
+        await creditUserOnce(finalExternalId, userId, pack.credits, targetId);
       }
     } else if (kind === "subscription") {
       const plan = PLANS[targetId as PlanId];
       if (plan) {
         await activateSubscription(userId, targetId as PlanId, finalExternalId);
-        await creditUserOnce(finalExternalId, userId, plan.credits, plan.id);
+        await creditUserOnce(finalExternalId, userId, plan.credits, targetId);
       }
     }
 
@@ -172,10 +172,10 @@ export async function handleCajupayWebhook(request: Request): Promise<Response> 
           ? "expired"
           : "failed";
 
-    await supabaseAdmin
-      .from("pix_payments")
-      .update({ status: newStatus })
-      .eq("id", payment.id);
+      await supabaseAdmin
+        .from("pix_payments")
+        .update({ status: newStatus })
+        .eq("id", String(payment.id));
 
     if (newStatus === "refunded" || newStatus === "disputed") {
       const userId = String(payment.user_id);
