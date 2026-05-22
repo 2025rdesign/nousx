@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, QrCode, CreditCard } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
@@ -19,9 +19,8 @@ import {
   cancelMySubscription,
   getMySubscription,
 } from "@/lib/payments.functions";
-import { createPixCharge } from "@/lib/cajupay.functions";
+import { createMpCheckout } from "@/lib/mercadopago.functions";
 import { CouponField, type AppliedCoupon } from "./coupon-field";
-import { PixCheckoutModal, type PixCheckoutData } from "./pix-checkout-modal";
 
 const formatBRL = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
 
