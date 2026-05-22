@@ -633,6 +633,34 @@ function StudioInner() {
                       </button>
                     ))}
                   </div>
+                  {poseId && (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-muted-foreground">Forca da pose</Label>
+                        <span className="text-xs tabular-nums text-foreground">{poseStrength}</span>
+                      </div>
+                      <Slider
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={[poseStrength]}
+                        onValueChange={(v) => setPoseStrength(v[0] ?? 80)}
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-1.5 pt-1">
+                    <Label htmlFor="pose-prompt" className="text-xs text-muted-foreground">
+                      Descrever pose (opcional)
+                    </Label>
+                    <Textarea
+                      id="pose-prompt"
+                      value={posePrompt}
+                      onChange={(e) => setPosePrompt(e.target.value)}
+                      rows={2}
+                      placeholder="Ex: sentada com as pernas cruzadas, bracos levantados, olhando para o lado..."
+                      className="resize-none text-[13px] leading-relaxed"
+                    />
+                  </div>
                 </div>
               )}
             </div>
