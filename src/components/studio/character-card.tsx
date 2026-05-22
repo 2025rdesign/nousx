@@ -22,30 +22,37 @@ export function CharacterCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-3 h-14 px-3 text-left transition-colors",
-        "hover:bg-white/[0.024]",
+        "group relative w-full h-[100px] overflow-hidden rounded-[10px] text-left cursor-pointer transition-all",
+        "bg-muted",
         active
-          ? "bg-[#6C47FF]/[0.08] border-l-2 border-[#6C47FF] pl-[10px]"
-          : "border-l-2 border-transparent",
+          ? "ring-2 ring-[#6C47FF]"
+          : "ring-1 ring-border hover:ring-[#6C47FF]/40",
       )}
     >
-      <div className="size-9 shrink-0 rounded-md bg-muted overflow-hidden">
-        {profile.base_image_url ? (
-          <img
-            src={profile.base_image_url}
-            alt={profile.name}
-            className="w-full h-full object-cover"
-          />
-        ) : null}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-[13px] font-medium truncate leading-tight text-white">
+      {profile.base_image_url ? (
+        <img
+          src={profile.base_image_url}
+          alt={profile.name}
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted/60" />
+      )}
+      {/* Bottom gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/75" />
+      {/* Purple tint when active */}
+      {active && (
+        <div className="absolute inset-0 bg-[#6C47FF]/[0.15]" />
+      )}
+      {/* Text content */}
+      <div className="absolute left-0 right-0 bottom-0 px-2.5 pb-2 pt-3 z-10">
+        <div className="text-[13px] font-semibold leading-tight text-white drop-shadow-sm truncate">
           {profile.name}
         </div>
         {consistent && (
           <div className="flex items-center gap-1.5 mt-1">
             <span className="size-1.5 rounded-full bg-success" />
-            <span className="text-[10px] text-success leading-none">Consistente</span>
+            <span className="text-[10px] leading-none text-white/70">Consistente</span>
           </div>
         )}
       </div>
