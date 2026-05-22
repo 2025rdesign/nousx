@@ -458,9 +458,9 @@ function StudioInner() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="CREATIVE">NOUSX Standard</SelectItem>
-                    <SelectItem value="REALISM">NOUSX Ultra HD</SelectItem>
-                    <SelectItem value="QWEN_PRO">NOUSX Pro Edit</SelectItem>
+                    <SelectItem value="CREATIVE">Aura Standard</SelectItem>
+                    <SelectItem value="QWEN_PRO">Aura Pro</SelectItem>
+                    <SelectItem value="REALISM">Aura Realismo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -489,11 +489,9 @@ function StudioInner() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="DEFAULT">NOUSX Standard</SelectItem>
-                        <SelectItem value="REALISM">NOUSX Ultra HD</SelectItem>
-                        <SelectItem value="ANIME">NOUSX Anime</SelectItem>
-                        <SelectItem value="ANIMA">NOUSX Art</SelectItem>
-                        <SelectItem value="TEMPORARY">NOUSX Dream</SelectItem>
+                        <SelectItem value="DEFAULT">Aura Standard</SelectItem>
+                        <SelectItem value="REALISM">Aura Realismo</SelectItem>
+                        <SelectItem value="ANIME">Aura Anime</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
