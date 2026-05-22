@@ -81,6 +81,38 @@ export const Route = createFileRoute("/api/tts")({
         }
 
         const buf = await upstream.arrayBuffer();
+
+        // Save to library (best-effort)
+        try {
+          const fileName = `${userId}/${Date.now()}-${Math.random()
+            .toString(36)
+            .slice(2, 8)}.mp3`;
+          const { error: upErr } = await supabase.storage
+            .from("audio-library")
+            .upload(fileName, buf, {
+              contentType: "audio/mpeg",
+              upsert: false,
+            });
+          if (upErr) {
+            console.warn("[TTS] storage upload failed", upErr.message);
+          } else {
+            const { data: pub } = supabase.storage
+              .from("audio-library")
+              .getPublicUrl(fileName);
+            const wordCount = text.split(/\s+/).filter(Boolean).length;
+            const estDuration = Math.max(1, Math.round(wordCount / 2.5));
+            await supabase.from("audio_library").insert({
+              user_id: userId,
+              audio_url: pub.publicUrl,
+              text_content: text,
+              duration_seconds: estDuration,
+              voice_id: "ara",
+            });
+          }
+        } catch (saveErr) {
+          console.warn("[TTS] save library failed", saveErr);
+        }
+
         return new Response(buf, {
           status: 200,
           headers: {
