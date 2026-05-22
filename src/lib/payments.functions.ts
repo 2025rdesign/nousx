@@ -387,7 +387,7 @@ export const subscribePlan = createServerFn({ method: "POST" })
       },
     });
 
-    if (order && isPaid(order.status)) {
+    if (order && orderId && isPaid(order.status)) {
       await creditUserOnce(orderId, userId, plan.credits, data.planId);
     }
 
