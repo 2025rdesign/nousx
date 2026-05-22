@@ -214,7 +214,7 @@ export const buyCredits = createServerFn({ method: "POST" })
     });
     // If immediately confirmed, credit now (idempotent — webhook may repeat)
     if (["CONFIRMED", "RECEIVED"].includes(payment.status)) {
-      await creditUserOnce(payment.id, userId, pack.credits);
+      await creditUserOnce(payment.id, userId, pack.credits, data.packId);
     }
     return {
       method: "CREDIT_CARD" as const,
