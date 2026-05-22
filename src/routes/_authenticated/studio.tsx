@@ -778,10 +778,17 @@ function StudioInner() {
               )}
             >
               {isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-muted animate-pulse">
-                  <p className="text-sm text-muted-foreground px-4 text-center">
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-muted px-6">
+                  <Loader2 className="size-8 animate-spin text-primary" />
+                  <p className="text-sm text-foreground font-medium text-center">
                     {LOADING_TEXTS[loadingTextIdx]}
                   </p>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Gerando... isso pode levar até 1 minuto
+                  </p>
+                  <div className="w-full max-w-[220px] h-1.5 bg-background/60 rounded-full overflow-hidden">
+                    <div className="h-full w-1/3 bg-primary rounded-full animate-[progressSlide_1.5s_ease-in-out_infinite]" />
+                  </div>
                 </div>
               )}
               {!isLoading && result && (
