@@ -281,7 +281,7 @@ export function MpPixModal(props: PixModalProps) {
                   onClick={copy}
                   variant="outline"
                   className="w-full border-[#6C47FF]/50 hover:bg-[#6C47FF]/10"
-                  disabled={expired}
+                  disabled={!!expired}
                 >
                   {copied ? (
                     <>
