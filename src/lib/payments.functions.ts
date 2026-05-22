@@ -163,3 +163,16 @@ export const cancelMySubscription = createServerFn({ method: "POST" })
       .eq("id", sub.id);
     return { ok: true };
   });
+
+export const listMyPaymentHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await supabaseAdmin
+      .from("payment_history")
+      .select("id, amount, type, status, metadata, created_at")
+      .eq("user_id", context.userId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
