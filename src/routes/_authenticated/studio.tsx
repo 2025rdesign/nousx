@@ -578,48 +578,46 @@ function StudioInner() {
               </label>
               {poseEnabled && (
                 <div className="space-y-3 pt-1">
-                  {posesLoading ? (
-                    <p className="text-xs text-muted-foreground flex items-center gap-2">
-                      <Loader2 className="size-3 animate-spin" />
-                      Carregando poses...
-                    </p>
-                  ) : posesError || poses.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                      Poses indisponíveis no momento.
-                    </p>
-                  ) : (
-                    Object.entries(groupedPoses).map(([group, items]) =>
-                      items.length === 0 ? null : (
-                        <div key={group} className="space-y-1.5">
-                          <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                            {group}
-                          </div>
-                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
-                            {items.map((p) => (
-                              <button
-                                key={p.id}
-                                type="button"
-                                onClick={() => { setPoseId(p.id); setPoseType(p.type ?? null); }}
-                                className={cn(
-                                  "aspect-square rounded-md border overflow-hidden bg-muted text-[10px] flex items-end justify-center transition-colors",
-                                  poseId === p.id
-                                    ? "border-primary ring-2 ring-primary/40"
-                                    : "border-border hover:border-foreground/40",
-                                )}
-                                title={p.name}
-                              >
-                                {p.thumbnail ? (
-                                  <img src={p.thumbnail} alt={p.name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <span className="p-1 truncate">{p.name}</span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ),
-                    )
-                  )}
+                  <div className="flex flex-wrap gap-1.5">
+                    {POSE_CATEGORIES.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setPoseCategory(c.id)}
+                        className={cn(
+                          "h-7 px-3 rounded-full text-[11px] border transition-colors",
+                          poseCategory === c.id
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-transparent border-border text-muted-foreground hover:text-foreground hover:border-foreground/40",
+                        )}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {filteredPoses.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => { setPoseId(p.id); setPoseType(p.category.toUpperCase()); }}
+                        className={cn(
+                          "group size-20 rounded-lg overflow-hidden bg-muted transition-all",
+                          poseId === p.id
+                            ? "ring-2 ring-primary"
+                            : "ring-1 ring-border hover:ring-foreground/40",
+                        )}
+                        title={p.label}
+                      >
+                        <img
+                          src={p.preview}
+                          alt={p.label}
+                          loading="lazy"
+                          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.05]"
+                        />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
