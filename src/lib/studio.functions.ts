@@ -233,7 +233,12 @@ export const deleteCharacter = createServerFn({ method: "POST" })
 export const improvePrompt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { prompt: string }) =>
-    z.object({ prompt: z.string().min(1).max(2000) }).parse(d),
+    z
+      .object({
+        prompt: z.string().min(1).max(2000),
+        model: z.enum(["DEFAULT", "REALISM", "ANIME"]).optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data }) => {
     const key = process.env.DEEPSEEK_API_KEY;
@@ -259,7 +264,11 @@ export const improvePrompt = createServerFn({ method: "POST" })
     const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const improved = j.choices?.[0]?.message?.content?.trim();
     if (!improved) throw new Error("Resposta vazia do serviço.");
-    return { prompt: improved };
+    const negativePrompt =
+      data.model === "ANIME"
+        ? "realistic, 3d, photorealistic, bad hands, extra fingers, missing fingers, deformed, blurry, low quality, watermark, text"
+        : "deformed, bad anatomy, bad hands, extra fingers, missing fingers, blurry, low quality, pixelated, watermark, text, bad lighting";
+    return { prompt: improved, negativePrompt };
   });
 
 /* ------------------------------- Poses ------------------------------- */
