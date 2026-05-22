@@ -32,8 +32,9 @@ function AuthPage() {
   }, [user, loading, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
-      <div className="w-full max-w-md space-y-8">
+    <div className="min-h-screen flex bg-background">
+      <div className="flex-1 flex items-center justify-center px-4 py-12 md:w-1/2">
+        <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
           <NousxLogo className="text-4xl" />
           <p className="text-sm text-muted-foreground">
@@ -69,6 +70,18 @@ function AuthPage() {
           </Link>
           .
         </p>
+        </div>
+      </div>
+      <div
+        aria-hidden
+        className="hidden md:block relative w-1/2 h-screen sticky top-0"
+      >
+        <img
+          src="https://central.daev.ca/wp-content/uploads/2026/05/AURA-IA-IMAGEM-DASH.png"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/30" />
       </div>
     </div>
   );

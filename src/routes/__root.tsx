@@ -126,11 +126,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         rel: "icon",
-        href: "https://central.daev.ca/wp-content/uploads/2026/05/icone-logo-nousx-favicon-scaled.png",
+        href: "https://central.daev.ca/wp-content/uploads/2026/05/FAVICON-AURA.png",
       },
       {
         rel: "apple-touch-icon",
-        href: "https://central.daev.ca/wp-content/uploads/2026/05/icone-logo-nousx-pwa-scaled.png",
+        href: "https://central.daev.ca/wp-content/uploads/2026/05/FAVICON-AURA.png",
       },
       { rel: "manifest", href: "/manifest.json" },
       { rel: "canonical", href: "https://chataura.com.br" },

@@ -241,25 +241,10 @@ export function ChatInput({
               />
               <button
                 type="button"
-                onClick={() => {
-                  if (hasUltra) {
-                    onOpenVoiceMode?.();
-                  } else {
-                    notify.error("Modo de voz exclusivo do plano Ultra.");
-                  }
-                }}
+                onClick={() => onOpenVoiceMode?.()}
                 aria-label="Modo de voz"
-                title={
-                  hasUltra
-                    ? "Iniciar modo de voz"
-                    : "Modo de voz exclusivo do plano Ultra"
-                }
-                className={cn(
-                  "inline-flex items-center justify-center size-9 rounded-md transition-colors",
-                  hasUltra
-                    ? "hover:bg-[#6C47FF]/10"
-                    : "opacity-40 cursor-not-allowed",
-                )}
+                title="Modo de voz"
+                className="inline-flex items-center justify-center size-9 rounded-md transition-colors hover:bg-[#6C47FF]/10"
               >
                 <SoundWaveIcon
                   active={voiceModeActive}
