@@ -95,18 +95,16 @@ async function pollPrompt(promptId: string): Promise<{ mediaId: string; mediaUrl
   throw new Error("Tempo limite de geração atingido. Tente novamente.");
 }
 
-async function ensureCredits(supabase: any, userId: string) {
-  // Trigger an expiration sweep + balance refresh via the admin helper.
+async function ensureCredits(_supabase: any, userId: string, cost: number) {
   const { recomputeUserBalance } = await import("./credits.server");
   const balance = await recomputeUserBalance(userId);
-  if (balance <= 0) throw new Error("Créditos insuficientes.");
-  void supabase;
+  if (balance < cost) throw new Error("Créditos insuficientes.");
   return balance;
 }
 
-async function decrementCredit(_supabase: any, userId: string, _current: number) {
+async function decrementCredit(_supabase: any, userId: string, cost: number) {
   const { consumeCredits } = await import("./credits.server");
-  await consumeCredits(userId, 1);
+  await consumeCredits(userId, cost);
 }
 
 /* ------------------------------- Lists ------------------------------- */
@@ -306,6 +304,8 @@ const generateSchema = z.object({
   createProfile: z.boolean().optional(),
   negativePrompt: z.string().max(500).optional(),
   creativity: z.enum(["low", "medium", "high"]).optional(),
+  detailLevel: z.enum(["MEDIUM", "HIGH"]).optional(),
+  faceRefMediaId: z.string().optional().nullable(),
   // variation
   profileId: z.string().uuid().optional(),
 });
@@ -319,7 +319,8 @@ export const generateCharacter = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     try {
     const { supabase, userId } = context;
-    const balance = await ensureCredits(supabase, userId);
+    const cost = data.detailLevel === "HIGH" ? 2 : 1;
+    await ensureCredits(supabase, userId, cost);
 
     const translated = await translateToEnglish(data.appearance);
 
@@ -334,20 +335,27 @@ export const generateCharacter = createServerFn({ method: "POST" })
       const cfgMap = { low: 4, medium: 7, high: 10 } as const;
       const userNeg = (data.negativePrompt ?? "").trim();
       const baseNeg = "deformed, bad anatomy, extra fingers, missing fingers, bad hands, blurry, low quality, watermark, text";
+      const useFaceRef = !!data.faceRefMediaId;
       body = {
         name: data.name,
         appearance: translated,
-        detailLevel: "MEDIUM",
+        detailLevel: data.detailLevel ?? "MEDIUM",
         model: data.model,
         gender: data.gender,
         aspectRatio: mapAspectRatio(data.aspectRatio),
         cfg: cfgMap[data.creativity ?? "medium"],
-        faceImproveEnabled: false,
-        faceImproveStrength: 5.0,
+        faceImproveEnabled: useFaceRef,
+        faceImproveStrength: useFaceRef ? 7.0 : 5.0,
         improveBreasts: false,
         improveVagina: false,
         negativeDetails: `${baseNeg}${userNeg ? ", " + userNeg : ""}`,
       };
+      if (data.poseId) {
+        (body as Record<string, unknown>).poseId = data.poseId;
+      }
+      if (useFaceRef) {
+        (body as Record<string, unknown>).faceImproveMediaId = data.faceRefMediaId;
+      }
     } else {
       if (!data.profileId) throw new Error("Personagem não encontrado.");
       const { data: profile, error: pErr } = await supabase
@@ -467,7 +475,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
     }
 
     try {
-      await decrementCredit(supabase, userId, balance);
+      await decrementCredit(supabase, userId, cost);
     } catch (credErr) {
       console.error("[studio] credit decrement failed (ignored)", credErr);
     }

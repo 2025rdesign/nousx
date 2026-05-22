@@ -3,7 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { notify } from "@/lib/notify";
-import { AlertTriangle, ArrowLeft, Download, Globe, Lock, Loader2, Maximize2, Plus, Sparkles as SparklesIcon, Trash2, Wand2, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Download, Globe, ImageIcon, Lock, Loader2, Maximize2, Plus, Sparkles as SparklesIcon, Trash2, User as UserIcon, Wand2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CharacterCard } from "@/components/studio/character-card";
 import {
   listMyProfiles,
@@ -26,6 +27,7 @@ import {
   improvePrompt,
   togglePublic,
   deleteCharacter,
+  listPoses,
 } from "@/lib/studio.functions";
 import { cn } from "@/lib/utils";
 import { CreditPurchaseModal } from "@/components/payments/credit-purchase-modal";
@@ -118,6 +120,7 @@ function StudioInner() {
   const toggleFn = useServerFn(togglePublic);
   const deleteFn = useServerFn(deleteCharacter);
   const fetchCredits = useServerFn(getCredits);
+  const fetchPoses = useServerFn(listPoses);
   const { data: creditsData } = useQuery({
     queryKey: ["credits"],
     queryFn: () => fetchCredits(),
@@ -158,6 +161,44 @@ function StudioInner() {
   const [improving, setImproving] = useState(false);
   const improveFn = useServerFn(improvePrompt);
 
+  // Pose, quality and face-ref state
+  const [poseEnabled, setPoseEnabled] = useState(false);
+  const [poseId, setPoseId] = useState<string | null>(null);
+  const [highQuality, setHighQuality] = useState(false);
+  const [faceRef, setFaceRef] = useState<{ mediaId: string; imageUrl: string } | null>(null);
+  const [faceRefOpen, setFaceRefOpen] = useState(false);
+
+  const { data: poses = [] } = useQuery({
+    queryKey: ["alive-poses"],
+    queryFn: () => fetchPoses(),
+    enabled: poseEnabled,
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: allCharacters = [] } = useQuery({
+    queryKey: ["all-characters"],
+    queryFn: () => fetchChars({ data: {} }),
+    enabled: faceRefOpen,
+  });
+
+  const groupedPoses = useMemo(() => {
+    const groups: Record<string, Array<{ id: string; name: string; thumbnail?: string }>> = {
+      Standing: [], Sitting: [], Lying: [], Kneeling: [], "All Fours": [], Other: [],
+    };
+    for (const p of poses as Array<{ id: string; name: string; thumbnail?: string }>) {
+      const n = (p.name || "").toLowerCase();
+      if (/all.?four|on all fours|doggy/.test(n)) groups["All Fours"].push(p);
+      else if (/stand/.test(n)) groups.Standing.push(p);
+      else if (/sit/.test(n)) groups.Sitting.push(p);
+      else if (/ly(ing)?|lay/.test(n)) groups.Lying.push(p);
+      else if (/kneel/.test(n)) groups.Kneeling.push(p);
+      else groups.Other.push(p);
+    }
+    return groups;
+  }, [poses]);
+
+  const cost = highQuality ? 2 : 1;
+
   // result panel
   const [result, setResult] = useState<string | null>(null);
   const [resultId, setResultId] = useState<string | null>(null);
@@ -181,6 +222,7 @@ function StudioInner() {
             profileId: activeProfile.id,
             appearance,
             aspectRatio: ratio,
+            poseId: poseEnabled ? poseId ?? undefined : undefined,
           },
         });
       }
@@ -196,6 +238,9 @@ function StudioInner() {
           createProfile,
           creativity,
           negativePrompt: negativePrompt.trim() || undefined,
+          detailLevel: highQuality ? "HIGH" : "MEDIUM",
+          poseId: poseEnabled ? poseId ?? undefined : undefined,
+          faceRefMediaId: faceRef?.mediaId,
         },
       });
     },
@@ -509,6 +554,114 @@ function StudioInner() {
               </div>
             </div>
 
+            {/* Pose selector */}
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <Switch checked={poseEnabled} onCheckedChange={(v) => { setPoseEnabled(v); if (!v) setPoseId(null); }} />
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Pose</div>
+                  <p className="text-xs text-muted-foreground">
+                    Escolha uma pose específica ou deixe a IA decidir.
+                  </p>
+                </div>
+              </label>
+              {poseEnabled && (
+                <div className="space-y-3 pt-1">
+                  {poses.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Carregando poses...</p>
+                  ) : (
+                    Object.entries(groupedPoses).map(([group, items]) =>
+                      items.length === 0 ? null : (
+                        <div key={group} className="space-y-1.5">
+                          <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                            {group}
+                          </div>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+                            {items.map((p) => (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => setPoseId(p.id)}
+                                className={cn(
+                                  "aspect-square rounded-md border overflow-hidden bg-muted text-[10px] flex items-end justify-center transition-colors",
+                                  poseId === p.id
+                                    ? "border-primary ring-2 ring-primary/40"
+                                    : "border-border hover:border-foreground/40",
+                                )}
+                                title={p.name}
+                              >
+                                {p.thumbnail ? (
+                                  <img src={p.thumbnail} alt={p.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="p-1 truncate">{p.name}</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ),
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* High quality toggle */}
+            {!activeProfile && (
+              <label className="flex items-center gap-3 rounded-lg border border-border p-3 cursor-pointer">
+                <Switch checked={highQuality} onCheckedChange={setHighQuality} />
+                <div className="flex-1">
+                  <div className="text-sm font-medium flex items-center gap-2">
+                    Alta qualidade
+                    {highQuality && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/15 text-accent font-medium">
+                        +1 crédito
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Renderização em alto detalhe (HIGH). Consome 2 créditos.
+                  </p>
+                </div>
+              </label>
+            )}
+
+            {/* Face reference */}
+            {!activeProfile && (
+              <div className="space-y-2 rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">🎭 Rosto de referência</div>
+                    <p className="text-xs text-muted-foreground">
+                      Reaproveite o rosto de uma imagem já gerada.
+                    </p>
+                  </div>
+                  {faceRef ? (
+                    <div className="relative">
+                      <img
+                        src={faceRef.imageUrl}
+                        alt="Rosto de referência"
+                        className="size-12 rounded-md object-cover border border-border"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFaceRef(null)}
+                        className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-background border border-border flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground"
+                        aria-label="Remover"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <Button type="button" variant="outline" size="sm" onClick={() => setFaceRefOpen(true)}>
+                      <UserIcon className="size-3.5" />
+                      Escolher
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="rounded-lg border border-border">
               <button
                 type="button"
@@ -573,6 +726,9 @@ function StudioInner() {
               )}
             </div>
 
+            <div className="text-center text-xs text-muted-foreground">
+              Esta geração custará <span className="font-semibold text-foreground">{cost} crédito{cost > 1 ? "s" : ""}</span>.
+            </div>
             <Button
               className="w-full"
               disabled={!appearance.trim() || isLoading}
@@ -723,6 +879,42 @@ function StudioInner() {
           {Sidebar}
         </section>
       </div>
+
+      {/* Face reference picker */}
+      <Dialog open={faceRefOpen} onOpenChange={setFaceRefOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Escolher rosto de referência</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto">
+            {allCharacters.filter((c) => c.image_url && c.media_id).length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center text-sm text-muted-foreground">
+                <ImageIcon className="size-8 mb-2 opacity-50" />
+                Nenhuma imagem gerada ainda.
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {allCharacters
+                  .filter((c) => c.image_url && c.media_id)
+                  .slice(0, 20)
+                  .map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        setFaceRef({ mediaId: c.media_id!, imageUrl: c.image_url! });
+                        setFaceRefOpen(false);
+                      }}
+                      className="aspect-square rounded-md overflow-hidden border border-border hover:border-primary hover:ring-2 hover:ring-primary/40 transition-all bg-muted"
+                    >
+                      <img src={c.image_url!} alt={c.name || "Geração"} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Lightbox */}
       {lightboxOpen && result && (
