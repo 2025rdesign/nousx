@@ -299,6 +299,8 @@ const generateSchema = z.object({
   aspectRatio: z.enum(["9:16", "16:9", "1:1", "4:5"]),
   poseId: z.string().optional().nullable(),
   poseType: z.string().optional().nullable(),
+  poseStrength: z.number().int().min(0).max(100).optional(),
+  posePrompt: z.string().max(500).optional(),
   detailLevel: z.enum(["MEDIUM", "HIGH"]).optional(),
   // new
   name: z.string().min(1).max(60).optional(),
@@ -369,12 +371,24 @@ export const generateCharacter = createServerFn({ method: "POST" })
         improveVagina: false,
         negativeDetails: `${baseNeg}${userNeg ? ", " + userNeg : ""}`,
       };
-      if (data.poseId) {
-        (body as Record<string, unknown>).pose = {
-          type: resolvePoseType(data.poseId),
-          id: cleanPoseId(data.poseId),
-          strength: 80,
-        };
+      {
+        const strength = data.poseStrength ?? 80;
+        const userPrompt = (data.posePrompt ?? "").trim();
+        if (data.poseId) {
+          const p: Record<string, unknown> = {
+            type: resolvePoseType(data.poseId),
+            id: cleanPoseId(data.poseId),
+            strength,
+          };
+          if (userPrompt) p.posePrompt = userPrompt;
+          (body as Record<string, unknown>).pose = p;
+        } else if (userPrompt) {
+          (body as Record<string, unknown>).pose = {
+            type: "CUSTOM",
+            posePrompt: userPrompt,
+            strength,
+          };
+        }
       }
     } else {
       if (!data.profileId) throw new Error("Personagem não encontrado.");
@@ -403,12 +417,24 @@ export const generateCharacter = createServerFn({ method: "POST" })
       if (data.editModel) {
         (body as Record<string, unknown>).editModel = data.editModel;
       }
-      if (data.poseId) {
-        (body as Record<string, unknown>).pose = {
-          type: resolvePoseType(data.poseId),
-          id: cleanPoseId(data.poseId),
-          strength: 80,
-        };
+      {
+        const strength = data.poseStrength ?? 80;
+        const userPrompt = (data.posePrompt ?? "").trim();
+        if (data.poseId) {
+          const p: Record<string, unknown> = {
+            type: resolvePoseType(data.poseId),
+            id: cleanPoseId(data.poseId),
+            strength,
+          };
+          if (userPrompt) p.posePrompt = userPrompt;
+          (body as Record<string, unknown>).pose = p;
+        } else if (userPrompt) {
+          (body as Record<string, unknown>).pose = {
+            type: "CUSTOM",
+            posePrompt: userPrompt,
+            strength,
+          };
+        }
       }
       // Stash for fallback
       (body as any).__fallbackAppearance = profile.appearance || null;

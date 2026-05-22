@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
 import { VoiceRecordButton } from "@/components/voice-record-button";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -167,6 +168,8 @@ function StudioInner() {
   const [poseId, setPoseId] = useState<string | null>(null);
   const [poseType, setPoseType] = useState<string | null>(null);
   const [poseCategory, setPoseCategory] = useState<string>(POSE_CATEGORIES[0]?.id ?? "standing");
+  const [poseStrength, setPoseStrength] = useState<number>(80);
+  const [posePrompt, setPosePrompt] = useState<string>("");
   const [highQuality, setHighQuality] = useState(false);
   const [editModel, setEditModel] = useState<"CREATIVE" | "REALISM" | "QWEN_PRO">("CREATIVE");
 
@@ -202,6 +205,8 @@ function StudioInner() {
             aspectRatio: ratio,
             poseId: poseEnabled ? poseId ?? undefined : undefined,
             poseType: poseEnabled ? poseType ?? undefined : undefined,
+            poseStrength: poseEnabled ? poseStrength : undefined,
+            posePrompt: poseEnabled ? posePrompt.trim() || undefined : undefined,
             editModel,
             detailLevel: highQuality ? "HIGH" : "MEDIUM",
           },
@@ -222,6 +227,8 @@ function StudioInner() {
           detailLevel: highQuality ? "HIGH" : "MEDIUM",
           poseId: poseEnabled ? poseId ?? undefined : undefined,
           poseType: poseEnabled ? poseType ?? undefined : undefined,
+          poseStrength: poseEnabled ? poseStrength : undefined,
+          posePrompt: poseEnabled ? posePrompt.trim() || undefined : undefined,
         },
       });
     },
@@ -625,6 +632,34 @@ function StudioInner() {
                         />
                       </button>
                     ))}
+                  </div>
+                  {poseId && (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-muted-foreground">Forca da pose</Label>
+                        <span className="text-xs tabular-nums text-foreground">{poseStrength}</span>
+                      </div>
+                      <Slider
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={[poseStrength]}
+                        onValueChange={(v) => setPoseStrength(v[0] ?? 80)}
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-1.5 pt-1">
+                    <Label htmlFor="pose-prompt" className="text-xs text-muted-foreground">
+                      Descrever pose (opcional)
+                    </Label>
+                    <Textarea
+                      id="pose-prompt"
+                      value={posePrompt}
+                      onChange={(e) => setPosePrompt(e.target.value)}
+                      rows={2}
+                      placeholder="Ex: sentada com as pernas cruzadas, bracos levantados, olhando para o lado..."
+                      className="resize-none text-[13px] leading-relaxed"
+                    />
                   </div>
                 </div>
               )}
