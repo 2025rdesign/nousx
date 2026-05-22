@@ -419,7 +419,25 @@ function StudioInner() {
                   <X className="size-4" />
                 </Button>
               </div>
-            ) : (
+            ) : null}
+
+            {activeProfile && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Modelo de edição</Label>
+                <Select value={editModel} onValueChange={(v) => setEditModel(v as any)}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CREATIVE">NOUSX Standard</SelectItem>
+                    <SelectItem value="REALISM">NOUSX Ultra HD</SelectItem>
+                    <SelectItem value="QWEN_PRO">NOUSX Pro Edit</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {!activeProfile && (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
@@ -515,6 +533,13 @@ function StudioInner() {
                           model,
                           characterName: activeProfile?.name,
                           characterAppearance: activeProfile?.appearance ?? undefined,
+                          editModel: activeProfile ? editModel : undefined,
+                          highQuality,
+                          poseLabel: poseId
+                            ? (POSES.find((p) => p.id === poseId)?.posePrompt
+                                || POSES.find((p) => p.id === poseId)?.label
+                                || undefined)
+                            : (posePrompt.trim() || undefined),
                         },
                       });
                       setAppearance(r.prompt);
@@ -664,23 +689,6 @@ function StudioInner() {
                 </div>
               )}
             </div>
-
-            {/* Edit model selector (variation only) */}
-            {activeProfile && (
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Modelo de edição</Label>
-                <Select value={editModel} onValueChange={(v) => setEditModel(v as any)}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="CREATIVE">NOUSX Standard</SelectItem>
-                    <SelectItem value="REALISM">NOUSX Ultra HD</SelectItem>
-                    <SelectItem value="QWEN_PRO">NOUSX Pro Edit</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
 
             {/* High quality toggle */}
             <label className="flex items-center gap-3 rounded-lg border border-border p-3 cursor-pointer">
