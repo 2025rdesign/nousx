@@ -15,14 +15,15 @@ import {
   Clock,
   ShieldCheck,
   Zap,
+  QrCode,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
 import { CREDIT_PACKS, applyDiscount, type CreditPackId } from "@/lib/payments-config";
-import { createPixCharge } from "@/lib/cajupay.functions";
+import { createMpCheckout } from "@/lib/mercadopago.functions";
 import { getCredits } from "@/lib/credits.functions";
 import { CouponField, type AppliedCoupon } from "./coupon-field";
-import { PixCheckoutModal, type PixCheckoutData } from "./pix-checkout-modal";
 
 const PACK_META: Record<
   CreditPackId,
