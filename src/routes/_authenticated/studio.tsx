@@ -121,7 +121,6 @@ function StudioInner() {
   const toggleFn = useServerFn(togglePublic);
   const deleteFn = useServerFn(deleteCharacter);
   const fetchCredits = useServerFn(getCredits);
-  const fetchPoses = useServerFn(listPoses);
   const { data: creditsData } = useQuery({
     queryKey: ["credits"],
     queryFn: () => fetchCredits(),
@@ -166,32 +165,14 @@ function StudioInner() {
   const [poseEnabled, setPoseEnabled] = useState(false);
   const [poseId, setPoseId] = useState<string | null>(null);
   const [poseType, setPoseType] = useState<string | null>(null);
+  const [poseCategory, setPoseCategory] = useState<string>(POSE_CATEGORIES[0]?.id ?? "standing");
   const [highQuality, setHighQuality] = useState(false);
   const [editModel, setEditModel] = useState<"CREATIVE" | "REALISM" | "QWEN_PRO">("CREATIVE");
 
-  const { data: poses = [], isLoading: posesLoading, isError: posesError } = useQuery({
-    queryKey: ["alive-poses"],
-    queryFn: () => fetchPoses(),
-    enabled: poseEnabled,
-    staleTime: 5 * 60_000,
-    retry: 0,
-  });
-
-  const groupedPoses = useMemo(() => {
-    const groups: Record<string, Array<{ id: string; name: string; type?: string | null; thumbnail?: string }>> = {
-      Standing: [], Sitting: [], Lying: [], Kneeling: [], "All Fours": [], Other: [],
-    };
-    for (const p of poses as Array<{ id: string; name: string; type?: string | null; thumbnail?: string }>) {
-      const n = `${p.name || ""} ${p.type || ""}`.toLowerCase();
-      if (/all.?four|on all fours|doggy/.test(n)) groups["All Fours"].push(p);
-      else if (/stand/.test(n)) groups.Standing.push(p);
-      else if (/sit/.test(n)) groups.Sitting.push(p);
-      else if (/ly(ing)?|lay/.test(n)) groups.Lying.push(p);
-      else if (/kneel/.test(n)) groups.Kneeling.push(p);
-      else groups.Other.push(p);
-    }
-    return groups;
-  }, [poses]);
+  const filteredPoses = useMemo(
+    () => POSES.filter((p) => p.category === poseCategory),
+    [poseCategory],
+  );
 
   const cost = highQuality ? 2 : 1;
 
