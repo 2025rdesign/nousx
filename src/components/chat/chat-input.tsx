@@ -6,6 +6,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
 import { extractFileText, type ExtractedFile } from "@/lib/file-extract";
+import { VoiceRecordButton } from "@/components/voice-record-button";
 
 interface Props {
   onSend: (
@@ -170,6 +171,10 @@ export function ChatInput({ onSend, disabled }: Props) {
             Busca web
           </Toggle>
           <div className="flex-1" />
+          <VoiceRecordButton
+            disabled={disabled}
+            onTranscript={(delta) => setText((prev) => (prev ? prev.replace(/\s*$/, " ") : "") + delta)}
+          />
           <Button
             type="button"
             size="icon"

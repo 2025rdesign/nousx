@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { VoiceRecordButton } from "@/components/voice-record-button";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
@@ -472,19 +473,27 @@ function StudioInner() {
               <Label htmlFor="appearance" className="text-xs text-muted-foreground">
                 Descrição
               </Label>
-              <Textarea
-                id="appearance"
-                ref={textRef}
-                value={appearance}
-                onChange={(e) => setAppearance(e.target.value)}
-                rows={6}
-                placeholder={
-                  activeProfile
-                    ? "Descreva a nova cena: pose, roupa, cenário, iluminação..."
-                    : "Descreva sua visão: aparência, roupa, cenário, pose, iluminação, estilo artístico... Quanto mais detalhes, melhor o resultado."
-                }
-                className="resize-none min-h-[120px] w-full text-[15px] leading-relaxed"
-              />
+              <div className="relative">
+                <Textarea
+                  id="appearance"
+                  ref={textRef}
+                  value={appearance}
+                  onChange={(e) => setAppearance(e.target.value)}
+                  rows={6}
+                  placeholder={
+                    activeProfile
+                      ? "Descreva a nova cena: pose, roupa, cenário, iluminação..."
+                      : "Descreva sua visão: aparência, roupa, cenário, pose, iluminação, estilo artístico... Quanto mais detalhes, melhor o resultado."
+                  }
+                  className="resize-none min-h-[120px] w-full text-[15px] leading-relaxed pr-12"
+                />
+                <VoiceRecordButton
+                  className="absolute bottom-2 right-2 size-8"
+                  onTranscript={(delta) =>
+                    setAppearance((prev) => (prev ? prev.replace(/\s*$/, " ") : "") + delta)
+                  }
+                />
+              </div>
               <div className="flex items-center justify-between">
                 <Button
                   type="button"
