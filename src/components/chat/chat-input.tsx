@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from "react";
 import TextareaAutosize from "react-textarea-autosize";
-import { FileText, Globe, Paperclip, Send, Sparkles, X } from "lucide-react";
+import { FileText, Globe, Mic2, Paperclip, Send, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
@@ -19,9 +19,18 @@ interface Props {
   disabled?: boolean;
   anonMode?: boolean;
   onAnonRestricted?: () => void;
+  hasUltra?: boolean;
+  onOpenVoiceMode?: () => void;
 }
 
-export function ChatInput({ onSend, disabled, anonMode, onAnonRestricted }: Props) {
+export function ChatInput({
+  onSend,
+  disabled,
+  anonMode,
+  onAnonRestricted,
+  hasUltra,
+  onOpenVoiceMode,
+}: Props) {
   const [text, setText] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [file, setFile] = useState<ExtractedFile | null>(null);
@@ -220,6 +229,30 @@ export function ChatInput({ onSend, disabled, anonMode, onAnonRestricted }: Prop
             </button>
           ) : (
             <VoiceRecordButton disabled={disabled} value={text} onChange={setText} />
+          )}
+          {!anonMode && (
+            <button
+              type="button"
+              onClick={() => {
+                if (hasUltra) {
+                  onOpenVoiceMode?.();
+                } else {
+                  notify.error("Modo de voz exclusivo do plano Ultra.");
+                }
+              }}
+              aria-label="Modo de voz"
+              title={
+                hasUltra ? "Iniciar modo de voz" : "Modo de voz exclusivo do plano Ultra"
+              }
+              className={cn(
+                "inline-flex items-center justify-center size-9 rounded-md transition-colors",
+                hasUltra
+                  ? "text-[#6C47FF] hover:bg-[#6C47FF]/10"
+                  : "opacity-40 cursor-not-allowed text-[#6C47FF]",
+              )}
+            >
+              <Mic2 className="size-4" />
+            </button>
           )}
           <Button
             type="button"
