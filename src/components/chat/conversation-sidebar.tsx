@@ -13,10 +13,18 @@ import {
   Pencil,
   Check,
   X,
+  MoreHorizontal,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { NousxLogo } from "@/components/nousx-logo";
 import {
   listConversations,
