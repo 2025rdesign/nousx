@@ -1,4 +1,16 @@
+import { useState } from "react";
+import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Profile = {
   id: string;
@@ -11,13 +23,18 @@ export function CharacterCard({
   profile,
   active,
   onClick,
+  onDelete,
 }: {
   profile: Profile;
   active: boolean;
   onClick: () => void;
+  onDelete?: () => void | Promise<void>;
 }) {
   const consistent = !!profile.base_media_id;
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   return (
+    <div className="relative group">
     <button
       type="button"
       onClick={onClick}
@@ -57,5 +74,50 @@ export function CharacterCard({
         )}
       </div>
     </button>
+      {onDelete && (
+        <>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setConfirmOpen(true);
+            }}
+            aria-label="Excluir personagem"
+            className="absolute top-1.5 right-1.5 z-20 size-7 rounded-full bg-black/60 backdrop-blur-sm text-white flex items-center justify-center transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:bg-red-600"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir personagem?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação não pode ser desfeita. Todas as imagens geradas com este personagem serão mantidas na galeria.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={deleting}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    setDeleting(true);
+                    try {
+                      await onDelete();
+                      setConfirmOpen(false);
+                    } finally {
+                      setDeleting(false);
+                    }
+                  }}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {deleting ? "Excluindo..." : "Excluir"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      )}
+    </div>
   );
 }
