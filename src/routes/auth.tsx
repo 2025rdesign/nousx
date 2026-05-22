@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useRouter, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter, redirect } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -58,7 +58,15 @@ function AuthPage() {
         </Card>
 
         <p className="text-xs text-center text-muted-foreground">
-          Ao continuar, você concorda em ter 18 anos ou mais.
+          Ao continuar, você concorda em ter 18 anos ou mais e aceita os{" "}
+          <Link to="/termos" className="underline hover:text-foreground">
+            Termos
+          </Link>{" "}
+          e a{" "}
+          <Link to="/privacidade" className="underline hover:text-foreground">
+            Política de Privacidade
+          </Link>
+          .
         </p>
       </div>
     </div>
