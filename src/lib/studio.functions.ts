@@ -230,11 +230,11 @@ export const deleteCharacter = createServerFn({ method: "POST" })
 
 export const improvePrompt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { prompt: string; model?: "DEFAULT" | "REALISM" | "ANIME" }) =>
+  .inputValidator((d: { prompt: string; model?: "DEFAULT" | "REALISM" | "ANIME" | "TEMPORARY" | "ANIMA" }) =>
     z
       .object({
         prompt: z.string().min(1).max(2000),
-        model: z.enum(["DEFAULT", "REALISM", "ANIME"]).optional(),
+        model: z.enum(["DEFAULT", "REALISM", "ANIME", "TEMPORARY", "ANIMA"]).optional(),
       })
       .parse(d),
   )
@@ -276,7 +276,7 @@ export const listPoses = createServerFn({ method: "GET" })
   .handler(async () => {
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 5000);
+      const timer = setTimeout(() => controller.abort(), 8000);
       const res = await fetch(`${ALIVEAI_BASE}/poses`, {
         headers: aliveHeaders(),
         signal: controller.signal,
@@ -290,8 +290,9 @@ export const listPoses = createServerFn({ method: "GET" })
       console.log("[studio] listPoses count", list.length);
       return list.map((p: any) => ({
         id: p.id || p.poseId || p._id,
-        name: p.name || p.title || "Pose",
-        thumbnail: p.thumbnail || p.image || p.url || p.preview,
+        name: p.name || p.title || p.type || "Pose",
+        type: p.type || null,
+        thumbnail: p.mediaUrl || p.thumbnail || p.image || p.url || p.preview,
       }));
     } catch (e) {
       console.error("[studio] listPoses error", e instanceof Error ? e.message : e);
@@ -307,9 +308,10 @@ const generateSchema = z.object({
   appearance: z.string().min(1).max(2000),
   aspectRatio: z.enum(["9:16", "16:9", "1:1", "4:5"]),
   poseId: z.string().optional().nullable(),
+  poseType: z.string().optional().nullable(),
   // new
   name: z.string().min(1).max(60).optional(),
-  model: z.enum(["DEFAULT", "REALISM", "ANIME"]).optional(),
+  model: z.enum(["DEFAULT", "REALISM", "ANIME", "TEMPORARY", "ANIMA"]).optional(),
   gender: z.enum(["FEMALE", "MALE", "TRANS"]).optional(),
   createProfile: z.boolean().optional(),
   negativePrompt: z.string().max(500).optional(),
@@ -357,14 +359,19 @@ export const generateCharacter = createServerFn({ method: "POST" })
         gender: data.gender,
         aspectRatio: mapAspectRatio(data.aspectRatio),
         cfg: cfgMap[data.creativity ?? "medium"],
-        faceImproveEnabled: useFaceRef,
-        faceImproveStrength: useFaceRef ? 9.0 : 5.0,
+        faceImproveEnabled: true,
+        faceModel: "REALISM",
+        faceImproveStrength: useFaceRef ? 9.0 : 5,
         improveBreasts: false,
         improveVagina: false,
         negativeDetails: `${baseNeg}${userNeg ? ", " + userNeg : ""}`,
       };
       if (data.poseId) {
-        (body as Record<string, unknown>).poseId = data.poseId;
+        (body as Record<string, unknown>).pose = {
+          id: data.poseId,
+          type: data.poseType ?? undefined,
+          poseStrength: 50,
+        };
       }
       if (useFaceRef) {
         (body as Record<string, unknown>).faceImproveMediaId = data.faceRefMediaId;
@@ -382,28 +389,22 @@ export const generateCharacter = createServerFn({ method: "POST" })
         throw new Error("Personagem sem imagem base. Gere uma imagem primeiro.");
       }
 
-      if (REMOVE_BOTTOM.test(data.appearance)) {
-        endpoint = `${ALIVEAI_BASE}/prompts/edit-vagina`;
-        body = { mediaId: profile.base_media_id, prompt: translated, cfg: 5 };
-      } else if (REMOVE_CLOTHING.test(data.appearance)) {
-        endpoint = `${ALIVEAI_BASE}/prompts/edit-image`;
-        body = {
-          mediaId: profile.base_media_id,
-          editModel: "CREATIVE",
-          prompt: `${translated}, same person, same face, same hair`,
-          cfg: 5,
-          faceImproveEnabled: true,
-          faceImproveStrength: 5.0,
-        };
-      } else {
-        endpoint = `${ALIVEAI_BASE}/prompts/edit-image`;
-        body = {
-          mediaId: profile.base_media_id,
-          editModel: "CREATIVE",
-          prompt: `extract this person keep her appearance and body shape. ${translated}`,
-          cfg: 5,
-          faceImproveEnabled: true,
-          faceImproveStrength: 5.0,
+      endpoint = `${ALIVEAI_BASE}/prompts/character-image`;
+      body = {
+        prompt: translated,
+        profileId: profile.base_media_id,
+        aspectRatio: mapAspectRatio(data.aspectRatio),
+        highResolution: data.detailLevel === "HIGH",
+        characterStrength: 2,
+        improveFace: true,
+        improveBreasts: false,
+        improveVagina: false,
+      };
+      if (data.poseId) {
+        (body as Record<string, unknown>).pose = {
+          id: data.poseId,
+          type: data.poseType ?? undefined,
+          poseStrength: 50,
         };
       }
       // Stash for fallback

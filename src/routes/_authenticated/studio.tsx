@@ -151,7 +151,7 @@ function StudioInner() {
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   // mode B (new) state
-  const [model, setModel] = useState<"DEFAULT" | "REALISM" | "ANIME">("DEFAULT");
+  const [model, setModel] = useState<"DEFAULT" | "REALISM" | "ANIME" | "TEMPORARY" | "ANIMA">("DEFAULT");
   const [gender, setGender] = useState<"FEMALE" | "MALE" | "TRANS">("FEMALE");
   const [name, setName] = useState("");
   const [createProfile, setCreateProfile] = useState(false);
@@ -164,6 +164,7 @@ function StudioInner() {
   // Pose, quality and face-ref state
   const [poseEnabled, setPoseEnabled] = useState(false);
   const [poseId, setPoseId] = useState<string | null>(null);
+  const [poseType, setPoseType] = useState<string | null>(null);
   const [highQuality, setHighQuality] = useState(false);
   const [faceRef, setFaceRef] = useState<{ mediaId: string; imageUrl: string } | null>(null);
   const [faceRefOpen, setFaceRefOpen] = useState(false);
@@ -183,11 +184,11 @@ function StudioInner() {
   });
 
   const groupedPoses = useMemo(() => {
-    const groups: Record<string, Array<{ id: string; name: string; thumbnail?: string }>> = {
+    const groups: Record<string, Array<{ id: string; name: string; type?: string | null; thumbnail?: string }>> = {
       Standing: [], Sitting: [], Lying: [], Kneeling: [], "All Fours": [], Other: [],
     };
-    for (const p of poses as Array<{ id: string; name: string; thumbnail?: string }>) {
-      const n = (p.name || "").toLowerCase();
+    for (const p of poses as Array<{ id: string; name: string; type?: string | null; thumbnail?: string }>) {
+      const n = `${p.name || ""} ${p.type || ""}`.toLowerCase();
       if (/all.?four|on all fours|doggy/.test(n)) groups["All Fours"].push(p);
       else if (/stand/.test(n)) groups.Standing.push(p);
       else if (/sit/.test(n)) groups.Sitting.push(p);
@@ -224,6 +225,7 @@ function StudioInner() {
             appearance,
             aspectRatio: ratio,
             poseId: poseEnabled ? poseId ?? undefined : undefined,
+            poseType: poseEnabled ? poseType ?? undefined : undefined,
           },
         });
       }
@@ -241,6 +243,7 @@ function StudioInner() {
           negativePrompt: negativePrompt.trim() || undefined,
           detailLevel: highQuality ? "HIGH" : "MEDIUM",
           poseId: poseEnabled ? poseId ?? undefined : undefined,
+          poseType: poseEnabled ? poseType ?? undefined : undefined,
           faceRefMediaId: faceRef?.mediaId,
         },
       });
@@ -431,9 +434,11 @@ function StudioInner() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="DEFAULT">Realista</SelectItem>
-                        <SelectItem value="REALISM">Fotografia HD</SelectItem>
-                        <SelectItem value="ANIME">Anime</SelectItem>
+                        <SelectItem value="DEFAULT">Creative v2</SelectItem>
+                        <SelectItem value="REALISM">Realismo Beta</SelectItem>
+                        <SelectItem value="ANIME">Anime & Cartoon</SelectItem>
+                        <SelectItem value="TEMPORARY">Dreamy Realism V2 ✨</SelectItem>
+                        <SelectItem value="ANIMA">Anima 1.0</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -558,7 +563,7 @@ function StudioInner() {
             {/* Pose selector */}
             <div className="space-y-2 rounded-lg border border-border p-3">
               <label className="flex items-center gap-3 cursor-pointer">
-                <Switch checked={poseEnabled} onCheckedChange={(v) => { setPoseEnabled(v); if (!v) setPoseId(null); }} />
+                <Switch checked={poseEnabled} onCheckedChange={(v) => { setPoseEnabled(v); if (!v) { setPoseId(null); setPoseType(null); } }} />
                 <div className="flex-1">
                   <div className="text-sm font-medium">Pose</div>
                   <p className="text-xs text-muted-foreground">
@@ -589,7 +594,7 @@ function StudioInner() {
                               <button
                                 key={p.id}
                                 type="button"
-                                onClick={() => setPoseId(p.id)}
+                                onClick={() => { setPoseId(p.id); setPoseType(p.type ?? null); }}
                                 className={cn(
                                   "aspect-square rounded-md border overflow-hidden bg-muted text-[10px] flex items-end justify-center transition-colors",
                                   poseId === p.id
