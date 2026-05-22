@@ -726,6 +726,9 @@ function StudioInner() {
               )}
             </div>
 
+            <div className="text-center text-xs text-muted-foreground">
+              Esta geração custará <span className="font-semibold text-foreground">{cost} crédito{cost > 1 ? "s" : ""}</span>.
+            </div>
             <Button
               className="w-full"
               disabled={!appearance.trim() || isLoading}
