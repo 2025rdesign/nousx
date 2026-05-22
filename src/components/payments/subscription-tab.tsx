@@ -263,6 +263,11 @@ function PlanCheckoutDialog({
       });
     },
     onSuccess: (res: any) => {
+      if (res?.redirectUrl) {
+        notify.success("Redirecionando para o checkout da Cakto...");
+        window.location.href = res.redirectUrl;
+        return;
+      }
       if (res?.method === "PIX" && res.qrCodeImage) {
         setPix({
           paymentId: res.paymentId,
