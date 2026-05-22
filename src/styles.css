@@ -236,3 +236,34 @@
   0%, 100% { transform: scaleY(0.6); }
   50% { transform: scaleY(1.7); }
 }
+
+/* Chat main area gradient (dark mode only) */
+.dark .chat-bg-gradient {
+  background:
+    radial-gradient(ellipse at top left, rgba(108, 71, 255, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at bottom right, rgba(139, 111, 255, 0.06) 0%, transparent 60%),
+    #0A0A0F;
+  background-attachment: fixed;
+}
+
+/* Auth starfield background */
+.auth-starfield {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at center, rgba(108, 71, 255, 0.15) 0%, transparent 70%),
+    #0A0A0F;
+  overflow: hidden;
+}
+.auth-star {
+  position: absolute;
+  background: #fff;
+  border-radius: 9999px;
+  animation: star-twinkle var(--dur, 3s) ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+  will-change: opacity, transform;
+}
+@keyframes star-twinkle {
+  0%, 100% { opacity: var(--min-op, 0.2); transform: scale(1); }
+  50% { opacity: var(--max-op, 1); transform: scale(1.15); }
+}
