@@ -86,7 +86,9 @@ function Explore() {
           </TabsContent>
 
           <TabsContent value="characters" className="mt-4">
-            {uniqueCharacters.length === 0 ? (
+            {liChars && uniqueCharacters.length === 0 ? (
+              <SkeletonGrid />
+            ) : uniqueCharacters.length === 0 ? (
               <EmptyExplore />
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
