@@ -4,7 +4,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   createConversation,
   getMessages,
@@ -75,8 +74,21 @@ export function ChatView({ conversationId }: Props) {
   const messages: ChatMsg[] = (dbMessages as ChatMsg[] | undefined) ?? [];
 
   useEffect(() => {
+    if (!optimisticAssistant?.image_url) return;
+    const persisted = messages.some(
+      (message) =>
+        message.role === "assistant" &&
+        message.image_url === optimisticAssistant.image_url &&
+        message.content === optimisticAssistant.content,
+    );
+    if (persisted) {
+      setOptimisticAssistant(null);
+    }
+  }, [messages, optimisticAssistant]);
+
+  useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, streaming]);
+  }, [messages, streaming, optimisticAssistant]);
 
   async function handleSend(
     text: string,
@@ -86,6 +98,7 @@ export function ChatView({ conversationId }: Props) {
     webSearch: boolean = false,
   ) {
     setSending(true);
+    setOptimisticAssistant(null);
     const wantsImage = !image && !file && detectImageIntent(text);
     console.log("[CHAT] intenção de imagem detectada:", wantsImage, "| text:", text.slice(0, 120));
     setInflightMode(
@@ -162,20 +175,21 @@ export function ChatView({ conversationId }: Props) {
           const err = await res.json().catch(() => ({ error: "Falha ao gerar imagem." }));
           throw new Error(err.error || "Falha ao gerar imagem.");
         }
-        const data = (await res.json()) as { url: string };
+        const data = (await res.json()) as { url: string; caption?: string };
         console.log("[CHAT] plano ativo:", true);
         console.log("[CHAT] imagem gerada:", data.url);
+        const caption = (data.caption ?? "Aqui está sua imagem.").trim();
         setOptimisticAssistant({
           id: `tmp-a-${Date.now()}`,
           role: "assistant",
-          content: "Aqui está sua imagem ✨",
+          content: caption,
           image_url: data.url,
         });
         await saveMsg({
           data: {
             conversationId: convId,
             role: "assistant",
-            content: "Aqui está sua imagem ✨",
+            content: caption,
             imageUrl: data.url,
           },
         });
