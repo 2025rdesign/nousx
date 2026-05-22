@@ -372,22 +372,24 @@ export const generateCharacter = createServerFn({ method: "POST" })
         negativeDetails: `${baseNeg}${userNeg ? ", " + userNeg : ""}`,
       };
       {
-        const strength = data.poseStrength ?? 80;
+        const strength = Number.isFinite(Number(data.poseStrength))
+          ? Math.round(Number(data.poseStrength))
+          : 80;
         const userPrompt = (data.posePrompt ?? "").trim();
+        let pose: Record<string, unknown> | null = null;
         if (data.poseId) {
-          const p: Record<string, unknown> = {
+          pose = {
             type: resolvePoseType(data.poseId),
             id: cleanPoseId(data.poseId),
             strength,
           };
-          if (userPrompt) p.posePrompt = userPrompt;
-          (body as Record<string, unknown>).pose = p;
+          if (userPrompt) pose.posePrompt = userPrompt;
         } else if (userPrompt) {
-          (body as Record<string, unknown>).pose = {
-            type: "CUSTOM",
-            posePrompt: userPrompt,
-            strength,
-          };
+          pose = { type: "CUSTOM", strength, posePrompt: userPrompt };
+        }
+        if (pose) {
+          console.log("[POSE]", JSON.stringify(pose));
+          (body as Record<string, unknown>).pose = pose;
         }
       }
     } else {
@@ -418,22 +420,24 @@ export const generateCharacter = createServerFn({ method: "POST" })
         (body as Record<string, unknown>).editModel = data.editModel;
       }
       {
-        const strength = data.poseStrength ?? 80;
+        const strength = Number.isFinite(Number(data.poseStrength))
+          ? Math.round(Number(data.poseStrength))
+          : 80;
         const userPrompt = (data.posePrompt ?? "").trim();
+        let pose: Record<string, unknown> | null = null;
         if (data.poseId) {
-          const p: Record<string, unknown> = {
+          pose = {
             type: resolvePoseType(data.poseId),
             id: cleanPoseId(data.poseId),
             strength,
           };
-          if (userPrompt) p.posePrompt = userPrompt;
-          (body as Record<string, unknown>).pose = p;
+          if (userPrompt) pose.posePrompt = userPrompt;
         } else if (userPrompt) {
-          (body as Record<string, unknown>).pose = {
-            type: "CUSTOM",
-            posePrompt: userPrompt,
-            strength,
-          };
+          pose = { type: "CUSTOM", strength, posePrompt: userPrompt };
+        }
+        if (pose) {
+          console.log("[POSE]", JSON.stringify(pose));
+          (body as Record<string, unknown>).pose = pose;
         }
       }
       // Stash for fallback
