@@ -28,11 +28,11 @@ import {
   improvePrompt,
   togglePublic,
   deleteCharacter,
-  listPoses,
 } from "@/lib/studio.functions";
 import { cn } from "@/lib/utils";
 import { CreditPurchaseModal } from "@/components/payments/credit-purchase-modal";
 import { getCredits } from "@/lib/credits.functions";
+import { POSES, POSE_CATEGORIES } from "@/data/poses";
 
 export const Route = createFileRoute("/_authenticated/studio")({
   head: () => ({
@@ -121,7 +121,6 @@ function StudioInner() {
   const toggleFn = useServerFn(togglePublic);
   const deleteFn = useServerFn(deleteCharacter);
   const fetchCredits = useServerFn(getCredits);
-  const fetchPoses = useServerFn(listPoses);
   const { data: creditsData } = useQuery({
     queryKey: ["credits"],
     queryFn: () => fetchCredits(),
@@ -166,32 +165,14 @@ function StudioInner() {
   const [poseEnabled, setPoseEnabled] = useState(false);
   const [poseId, setPoseId] = useState<string | null>(null);
   const [poseType, setPoseType] = useState<string | null>(null);
+  const [poseCategory, setPoseCategory] = useState<string>(POSE_CATEGORIES[0]?.id ?? "standing");
   const [highQuality, setHighQuality] = useState(false);
   const [editModel, setEditModel] = useState<"CREATIVE" | "REALISM" | "QWEN_PRO">("CREATIVE");
 
-  const { data: poses = [], isLoading: posesLoading, isError: posesError } = useQuery({
-    queryKey: ["alive-poses"],
-    queryFn: () => fetchPoses(),
-    enabled: poseEnabled,
-    staleTime: 5 * 60_000,
-    retry: 0,
-  });
-
-  const groupedPoses = useMemo(() => {
-    const groups: Record<string, Array<{ id: string; name: string; type?: string | null; thumbnail?: string }>> = {
-      Standing: [], Sitting: [], Lying: [], Kneeling: [], "All Fours": [], Other: [],
-    };
-    for (const p of poses as Array<{ id: string; name: string; type?: string | null; thumbnail?: string }>) {
-      const n = `${p.name || ""} ${p.type || ""}`.toLowerCase();
-      if (/all.?four|on all fours|doggy/.test(n)) groups["All Fours"].push(p);
-      else if (/stand/.test(n)) groups.Standing.push(p);
-      else if (/sit/.test(n)) groups.Sitting.push(p);
-      else if (/ly(ing)?|lay/.test(n)) groups.Lying.push(p);
-      else if (/kneel/.test(n)) groups.Kneeling.push(p);
-      else groups.Other.push(p);
-    }
-    return groups;
-  }, [poses]);
+  const filteredPoses = useMemo(
+    () => POSES.filter((p) => p.category === poseCategory),
+    [poseCategory],
+  );
 
   const cost = highQuality ? 2 : 1;
 
@@ -597,48 +578,46 @@ function StudioInner() {
               </label>
               {poseEnabled && (
                 <div className="space-y-3 pt-1">
-                  {posesLoading ? (
-                    <p className="text-xs text-muted-foreground flex items-center gap-2">
-                      <Loader2 className="size-3 animate-spin" />
-                      Carregando poses...
-                    </p>
-                  ) : posesError || poses.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                      Poses indisponíveis no momento.
-                    </p>
-                  ) : (
-                    Object.entries(groupedPoses).map(([group, items]) =>
-                      items.length === 0 ? null : (
-                        <div key={group} className="space-y-1.5">
-                          <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                            {group}
-                          </div>
-                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
-                            {items.map((p) => (
-                              <button
-                                key={p.id}
-                                type="button"
-                                onClick={() => { setPoseId(p.id); setPoseType(p.type ?? null); }}
-                                className={cn(
-                                  "aspect-square rounded-md border overflow-hidden bg-muted text-[10px] flex items-end justify-center transition-colors",
-                                  poseId === p.id
-                                    ? "border-primary ring-2 ring-primary/40"
-                                    : "border-border hover:border-foreground/40",
-                                )}
-                                title={p.name}
-                              >
-                                {p.thumbnail ? (
-                                  <img src={p.thumbnail} alt={p.name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <span className="p-1 truncate">{p.name}</span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ),
-                    )
-                  )}
+                  <div className="flex flex-wrap gap-1.5">
+                    {POSE_CATEGORIES.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setPoseCategory(c.id)}
+                        className={cn(
+                          "h-7 px-3 rounded-full text-[11px] border transition-colors",
+                          poseCategory === c.id
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-transparent border-border text-muted-foreground hover:text-foreground hover:border-foreground/40",
+                        )}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {filteredPoses.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => { setPoseId(p.id); setPoseType(p.category.toUpperCase()); }}
+                        className={cn(
+                          "group size-20 rounded-lg overflow-hidden bg-muted transition-all",
+                          poseId === p.id
+                            ? "ring-2 ring-primary"
+                            : "ring-1 ring-border hover:ring-foreground/40",
+                        )}
+                        title={p.label}
+                      >
+                        <img
+                          src={p.preview}
+                          alt={p.label}
+                          loading="lazy"
+                          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.05]"
+                        />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
