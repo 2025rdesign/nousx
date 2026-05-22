@@ -69,7 +69,7 @@ async function translateToEnglish(text: string): Promise<string> {
 }
 
 async function pollPrompt(promptId: string): Promise<{ mediaId: string; mediaUrl: string }> {
-  const maxAttempts = 48; // 48 * 2.5s = 120s (2 min)
+  const maxAttempts = 72; // 72 * 2.5s = 180s (3 min)
   const interval = 2500;
 
   for (let i = 0; i < maxAttempts; i++) {

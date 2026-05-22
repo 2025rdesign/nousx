@@ -261,27 +261,33 @@ function StudioInner() {
 
   // Simulated progress bar: fast to 85% in 8s, slow to 95%, jumps to 100% on success
   const [progress, setProgress] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     if (!isLoading) {
       if (result) {
         setProgress(100);
         const t = setTimeout(() => setProgress(0), 700);
+        setElapsed(0);
         return () => clearTimeout(t);
       }
       setProgress(0);
+      setElapsed(0);
       return;
     }
     setProgress(2);
     const start = Date.now();
     const iv = setInterval(() => {
-      const elapsed = (Date.now() - start) / 1000;
+      const e = (Date.now() - start) / 1000;
+      setElapsed(e);
       let p: number;
-      if (elapsed < 8) p = (elapsed / 8) * 85;
-      else p = Math.min(95, 85 + (elapsed - 8) * 0.5);
+      if (e < 8) p = (e / 8) * 85;
+      else p = Math.min(95, 85 + (e - 8) * 0.5);
       setProgress(p);
     }, 120);
     return () => clearInterval(iv);
   }, [isLoading, result]);
+
+  const inQueue = isLoading && elapsed >= 15;
 
   const Sidebar = (
     <div className="flex flex-col h-full bg-background">
@@ -834,10 +840,12 @@ function StudioInner() {
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6">
                     <Loader2 className="size-7 animate-spin text-primary" />
                     <p className="text-sm text-foreground font-medium text-center">
-                      Gerando sua imagem...
+                      {inQueue ? "Aguardando servidor disponível..." : "Gerando sua imagem..."}
                     </p>
                     <p className="text-xs text-muted-foreground text-center">
-                      {LOADING_TEXTS[loadingTextIdx]}
+                      {inQueue
+                        ? "Outros usuários estão gerando. Você está na fila."
+                        : LOADING_TEXTS[loadingTextIdx]}
                     </p>
                   </div>
                 </>
@@ -845,7 +853,25 @@ function StudioInner() {
               {!isLoading && result && (
                 <img src={result} alt="Resultado" className="w-full h-full object-contain lg:object-contain" />
               )}
-              {!isLoading && !result && (
+              {!isLoading && !result && gen.isError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
+                  <AlertTriangle className="size-7 text-destructive" />
+                  <p className="text-sm font-medium text-foreground">
+                    Não conseguimos gerar agora.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Seu crédito foi preservado. Tente novamente.
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={() => gen.mutate()}
+                    className="mt-1"
+                  >
+                    Tentar novamente
+                  </Button>
+                </div>
+              )}
+              {!isLoading && !result && !gen.isError && (
                 <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
                   A imagem aparecerá aqui.
                 </div>
