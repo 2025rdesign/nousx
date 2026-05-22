@@ -315,8 +315,12 @@ const generateSchema = z.object({
 const REMOVE_BOTTOM = /calcinha|biqu[íi]ni de baixo|tire tudo|completamente nua|totalmente nua|panties|fully nude|completely naked/i;
 const REMOVE_CLOTHING = /sem roupa|nua|pelada|tire|tirar|naked|nude|undress|remove/i;
 
+function cleanPoseId(id: string): string {
+  return id.replace(/_depth$/i, "");
+}
+
 function resolvePoseType(id: string): string {
-  const clean = id.replace(/^NSFW_/i, "").replace(/_depth$/i, "").toLowerCase();
+  const clean = cleanPoseId(id).replace(/^NSFW_/i, "").toLowerCase();
   if (clean.startsWith("standing")) return "STANDING";
   if (clean.startsWith("lying")) return "LYING";
   if (clean.startsWith("all_fours")) return "ALLFOURS";
@@ -324,7 +328,7 @@ function resolvePoseType(id: string): string {
   if (clean.startsWith("sitting")) return "SITTING";
   if (clean.startsWith("squatting")) return "SQUATTING";
   if (clean.startsWith("suspended")) return "SUSPENDED";
-  if (clean.startsWith("porn")) return "PORN";
+  if (clean.startsWith("porn_") || clean.startsWith("couple")) return "PORN";
   return "CUSTOM";
 }
 
@@ -368,7 +372,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
       if (data.poseId) {
         (body as Record<string, unknown>).pose = {
           type: resolvePoseType(data.poseId),
-          id: data.poseId,
+          id: cleanPoseId(data.poseId),
           strength: 80,
         };
       }
@@ -402,7 +406,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
       if (data.poseId) {
         (body as Record<string, unknown>).pose = {
           type: resolvePoseType(data.poseId),
-          id: data.poseId,
+          id: cleanPoseId(data.poseId),
           strength: 80,
         };
       }
