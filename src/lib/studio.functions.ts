@@ -299,6 +299,8 @@ const generateSchema = z.object({
   aspectRatio: z.enum(["9:16", "16:9", "1:1", "4:5"]),
   poseId: z.string().optional().nullable(),
   poseType: z.string().optional().nullable(),
+  poseStrength: z.number().int().min(0).max(100).optional(),
+  posePrompt: z.string().max(500).optional(),
   detailLevel: z.enum(["MEDIUM", "HIGH"]).optional(),
   // new
   name: z.string().min(1).max(60).optional(),
