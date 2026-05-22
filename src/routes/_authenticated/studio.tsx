@@ -95,14 +95,12 @@ function HistoryThumb({
   return (
     <div
       onClick={onClick}
-      className="relative group rounded-lg overflow-hidden cursor-pointer bg-[#1a1a2e] animate-in fade-in"
+      className="relative group rounded-lg overflow-hidden cursor-pointer bg-[#1a1a2e] animate-in fade-in h-[120px] md:h-[140px]"
       style={{
-        height: "var(--thumb-h)",
         animationDelay: `${index * 50}ms`,
         animationFillMode: "both",
       }}
     >
-      <style>{`:root{--thumb-h:120px}@media(min-width:768px){:root{--thumb-h:140px}}`}</style>
       {!loaded && (
         <div className="absolute inset-0 bg-[#1a1a2e] animate-pulse" />
       )}
