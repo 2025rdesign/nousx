@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Check, Loader2, QrCode, CreditCard } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
@@ -19,8 +19,8 @@ import {
   cancelMySubscription,
   getMySubscription,
 } from "@/lib/payments.functions";
-import { createMpCheckout } from "@/lib/mercadopago.functions";
 import { CouponField, type AppliedCoupon } from "./coupon-field";
+import { MpPixModal } from "./mp-pix-modal";
 
 const formatBRL = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
 
@@ -198,33 +198,14 @@ function PlanCheckoutDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const qc = useQueryClient();
   const plan = PLANS[planId];
   const [coupon, setCoupon] = useState<AppliedCoupon>(null);
-  const [method, setMethod] = useState<"pix" | "card">("pix");
+  const [pixOpen, setPixOpen] = useState(false);
 
   const finalPrice = useMemo(
     () => (coupon ? applyDiscount(plan.price, coupon.discountPercent) : plan.price),
     [plan.price, coupon],
   );
-
-  const start = useServerFn(createMpCheckout);
-  const m = useMutation({
-    mutationFn: () =>
-      start({
-        data: { kind: "subscription", id: planId, couponCode: coupon?.code ?? null, method },
-      }),
-    onSuccess: (res) => {
-      window.open(res.initPoint, "_blank", "noopener,noreferrer");
-      notify.success(
-        "Finalize o pagamento na página que abriu. Sua assinatura será ativada automaticamente.",
-      );
-      qc.invalidateQueries({ queryKey: ["my-subscription"] });
-      qc.invalidateQueries({ queryKey: ["credits"] });
-      onOpenChange(false);
-    },
-    onError: (e) => notify.error(e instanceof Error ? e.message : "Erro ao assinar."),
-  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -247,58 +228,29 @@ function PlanCheckoutDialog({
           </div>
           <CouponField value={coupon} onApply={setCoupon} />
           <p className="text-xs text-zinc-500 leading-relaxed">
-            O pagamento é processado com segurança pela plataforma Mercado Pago.
-            Seus dados financeiros não são armazenados pela AuraIA.
+            Pagamento processado com segurança. Seus dados financeiros não são armazenados pela AuraIA.
           </p>
-          <div>
-            <p className="text-xs uppercase tracking-wider text-zinc-400 mb-2">
-              Método de pagamento
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setMethod("pix")}
-                className={cn(
-                  "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors",
-                  method === "pix"
-                    ? "border-[#6C47FF] bg-[#6C47FF]/15 text-white"
-                    : "border-[#1E1E2E] bg-[#13131A] text-zinc-300 hover:border-zinc-600",
-                )}
-              >
-                <QrCode className="size-4" /> PIX
-              </button>
-              <button
-                type="button"
-                onClick={() => setMethod("card")}
-                className={cn(
-                  "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors",
-                  method === "card"
-                    ? "border-[#6C47FF] bg-[#6C47FF]/15 text-white"
-                    : "border-[#1E1E2E] bg-[#13131A] text-zinc-300 hover:border-zinc-600",
-                )}
-              >
-                <CreditCard className="size-4" /> Cartão
-              </button>
-            </div>
-          </div>
           <Button
             className="w-full bg-[#6C47FF] hover:bg-[#7d5cff] text-white"
-            onClick={() => m.mutate()}
-            disabled={m.isPending}
+            onClick={() => setPixOpen(true)}
           >
-            {m.isPending ? (
-              <>
-                <Loader2 className="size-4 animate-spin mr-2" /> Abrindo checkout...
-              </>
-            ) : (
-              `Continuar — ${formatBRL(finalPrice)}/mês`
-            )}
+            {`Pagar com PIX — ${formatBRL(finalPrice)}`}
           </Button>
           <p className="text-xs text-zinc-500 text-center">
             Após confirmar o pagamento, sua assinatura é ativada automaticamente.
           </p>
         </div>
       </DialogContent>
+      <MpPixModal
+        open={pixOpen}
+        onOpenChange={setPixOpen}
+        kind="subscription"
+        id={planId}
+        name={`Assinatura ${plan.name}`}
+        amount={finalPrice}
+        couponCode={coupon?.code ?? null}
+        onPaid={() => onOpenChange(false)}
+      />
     </Dialog>
   );
 }
