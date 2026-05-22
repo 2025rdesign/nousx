@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      audio_library: {
+        Row: {
+          audio_url: string | null
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          text_content: string | null
+          user_id: string
+          voice_id: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          text_content?: string | null
+          user_id: string
+          voice_id?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          text_content?: string | null
+          user_id?: string
+          voice_id?: string | null
+        }
+        Relationships: []
+      }
       character_profiles: {
         Row: {
           alive_prompt_id: string | null
@@ -207,6 +237,33 @@ export type Database = {
           balance?: number
           total_purchased?: number
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gallery: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          prompt: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          prompt?: string | null
+          source?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          prompt?: string | null
+          source?: string
           user_id?: string
         }
         Relationships: []
