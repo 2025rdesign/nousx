@@ -16,11 +16,12 @@ import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
 import { PLANS, applyDiscount, type PlanId } from "@/lib/payments-config";
 import {
-  startSubscriptionCheckout,
   cancelMySubscription,
   getMySubscription,
 } from "@/lib/payments.functions";
+import { createPixCharge } from "@/lib/cajupay.functions";
 import { CouponField, type AppliedCoupon } from "./coupon-field";
+import { PixCheckoutModal, type PixCheckoutData } from "./pix-checkout-modal";
 
 const formatBRL = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
 
@@ -198,21 +199,23 @@ function PlanCheckoutDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
+  const qc = useQueryClient();
   const plan = PLANS[planId];
   const [coupon, setCoupon] = useState<AppliedCoupon>(null);
+  const [pix, setPix] = useState<PixCheckoutData | null>(null);
 
   const finalPrice = useMemo(
     () => (coupon ? applyDiscount(plan.price, coupon.discountPercent) : plan.price),
     [plan.price, coupon],
   );
 
-  const start = useServerFn(startSubscriptionCheckout);
+  const start = useServerFn(createPixCharge);
   const m = useMutation({
-    mutationFn: () => start({ data: { planId, couponCode: coupon?.code ?? null } }),
-    onSuccess: (res) => {
-      notify.success("Redirecionando para o checkout seguro...");
-      window.location.href = res.checkoutUrl;
-    },
+    mutationFn: () =>
+      start({
+        data: { kind: "subscription", id: planId, couponCode: coupon?.code ?? null },
+      }),
+    onSuccess: (res) => setPix(res),
     onError: (e) => notify.error(e instanceof Error ? e.message : "Erro ao assinar."),
   });
 
@@ -243,17 +246,26 @@ function PlanCheckoutDialog({
           >
             {m.isPending ? (
               <>
-                <Loader2 className="size-4 animate-spin mr-2" /> Redirecionando...
+                <Loader2 className="size-4 animate-spin mr-2" /> Gerando PIX...
               </>
             ) : (
-              `Assinar — ${formatBRL(finalPrice)}/mês`
+              `Gerar PIX — ${formatBRL(finalPrice)}/mês`
             )}
           </Button>
           <p className="text-xs text-zinc-500 text-center">
-            Você será redirecionado para um checkout seguro. Sua assinatura será ativada
-            automaticamente após a confirmação.
+            Pagamento 100% via PIX. Sua assinatura é ativada automaticamente após a
+            confirmação.
           </p>
         </div>
+        <PixCheckoutModal
+          data={pix}
+          open={!!pix}
+          onOpenChange={(v) => !v && setPix(null)}
+          onPaid={() => {
+            qc.invalidateQueries({ queryKey: ["my-subscription"] });
+            qc.invalidateQueries({ queryKey: ["credits"] });
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
