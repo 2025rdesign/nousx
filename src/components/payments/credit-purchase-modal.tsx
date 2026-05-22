@@ -100,7 +100,7 @@ export function CreditPurchaseModal({
   const [packId, setPackId] = useState<CreditPackId>("popular");
   const [coupon, setCoupon] = useState<AppliedCoupon>(null);
   const [method, setMethod] = useState<"PIX" | "CREDIT_CARD">("PIX");
-  const { card, setCard, holder, setHolder, sanitized } = useCardForm(user?.email ?? "");
+  const { card, setCard, sanitized } = useCardForm(user?.email ?? "");
 
   const [pix, setPix] = useState<{ paymentId: string; image: string; payload: string } | null>(
     null,
@@ -140,18 +140,6 @@ export function CreditPurchaseModal({
     enabled: open,
   });
 
-  // When user prefills holder data for card, sync from profile
-  useEffect(() => {
-    if (profileQ.data) {
-      setHolder((h) => ({
-        ...h,
-        name: h.name || profileQ.data!.name,
-        cpfCnpj: h.cpfCnpj || profileQ.data!.cpf,
-        email: profileQ.data!.email,
-      }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileQ.data]);
 
   const saveProfileM = useMutation({
     mutationFn: (vars: { name: string; cpf: string }) =>
@@ -183,14 +171,13 @@ export function CreditPurchaseModal({
           },
         });
       }
-      const { card: c, holder: h } = sanitized();
+      const { card: c } = sanitized();
       return buy({
         data: {
           packId,
           method: "CREDIT_CARD",
           couponCode: coupon?.code ?? null,
           card: c,
-          holder: h,
         },
       });
     },
@@ -527,7 +514,7 @@ export function CreditPurchaseModal({
                 </p>
               </TabsContent>
               <TabsContent value="CREDIT_CARD" className="pt-3">
-                <CardFields card={card} setCard={setCard} holder={holder} setHolder={setHolder} />
+                <CardFields card={card} setCard={setCard} />
               </TabsContent>
             </Tabs>
             <Button
