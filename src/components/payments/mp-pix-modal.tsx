@@ -17,6 +17,7 @@ import {
   getPixStatus,
   getProfileCpf,
 } from "@/lib/mercadopago.functions";
+import { CREDIT_PACKS, PLANS, type CreditPackId, type PlanId } from "@/lib/payments-config";
 
 export type PixModalProps = {
   open: boolean;
@@ -131,6 +132,15 @@ export function MpPixModal(props: PixModalProps) {
 
   const isPaid = statusQ.data?.status === "approved";
 
+  // Quantos créditos foram adicionados (pack one-shot ou plano).
+  const creditsAdded = useMemo(() => {
+    if (kind === "credit") return CREDIT_PACKS[id as CreditPackId]?.credits ?? 0;
+    if (kind === "subscription") return PLANS[id as PlanId]?.credits ?? 0;
+    return 0;
+  }, [kind, id]);
+
+  const [count, setCount] = useState(0);
+
   useEffect(() => {
     if (!isPaid) return;
     try {
@@ -140,9 +150,26 @@ export function MpPixModal(props: PixModalProps) {
     qc.invalidateQueries({ queryKey: ["credits"] });
     qc.invalidateQueries({ queryKey: ["my-subscription"] });
     onPaid?.();
-    const t = setTimeout(() => onOpenChange(false), 1800);
-    return () => clearTimeout(t);
-  }, [isPaid, onPaid, onOpenChange, qc]);
+
+    // Count-up animation
+    setCount(0);
+    const start = performance.now();
+    const duration = 1500;
+    let raf = 0;
+    const tick = (time: number) => {
+      const progress = Math.min((time - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.round(eased * creditsAdded));
+      if (progress < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+
+    const t = setTimeout(() => onOpenChange(false), 4000);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(t);
+    };
+  }, [isPaid, onPaid, onOpenChange, qc, creditsAdded]);
 
   const copy = async () => {
     if (!pix?.qrCode) return;
@@ -201,9 +228,8 @@ export function MpPixModal(props: PixModalProps) {
           >
             <Info className="size-4 shrink-0 mt-0.5" style={{ color: "rgba(108, 71, 255, 0.9)" }} />
             <p className="text-[13px] leading-relaxed text-zinc-300">
-              O pagamento será processado em nome de <strong className="font-medium text-white">Ray Dougas</strong>,
-              administrador e desenvolvedor responsável pela plataforma AuraIA.
-              Isso é normal e não afeta a segurança da sua compra.
+              Os valores são recebidos pelo responsável pela plataforma.
+              Isso é padrão e não afeta a segurança da sua compra.
             </p>
           </div>
         )}
@@ -349,14 +375,42 @@ export function MpPixModal(props: PixModalProps) {
         )}
 
         {isPaid && (
-          <div className="py-8 text-center space-y-3">
-            <div className="mx-auto size-14 rounded-full bg-emerald-500/15 flex items-center justify-center">
-              <Check className="size-8 text-emerald-400" />
+          <div className="py-8 text-center space-y-4">
+            <div
+              className="mx-auto size-16 rounded-full bg-emerald-500/15 flex items-center justify-center"
+              style={{
+                animation: "mp-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              }}
+            >
+              <Check className="size-9 text-emerald-400" />
             </div>
-            <h3 className="text-lg font-semibold text-white">Pagamento confirmado!</h3>
-            <p className="text-sm text-zinc-400">
-              {pix?.description} — {formatBRL(pix?.amount ?? amount)}
-            </p>
+            <h3 className="text-2xl font-bold text-white">Pagamento confirmado!</h3>
+
+            {creditsAdded > 0 && (
+              <div className="space-y-1">
+                <div
+                  className="text-5xl font-extrabold tabular-nums"
+                  style={{ color: "#9B7BFF" }}
+                >
+                  +{count}
+                </div>
+                <p className="text-sm text-zinc-300">
+                  +{creditsAdded} créditos adicionados à sua conta
+                </p>
+                <p className="text-xs text-zinc-500">
+                  Seus créditos já estão disponíveis no Estúdio de Criação.
+                </p>
+              </div>
+            )}
+
+            <Button
+              onClick={() => onOpenChange(false)}
+              className="bg-[#6C47FF] hover:bg-[#7d5cff] text-white mt-2"
+            >
+              Continuar
+            </Button>
+
+            <style>{`@keyframes mp-pop { 0% { transform: scale(0); opacity: 0 } 60% { transform: scale(1.15); opacity: 1 } 100% { transform: scale(1) } }`}</style>
           </div>
         )}
       </DialogContent>
