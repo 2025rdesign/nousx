@@ -206,6 +206,15 @@ export const Route = createFileRoute("/api/generate-image")({
           if (!res.ok) {
             const txt = await res.text().catch(() => "");
             console.error("[GENERATE-IMAGE] upstream", res.status, txt.slice(0, 500));
+            if (res.status === 400 && /content moderation|rejected by content moderation/i.test(txt)) {
+              return json(
+                {
+                  error:
+                    "Esse pedido foi bloqueado pelo provedor de imagem. Tente reformular com uma descrição menos explícita.",
+                },
+                422,
+              );
+            }
             return json({ error: "Não foi possível gerar a imagem." }, 500);
           }
           const data = (await res.json()) as {

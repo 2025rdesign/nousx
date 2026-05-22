@@ -134,7 +134,9 @@ export function ChatView({ conversationId }: Props) {
     reasoning: boolean,
     webSearch: boolean = false,
   ) {
+    console.log("[IMG 1] iniciando geracao");
     setSending(true);
+    setStreaming(null);
     setOptimisticAssistant(null);
     const latestAssistantImage = getLatestAssistantImage(messages, optimisticAssistant);
     const isImageFollowUp = !image && !file && detectImageFollowUp(text, !!latestAssistantImage);
@@ -187,6 +189,7 @@ export function ChatView({ conversationId }: Props) {
 
       // ── Image generation branch ──────────────────────────────────────────
       if (wantsImage) {
+        console.log("[IMG 2] chamando API");
         console.log("[CHAT] chamando /api/generate-image (DeepSeek bypassado)");
         const { data: sess } = await supabase.auth.getSession();
         const token = sess.session?.access_token;
@@ -221,7 +224,9 @@ export function ChatView({ conversationId }: Props) {
         const data = (await res.json()) as { url: string; caption?: string };
         console.log("[CHAT] plano ativo:", true);
         console.log("[CHAT] imagem gerada:", data.url);
+        console.log("[IMG 3] URL recebida:", data.url);
         const caption = (data.caption ?? "Aqui está sua imagem.").trim();
+        console.log("[IMG 4] atualizando mensagem");
         setOptimisticAssistant({
           id: `tmp-a-${Date.now()}`,
           role: "assistant",
