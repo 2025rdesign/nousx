@@ -232,7 +232,7 @@ export const deleteCharacter = createServerFn({ method: "POST" })
 
 export const improvePrompt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { prompt: string }) =>
+  .inputValidator((d: { prompt: string; model?: "DEFAULT" | "REALISM" | "ANIME" }) =>
     z
       .object({
         prompt: z.string().min(1).max(2000),
