@@ -419,23 +419,9 @@ export const generateCharacter = createServerFn({ method: "POST" })
         negativeDetails: `${baseNeg}${userNeg ? ", " + userNeg : ""}`,
       };
       {
-        const strength = Number.isFinite(Number(data.poseStrength))
-          ? Math.round(Number(data.poseStrength))
-          : 50;
-        const userPrompt = (data.posePrompt ?? "").trim();
-        let pose: Record<string, unknown> | null = null;
-        if (data.poseId) {
-          pose = {
-            type: resolvePoseType(data.poseId),
-            id: cleanPoseId(data.poseId),
-            poseStrength: strength,
-          };
-          if (userPrompt) pose.posePrompt = userPrompt;
-        } else if (userPrompt) {
-          pose = { type: "CUSTOM", poseStrength: strength, posePrompt: userPrompt };
-        }
+        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength);
         if (pose) {
-          console.log("[POSE]", JSON.stringify(pose));
+          console.log("[POSE PAYLOAD]", JSON.stringify(pose));
           (body as Record<string, unknown>).pose = pose;
         }
       }
@@ -465,23 +451,9 @@ export const generateCharacter = createServerFn({ method: "POST" })
         cfg: 5,
       };
       {
-        const strength = Number.isFinite(Number(data.poseStrength))
-          ? Math.round(Number(data.poseStrength))
-          : 50;
-        const userPrompt = (data.posePrompt ?? "").trim();
-        let pose: Record<string, unknown> | null = null;
-        if (data.poseId) {
-          pose = {
-            type: resolvePoseType(data.poseId),
-            id: cleanPoseId(data.poseId),
-            poseStrength: strength,
-          };
-          if (userPrompt) pose.posePrompt = userPrompt;
-        } else if (userPrompt) {
-          pose = { type: "CUSTOM", poseStrength: strength, posePrompt: userPrompt };
-        }
+        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength);
         if (pose) {
-          console.log("[POSE]", JSON.stringify(pose));
+          console.log("[POSE PAYLOAD]", JSON.stringify(pose));
           (body as Record<string, unknown>).pose = pose;
         }
       }
