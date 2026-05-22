@@ -49,11 +49,13 @@ export function ChatView({ conversationId }: Props) {
   const saveMsg = useServerFn(saveMessage);
   const rename = useServerFn(renameConversation);
 
-  const { data: dbMessages } = useQuery({
+  const { data: dbMessages, isLoading: messagesLoading } = useQuery({
     queryKey: ["messages", conversationId],
     queryFn: () =>
       conversationId ? fetchMessages({ data: { conversationId } }) : Promise.resolve([]),
     enabled: !!conversationId,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
   });
 
   const [streaming, setStreaming] = useState<ChatMsg | null>(null);
@@ -295,11 +297,27 @@ export function ChatView({ conversationId }: Props) {
   }
 
   const hasContent = messages.length > 0 || streaming || optimisticUser;
+  const showSkeleton =
+    !!conversationId && messagesLoading && !hasContent;
 
   return (
     <CodeCanvasProvider>
       <div className="h-full flex flex-col">
-        {hasContent ? (
+        {showSkeleton ? (
+          <div className="flex-1 overflow-y-auto">
+            <div className="w-full max-w-3xl mx-auto px-3 md:px-4 py-6 space-y-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={
+                    "h-16 rounded-lg bg-muted/50 animate-pulse " +
+                    (i % 2 === 0 ? "max-w-[70%]" : "ml-auto max-w-[55%]")
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        ) : hasContent ? (
           <div ref={scrollRef as any} className="flex-1 overflow-y-auto">
             <div className="w-full max-w-3xl mx-auto px-3 md:px-4 py-6 space-y-4">
               {messages.map((m) => (

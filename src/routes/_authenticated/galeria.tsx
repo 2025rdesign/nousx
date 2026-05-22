@@ -22,15 +22,21 @@ function Gallery() {
   const [filter, setFilter] = useState<string>("all");
   const [lightbox, setLightbox] = useState<string | null>(null);
 
-  const { data: profiles = [] } = useQuery({
+  const { data: profiles = [], isLoading: lp } = useQuery({
     queryKey: ["my-profiles"],
     queryFn: () => fetchProfiles(),
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
   });
-  const { data: items = [] } = useQuery({
+  const { data: items = [], isLoading: li } = useQuery({
     queryKey: ["gallery", filter],
     queryFn: () =>
       fetchChars({ data: { profileId: filter === "all" ? null : filter } }),
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+    placeholderData: (prev) => prev,
   });
+  const loading = lp || li;
 
   return (
     <div className="h-full overflow-auto">
@@ -53,6 +59,10 @@ function Gallery() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {loading && items.length === 0 &&
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="aspect-square rounded-lg bg-muted/60 animate-pulse" />
+            ))}
           {items.map((c) => (
             <button
               key={c.id}
