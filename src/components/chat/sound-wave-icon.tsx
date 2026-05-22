@@ -25,16 +25,15 @@ export function SoundWaveIcon({ active, className, color = "currentColor" }: Pro
           rx={1.5}
           ry={1.5}
           fill={color}
-          y={active ? undefined : (20 - bar.base) / 2}
-          height={active ? undefined : bar.base}
-          style={
-            active
-              ? {
-                  transformOrigin: "center",
-                  animation: `sound-wave-${i} 0.9s ease-in-out ${bar.delay} infinite`,
-                }
-              : undefined
-          }
+          y={(20 - bar.base) / 2}
+          height={bar.base}
+          style={{
+            transformBox: "fill-box",
+            transformOrigin: "center",
+            animation: active
+              ? `sound-wave-pulse 0.9s ease-in-out ${bar.delay} infinite`
+              : undefined,
+          }}
         />
       ))}
     </svg>
