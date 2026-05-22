@@ -78,7 +78,7 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
 
         // CREDIT PURCHASE
         if (ref?.kind === "credits" && isConfirmed) {
-          await creditUserOnce(payment.id, ref.userId, ref.credits);
+          await creditUserOnce(payment.id, ref.userId, ref.credits, ref.packId);
         }
 
         // SUBSCRIPTION PAYMENT
@@ -95,8 +95,7 @@ export const Route = createFileRoute("/api/public/asaas-webhook")({
             })
             .eq("user_id", userId)
             .eq("asaas_subscription_id", subId ?? "");
-          await creditUserOnce(payment.id, userId, credits);
-          void planId;
+          await creditUserOnce(payment.id, userId, credits, planId);
         }
 
         return new Response("ok");
