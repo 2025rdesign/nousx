@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Download, X } from "lucide-react";
-import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -14,11 +13,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/galeria")({
   head: () => ({ meta: [{ title: "Galeria — NOUSX" }] }),
-  component: () => (
-    <AppLayout>
-      <Gallery />
-    </AppLayout>
-  ),
+  component: Gallery,
 });
 
 function Gallery() {
