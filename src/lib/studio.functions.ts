@@ -594,6 +594,16 @@ export const generateCharacter = createServerFn({ method: "POST" })
         prompt_id: promptId,
         status: "completed",
       });
+      try {
+        await supabase.from("gallery").insert({
+          user_id: userId,
+          image_url: mediaUrl,
+          source: "studio",
+          prompt: (data.appearance || data.name || "").slice(0, 2000),
+        });
+      } catch (galleryErr) {
+        console.warn("[studio] gallery insert failed (ignored)", galleryErr);
+      }
     } catch (persistErr) {
       console.error("[studio] persistence failed (ignored)", persistErr);
     }
