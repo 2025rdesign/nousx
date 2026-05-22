@@ -167,6 +167,8 @@ function StudioInner() {
   const [poseId, setPoseId] = useState<string | null>(null);
   const [poseType, setPoseType] = useState<string | null>(null);
   const [poseCategory, setPoseCategory] = useState<string>(POSE_CATEGORIES[0]?.id ?? "standing");
+  const [poseStrength, setPoseStrength] = useState<number>(80);
+  const [posePrompt, setPosePrompt] = useState<string>("");
   const [highQuality, setHighQuality] = useState(false);
   const [editModel, setEditModel] = useState<"CREATIVE" | "REALISM" | "QWEN_PRO">("CREATIVE");
 
