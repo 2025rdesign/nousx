@@ -434,11 +434,11 @@ function StudioInner() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="DEFAULT">Creative v2</SelectItem>
-                        <SelectItem value="REALISM">Realismo Beta</SelectItem>
-                        <SelectItem value="ANIME">Anime & Cartoon</SelectItem>
-                        <SelectItem value="TEMPORARY">Dreamy Realism V2 ✨</SelectItem>
-                        <SelectItem value="ANIMA">Anima 1.0</SelectItem>
+                        <SelectItem value="DEFAULT">NOUSX Standard</SelectItem>
+                        <SelectItem value="REALISM">NOUSX Ultra HD</SelectItem>
+                        <SelectItem value="ANIME">NOUSX Anime</SelectItem>
+                        <SelectItem value="ANIMA">NOUSX Art</SelectItem>
+                        <SelectItem value="TEMPORARY">NOUSX Dream ✨</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
