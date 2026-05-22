@@ -423,7 +423,7 @@ function StudioInner() {
 
             {activeProfile && (
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Modelo de edição</Label>
+                <Label className="text-xs text-muted-foreground">Modelo</Label>
                 <Select value={editModel} onValueChange={(v) => setEditModel(v as any)}>
                   <SelectTrigger className="h-9">
                     <SelectValue />
