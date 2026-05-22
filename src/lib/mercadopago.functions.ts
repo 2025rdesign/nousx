@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createMpPixPayment, fetchMpPayment } from "./mercadopago.server";
+import { processMpPayment } from "./mp-webhook.server";
 import {
   CREDIT_PACKS,
   PLANS,
@@ -201,7 +202,17 @@ export const getPixStatus = createServerFn({ method: "POST" })
 
     const detail = await fetchMpPayment(data.paymentId);
     if (!detail) return { status: "pending" as const };
-    return { status: String(detail.status || "pending").toLowerCase() };
+    const mpStatus = String(detail.status || "pending").toLowerCase();
+    // Polling fallback — if MP confirmed approved but webhook hasn't credited
+    // yet, process inline here. Idempotent (creditUserOnce dedupes).
+    if (mpStatus === "approved" || mpStatus === "refunded" || mpStatus === "cancelled") {
+      try {
+        await processMpPayment(data.paymentId);
+      } catch (e) {
+        console.error("[MP polling] processPayment error", e);
+      }
+    }
+    return { status: mpStatus };
   });
 
 export const getProfileCpf = createServerFn({ method: "GET" })
