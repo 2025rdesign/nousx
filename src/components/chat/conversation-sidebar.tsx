@@ -189,34 +189,65 @@ export function ConversationSidebar({
                 : "text-foreground/80 hover:bg-secondary/60",
             )}
           >
+            {c.pinned && (
+              <Pin className="size-3 flex-shrink-0 text-muted-foreground" />
+            )}
             <span className="flex-1 min-w-0 truncate text-[13px] leading-tight select-none">
               {c.title || "Nova conversa"}
             </span>
-            <div className="flex-shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity mobile-icons-visible">
-              <ActionBtn
-                label={c.pinned ? "Desafixar" : "Fixar"}
-                onClick={() =>
-                  pin.mutate({ id: c.id, pinned: !c.pinned })
-                }
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Opções da conversa"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex-shrink-0 flex items-center justify-center size-6 rounded-md text-muted-foreground hover:bg-background hover:text-foreground transition-colors opacity-60 group-hover:opacity-100 data-[state=open]:opacity-100 data-[state=open]:bg-background"
+                >
+                  <MoreHorizontal className="size-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                side="right"
+                className="w-44"
+                onClick={(e) => e.stopPropagation()}
               >
-                {c.pinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
-              </ActionBtn>
-              <ActionBtn
-                label="Renomear"
-                onClick={() => setEditingId(c.id)}
-              >
-                <Pencil className="size-3.5" />
-              </ActionBtn>
-              <ActionBtn
-                label="Excluir"
-                danger
-                onClick={() => {
-                  if (confirm("Excluir esta conversa?")) del.mutate(c.id);
-                }}
-              >
-                <Trash2 className="size-3.5" />
-              </ActionBtn>
-            </div>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    pin.mutate({ id: c.id, pinned: !c.pinned });
+                  }}
+                >
+                  {c.pinned ? (
+                    <>
+                      <PinOff className="size-4 mr-2" /> Desafixar
+                    </>
+                  ) : (
+                    <>
+                      <Pin className="size-4 mr-2" /> Fixar
+                    </>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingId(c.id);
+                  }}
+                >
+                  <Pencil className="size-4 mr-2" /> Renomear
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm("Excluir esta conversa?")) del.mutate(c.id);
+                  }}
+                >
+                  <Trash2 className="size-4 mr-2" /> Excluir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
       </li>
