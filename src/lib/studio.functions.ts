@@ -349,6 +349,38 @@ function resolvePoseType(id: string): string {
   return "CUSTOM";
 }
 
+function buildPosePayload(
+  poseId: string | null | undefined,
+  posePromptInput: string | null | undefined,
+  poseStrengthInput: number | null | undefined,
+): Record<string, unknown> | null {
+  const poseStrength = Number.isFinite(Number(poseStrengthInput))
+    ? Math.round(Number(poseStrengthInput))
+    : 50;
+  const userPrompt = (posePromptInput ?? "").trim();
+  if (poseId) {
+    const type = resolvePoseType(poseId);
+    // For couple/PORN poses the API frequently ignores the depth id —
+    // send only the textual posePrompt instead.
+    if (type === "PORN") {
+      const local = POSES.find((p) => p.id === poseId);
+      const description = userPrompt || local?.posePrompt || "couple having sex";
+      return { type: "PORN", poseStrength, posePrompt: description };
+    }
+    const pose: Record<string, unknown> = {
+      type,
+      id: cleanPoseId(poseId),
+      poseStrength,
+    };
+    if (userPrompt) pose.posePrompt = userPrompt;
+    return pose;
+  }
+  if (userPrompt) {
+    return { type: "CUSTOM", poseStrength, posePrompt: userPrompt };
+  }
+  return null;
+}
+
 export const generateCharacter = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => generateSchema.parse(d))
