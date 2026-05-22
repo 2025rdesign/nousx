@@ -61,6 +61,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   });
   const balance = creditsData?.balance ?? 0;
   const lowCredits = balance < 5;
+  const showCreditsPill = pathname === "/studio" || pathname === "/estudio";
   const displayName =
     (profile?.name as string | undefined) ||
     (user?.user_metadata?.name as string | undefined) ||
@@ -109,7 +110,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <NousxLogo className="text-lg" />
           </Link>
           <div className="flex-1" />
-          {user && (
+          {user && showCreditsPill && (
             <button
               type="button"
               onClick={() => setCreditsOpen(true)}
