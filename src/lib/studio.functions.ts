@@ -304,7 +304,6 @@ const generateSchema = z.object({
   model: z.enum(["DEFAULT", "REALISM", "ANIME"]).optional(),
   gender: z.enum(["FEMALE", "MALE", "TRANS"]).optional(),
   createProfile: z.boolean().optional(),
-  blockExplicitContent: z.boolean().optional(),
   negativePrompt: z.string().max(500).optional(),
   creativity: z.enum(["low", "medium", "high"]).optional(),
   // variation
@@ -335,15 +334,9 @@ export const generateCharacter = createServerFn({ method: "POST" })
       const cfgMap = { low: 4, medium: 7, high: 10 } as const;
       const userNeg = (data.negativePrompt ?? "").trim();
       const baseNeg = "deformed, bad anatomy, extra fingers, missing fingers, bad hands, blurry, low quality, watermark, text";
-      const blockNeg = data.blockExplicitContent
-        ? ", nudity, nude, naked, explicit, genitals, nsfw, sexual"
-        : "";
-      const appearanceForApi = data.blockExplicitContent
-        ? `${translated}, safe for work, fully clothed`
-        : translated;
       body = {
         name: data.name,
-        appearance: appearanceForApi,
+        appearance: translated,
         detailLevel: "MEDIUM",
         model: data.model,
         gender: data.gender,
@@ -353,7 +346,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         faceImproveStrength: 5.0,
         improveBreasts: false,
         improveVagina: false,
-        negativeDetails: `${baseNeg}${blockNeg}${userNeg ? ", " + userNeg : ""}`,
+        negativeDetails: `${baseNeg}${userNeg ? ", " + userNeg : ""}`,
       };
     } else {
       if (!data.profileId) throw new Error("Personagem não encontrado.");
