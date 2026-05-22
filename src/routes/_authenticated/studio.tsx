@@ -413,9 +413,10 @@ function StudioInner() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{activeProfile.name}</div>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-success/15 text-success">
-                    Rosto preservado
-                  </span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="size-1.5 rounded-full bg-success" />
+                    <span className="text-[10px] text-success leading-none">Consistente</span>
+                  </div>
                 </div>
                 <Button
                   variant="ghost"
