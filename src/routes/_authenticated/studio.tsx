@@ -78,6 +78,51 @@ function StudioPage() {
   return <StudioInner />;
 }
 
+function HistoryThumb({
+  src,
+  alt,
+  index,
+  onClick,
+  children,
+}: {
+  src: string | null;
+  alt: string;
+  index: number;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div
+      onClick={onClick}
+      className="relative group rounded-lg overflow-hidden cursor-pointer bg-[#1a1a2e] animate-in fade-in"
+      style={{
+        height: "var(--thumb-h)",
+        animationDelay: `${index * 50}ms`,
+        animationFillMode: "both",
+      }}
+    >
+      <style>{`:root{--thumb-h:120px}@media(min-width:768px){:root{--thumb-h:140px}}`}</style>
+      {!loaded && (
+        <div className="absolute inset-0 bg-[#1a1a2e] animate-pulse" />
+      )}
+      {src && (
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          onLoad={() => setLoaded(true)}
+          className="block w-full h-full object-cover transition-opacity duration-300 group-hover:scale-[1.03]"
+          style={{ opacity: loaded ? 1 : 0 }}
+        />
+      )}
+      <div className="absolute inset-0 bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function CreditsPill({
   balance,
   onClick,
