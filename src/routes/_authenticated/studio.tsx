@@ -554,6 +554,114 @@ function StudioInner() {
               </div>
             </div>
 
+            {/* Pose selector */}
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <Switch checked={poseEnabled} onCheckedChange={(v) => { setPoseEnabled(v); if (!v) setPoseId(null); }} />
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Pose</div>
+                  <p className="text-xs text-muted-foreground">
+                    Escolha uma pose específica ou deixe a IA decidir.
+                  </p>
+                </div>
+              </label>
+              {poseEnabled && (
+                <div className="space-y-3 pt-1">
+                  {poses.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Carregando poses...</p>
+                  ) : (
+                    Object.entries(groupedPoses).map(([group, items]) =>
+                      items.length === 0 ? null : (
+                        <div key={group} className="space-y-1.5">
+                          <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                            {group}
+                          </div>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+                            {items.map((p) => (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => setPoseId(p.id)}
+                                className={cn(
+                                  "aspect-square rounded-md border overflow-hidden bg-muted text-[10px] flex items-end justify-center transition-colors",
+                                  poseId === p.id
+                                    ? "border-primary ring-2 ring-primary/40"
+                                    : "border-border hover:border-foreground/40",
+                                )}
+                                title={p.name}
+                              >
+                                {p.thumbnail ? (
+                                  <img src={p.thumbnail} alt={p.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="p-1 truncate">{p.name}</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ),
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* High quality toggle */}
+            {!activeProfile && (
+              <label className="flex items-center gap-3 rounded-lg border border-border p-3 cursor-pointer">
+                <Switch checked={highQuality} onCheckedChange={setHighQuality} />
+                <div className="flex-1">
+                  <div className="text-sm font-medium flex items-center gap-2">
+                    Alta qualidade
+                    {highQuality && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/15 text-accent font-medium">
+                        +1 crédito
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Renderização em alto detalhe (HIGH). Consome 2 créditos.
+                  </p>
+                </div>
+              </label>
+            )}
+
+            {/* Face reference */}
+            {!activeProfile && (
+              <div className="space-y-2 rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">🎭 Rosto de referência</div>
+                    <p className="text-xs text-muted-foreground">
+                      Reaproveite o rosto de uma imagem já gerada.
+                    </p>
+                  </div>
+                  {faceRef ? (
+                    <div className="relative">
+                      <img
+                        src={faceRef.imageUrl}
+                        alt="Rosto de referência"
+                        className="size-12 rounded-md object-cover border border-border"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFaceRef(null)}
+                        className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-background border border-border flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground"
+                        aria-label="Remover"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <Button type="button" variant="outline" size="sm" onClick={() => setFaceRefOpen(true)}>
+                      <UserIcon className="size-3.5" />
+                      Escolher
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="rounded-lg border border-border">
               <button
                 type="button"
