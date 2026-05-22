@@ -391,7 +391,7 @@ function StudioInner() {
                     <img
                       src={activeProfile.base_image_url}
                       alt={activeProfile.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover object-top"
                     />
                   )}
                 </div>
