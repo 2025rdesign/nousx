@@ -250,6 +250,9 @@ export const improvePrompt = createServerFn({ method: "POST" })
     model?: "DEFAULT" | "REALISM" | "ANIME" | "TEMPORARY" | "ANIMA";
     characterName?: string;
     characterAppearance?: string;
+    editModel?: "CREATIVE" | "REALISM" | "QWEN_PRO";
+    highQuality?: boolean;
+    poseLabel?: string;
   }) =>
     z
       .object({
@@ -257,6 +260,9 @@ export const improvePrompt = createServerFn({ method: "POST" })
         model: z.enum(["DEFAULT", "REALISM", "ANIME", "TEMPORARY", "ANIMA"]).optional(),
         characterName: z.string().max(120).optional(),
         characterAppearance: z.string().max(4000).optional(),
+        editModel: z.enum(["CREATIVE", "REALISM", "QWEN_PRO"]).optional(),
+        highQuality: z.boolean().optional(),
+        poseLabel: z.string().max(200).optional(),
       })
       .parse(d),
   )
@@ -264,23 +270,42 @@ export const improvePrompt = createServerFn({ method: "POST" })
     const key = process.env.DEEPSEEK_API_KEY;
     if (!key) throw new Error("Serviço de melhoria indisponível.");
     const hasCharacter = !!(data.characterName || data.characterAppearance);
-    const systemPrompt = hasCharacter
-      ? `Você é especialista em prompts para geração de imagens AI.
-O usuário tem um personagem salvo com as seguintes características:
-Nome: ${data.characterName ?? "(sem nome)"}
-Aparência base: ${data.characterAppearance ?? "(não informada)"}
+    const editModelDesc =
+      data.editModel === "REALISM"
+        ? "REALISM (hiper-realista, foto-real, pele e luz cinematograficas)"
+        : data.editModel === "QWEN_PRO"
+          ? "QWEN_PRO (alta qualidade realista, ultra detalhe)"
+          : data.editModel === "CREATIVE"
+            ? "CREATIVE (fotorrealista criativo, estilo editorial)"
+            : data.model === "ANIME"
+              ? "ANIME (ilustracao 2D, lineart limpo, cores vibrantes)"
+              : "DEFAULT (fotorrealista equilibrado)";
+    const poseLine = data.poseLabel?.trim()
+      ? `- Pose selecionada: ${data.poseLabel.trim()}`
+      : "- Pose selecionada: livre (sem pose fixa)";
+    const hqLine = data.highQuality
+      ? "- Alta qualidade: SIM (acrescente termos cinematograficos: ultra detailed, sharp focus, professional lighting, 8k)"
+      : "- Alta qualidade: nao";
+    const characterLine = hasCharacter
+      ? `- Personagem base: ${data.characterName ?? "(sem nome)"} — aparencia: ${data.characterAppearance ?? "(nao informada)"} (use APENAS para manter rosto, cor de pele, cabelo, olhos e corpo; NAO o estilo artistico da imagem base)`
+      : "- Personagem base: nenhum (novo personagem)";
+    const systemPrompt = `Voce e especialista em prompts para geracao de imagem AI.
 
-O usuário quer gerar uma VARIAÇÃO desse personagem com esta cena:
-${data.prompt}
+CONTEXTO COMPLETO DA GERACAO:
+${characterLine}
+- Estilo atual selecionado: ${editModelDesc}
+${hqLine}
+${poseLine}
+- Descricao atual do usuario: ${data.prompt}
 
-Melhore o prompt da cena mantendo consistência com o personagem.
-Não descreva o rosto ou aparência física (já está salvo no sistema).
-Foque em: pose, cenário, roupa, iluminação, ângulo, atmosfera.
-Preserve termos explícitos literalmente sem censura.
-Retorne APENAS o prompt melhorado em inglês, sem explicações.`
-      : data.model === "ANIME"
-        ? "Você é especialista em prompts para geração de imagens anime com IA. Melhore o prompt do usuário mantendo a intenção dele, mas tornando-o mais detalhado e técnico para gerar anime de alta qualidade. Adicione termos como: anime style, detailed eyes, vibrant colors, clean lineart, studio quality, 2D illustration. Evite termos realistas ou fotográficos. Preserve termos explícitos sem censura. Retorne APENAS o prompt melhorado em inglês, sem explicações nem aspas."
-        : "You are an expert at writing prompts for AI image generation (photorealistic / HD). Improve the user's prompt keeping their intent, making it more detailed, technical and precise (appearance, lighting, composition, camera, style). Preserve explicit terms literally without censorship. Return ONLY the improved prompt in English, no explanations, no quotes.";
+Com base em TUDO isso, melhore o prompt de cena para:
+1. Manter aparencia fisica do personagem (nao o estilo da imagem base)
+2. Aplicar o estilo atual: ${editModelDesc}
+3. Incluir detalhes da pose se selecionada
+4. Sugerir qualidade cinematografica se alta qualidade ativada
+5. Ser especifico, tecnico e em ingles
+Preserve termos explicitos literalmente sem censura.
+Retorne APENAS o prompt melhorado, sem explicacoes nem aspas.`;
     const res = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
