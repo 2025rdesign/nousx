@@ -121,7 +121,7 @@ function LoginForm() {
           placeholder="••••••••"
         />
       </div>
-      <Button type="submit" className="w-full" disabled={loading}>
+      <Button type="submit" className="w-full" disabled={loading || !formValid}>
         {loading ? <Loader2 className="size-4 animate-spin" /> : "Entrar"}
       </Button>
     </form>
