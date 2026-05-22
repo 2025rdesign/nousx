@@ -947,11 +947,13 @@ function StudioInner() {
                   Nada por aqui ainda.
                 </p>
               ) : (
-                <div className="columns-2 md:columns-3 gap-1.5 [column-fill:_balance]">
-                  {history.map((c) => (
-                    <div
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {history.map((c, index) => (
+                    <HistoryThumb
                       key={c.id}
-                      className="relative group mb-1.5 break-inside-avoid rounded-lg overflow-hidden bg-muted cursor-pointer"
+                      src={c.image_url ?? null}
+                      alt={c.name || "Variação"}
+                      index={index}
                       onClick={() => {
                         if (c.image_url) {
                           setResult(c.image_url);
@@ -960,15 +962,6 @@ function StudioInner() {
                         }
                       }}
                     >
-                      {c.image_url && (
-                        <img
-                          src={c.image_url}
-                          alt={c.name || "Variação"}
-                          loading="lazy"
-                          className="block w-full h-auto transition-transform duration-200 group-hover:scale-[1.03]"
-                        />
-                      )}
-                      <div className="absolute inset-0 bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                       <Button
                         size="icon"
                         variant="ghost"
@@ -997,8 +990,7 @@ function StudioInner() {
                       >
                         <Trash2 className="size-3.5" />
                       </Button>
-                      </div>
-                    </div>
+                    </HistoryThumb>
                   ))}
                 </div>
               )}
