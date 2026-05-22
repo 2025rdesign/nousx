@@ -323,7 +323,7 @@ function StudioInner() {
     <div className="h-full flex flex-col md:flex-row">
       <CreditPurchaseModal open={creditsOpen} onOpenChange={setCreditsOpen} />
       {/* Studio sidebar (desktop) */}
-      <aside className="hidden lg:flex w-60 shrink-0 border-r border-border">{Sidebar}</aside>
+      <aside className="hidden lg:flex w-[250px] shrink-0 border-r border-border">{Sidebar}</aside>
       <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
         <SheetContent side="left" className="p-0 w-72 hidden md:block lg:hidden">
           <SheetTitle className="sr-only">Personagens</SheetTitle>
@@ -366,16 +366,16 @@ function StudioInner() {
         </div>
       </div>
 
-      <div className="flex-1 min-w-0 flex flex-col xl:flex-row min-h-0">
+      <div className="flex-1 min-w-0 flex flex-col lg:flex-row min-h-0">
         {/* Center panel */}
         <section
           className={cn(
-            "flex-1 min-w-0 overflow-auto",
+            "lg:w-[400px] lg:shrink-0 lg:flex-none flex-1 min-w-0 overflow-auto lg:border-r lg:border-border",
             "md:block",
             mobileTab === "criar" ? "block" : "hidden",
           )}
         >
-          <div className="w-full max-w-2xl mx-auto p-3 md:p-6 space-y-5">
+          <div className="w-full max-w-2xl lg:max-w-none mx-auto p-3 md:p-6 space-y-5">
             <div className="hidden md:flex lg:hidden items-center justify-between">
               <Button variant="outline" size="sm" onClick={() => setMobileSidebarOpen(true)}>
                 Personagens
@@ -434,11 +434,11 @@ function StudioInner() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="DEFAULT">Creative v2</SelectItem>
-                        <SelectItem value="REALISM">Realismo Beta</SelectItem>
-                        <SelectItem value="ANIME">Anime & Cartoon</SelectItem>
-                        <SelectItem value="TEMPORARY">Dreamy Realism V2 ✨</SelectItem>
-                        <SelectItem value="ANIMA">Anima 1.0</SelectItem>
+                        <SelectItem value="DEFAULT">NOUSX Standard</SelectItem>
+                        <SelectItem value="REALISM">NOUSX Ultra HD</SelectItem>
+                        <SelectItem value="ANIME">NOUSX Anime</SelectItem>
+                        <SelectItem value="ANIMA">NOUSX Art</SelectItem>
+                        <SelectItem value="TEMPORARY">NOUSX Dream ✨</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -769,19 +769,27 @@ function StudioInner() {
         {/* Result panel */}
         <section
           className={cn(
-            "xl:w-[380px] shrink-0 border-t xl:border-t-0 xl:border-l border-border bg-sidebar/40 overflow-auto",
+            "lg:flex-1 lg:min-w-0 shrink-0 border-t lg:border-t-0 border-border bg-sidebar/40 overflow-auto",
             "md:block",
             mobileTab === "resultado" ? "block" : "hidden",
           )}
         >
-          <div className="p-3 md:p-6 space-y-4">
+          <div className="p-3 md:p-6 space-y-4 lg:min-h-full lg:flex lg:flex-col">
             <h3 className="text-sm font-semibold">Resultado</h3>
             <div
               className={cn(
-                "w-full max-w-sm mx-auto rounded-lg overflow-hidden bg-muted relative",
-                RATIOS.find((r) => r.value === aspect)!.classes,
+                "w-full mx-auto rounded-lg overflow-hidden bg-muted relative",
+                "max-w-sm lg:max-w-none lg:w-full lg:flex-1 lg:flex lg:items-center lg:justify-center lg:max-h-[70vh] lg:bg-transparent",
+                "lg:" + "",
               )}
+              style={{}}
             >
+              <div
+                className={cn(
+                  "relative w-full lg:max-h-[70vh] lg:w-auto lg:h-full overflow-hidden rounded-lg bg-muted",
+                  RATIOS.find((r) => r.value === aspect)!.classes,
+                )}
+              >
               {isLoading && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-muted px-6">
                   <Loader2 className="size-8 animate-spin text-primary" />
@@ -797,13 +805,14 @@ function StudioInner() {
                 </div>
               )}
               {!isLoading && result && (
-                <img src={result} alt="Resultado" className="w-full h-full object-cover" />
+                <img src={result} alt="Resultado" className="w-full h-full object-contain lg:object-contain" />
               )}
               {!isLoading && !result && (
                 <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
                   A imagem aparecerá aqui.
                 </div>
               )}
+              </div>
             </div>
 
             {result && (
@@ -827,11 +836,11 @@ function StudioInner() {
 
             <div>
               <h4 className="text-sm font-semibold mb-2">Histórico</h4>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-3">
                 {history.map((c) => (
                   <div
                     key={c.id}
-                    className="relative group aspect-square rounded-md overflow-hidden bg-muted cursor-pointer"
+                    className="relative group aspect-square lg:min-h-[160px] rounded-md overflow-hidden bg-muted cursor-pointer"
                     onClick={() => {
                       if (c.image_url) {
                         setResult(c.image_url);
