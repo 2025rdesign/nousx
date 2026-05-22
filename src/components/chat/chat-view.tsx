@@ -394,11 +394,23 @@ export function ChatView({ conversationId }: Props) {
           : prev,
       );
 
-      if (accum) {
+      const finalContent = accum || "Desculpe, não consegui responder agora.";
+
+      if (finalContent) {
         await saveMsg({
-          data: { conversationId: convId, role: "assistant", content: accum },
+          data: { conversationId: convId, role: "assistant", content: finalContent },
         });
+        queryClient.setQueryData<ChatMsg[]>(["messages", convId], (prev) => [
+          ...(prev ?? []),
+          {
+            id: `tmp-a-${Date.now()}`,
+            role: "assistant",
+            content: finalContent,
+            reasoning: reasoningAccum || null,
+          },
+        ]);
       }
+      setStreaming(null);
       queryClient.invalidateQueries({ queryKey: ["messages", convId] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
 
