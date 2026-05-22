@@ -14,6 +14,7 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PagamentoSucessoRouteImport } from './routes/pagamento.sucesso'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiMpWebhookRouteImport } from './routes/api/mp-webhook'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
@@ -51,6 +52,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagamentoSucessoRoute = PagamentoSucessoRouteImport.update({
+  id: '/pagamento/sucesso',
+  path: '/pagamento/sucesso',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTtsRoute = ApiTtsRouteImport.update({
@@ -141,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/mp-webhook': typeof ApiMpWebhookRoute
   '/api/tts': typeof ApiTtsRoute
+  '/pagamento/sucesso': typeof PagamentoSucessoRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cajupay-webhook': typeof ApiPublicCajupayWebhookRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
@@ -161,6 +168,7 @@ export interface FileRoutesByTo {
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/mp-webhook': typeof ApiMpWebhookRoute
   '/api/tts': typeof ApiTtsRoute
+  '/pagamento/sucesso': typeof PagamentoSucessoRoute
   '/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cajupay-webhook': typeof ApiPublicCajupayWebhookRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
@@ -183,6 +191,7 @@ export interface FileRoutesById {
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/mp-webhook': typeof ApiMpWebhookRoute
   '/api/tts': typeof ApiTtsRoute
+  '/pagamento/sucesso': typeof PagamentoSucessoRoute
   '/_authenticated/c/$conversationId': typeof AuthenticatedCConversationIdRoute
   '/api/public/cajupay-webhook': typeof ApiPublicCajupayWebhookRoute
   '/api/public/cakto-webhook': typeof ApiPublicCaktoWebhookRoute
@@ -205,6 +214,7 @@ export interface FileRouteTypes {
     | '/api/generate-image'
     | '/api/mp-webhook'
     | '/api/tts'
+    | '/pagamento/sucesso'
     | '/c/$conversationId'
     | '/api/public/cajupay-webhook'
     | '/api/public/cakto-webhook'
@@ -225,6 +235,7 @@ export interface FileRouteTypes {
     | '/api/generate-image'
     | '/api/mp-webhook'
     | '/api/tts'
+    | '/pagamento/sucesso'
     | '/c/$conversationId'
     | '/api/public/cajupay-webhook'
     | '/api/public/cakto-webhook'
@@ -246,6 +257,7 @@ export interface FileRouteTypes {
     | '/api/generate-image'
     | '/api/mp-webhook'
     | '/api/tts'
+    | '/pagamento/sucesso'
     | '/_authenticated/c/$conversationId'
     | '/api/public/cajupay-webhook'
     | '/api/public/cakto-webhook'
@@ -263,6 +275,7 @@ export interface RootRouteChildren {
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiMpWebhookRoute: typeof ApiMpWebhookRoute
   ApiTtsRoute: typeof ApiTtsRoute
+  PagamentoSucessoRoute: typeof PagamentoSucessoRoute
   ApiPublicCajupayWebhookRoute: typeof ApiPublicCajupayWebhookRoute
   ApiPublicCaktoWebhookRoute: typeof ApiPublicCaktoWebhookRoute
   ApiPublicChatAnonRoute: typeof ApiPublicChatAnonRoute
@@ -303,6 +316,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pagamento/sucesso': {
+      id: '/pagamento/sucesso'
+      path: '/pagamento/sucesso'
+      fullPath: '/pagamento/sucesso'
+      preLoaderRoute: typeof PagamentoSucessoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/tts': {
@@ -439,6 +459,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiMpWebhookRoute: ApiMpWebhookRoute,
   ApiTtsRoute: ApiTtsRoute,
+  PagamentoSucessoRoute: PagamentoSucessoRoute,
   ApiPublicCajupayWebhookRoute: ApiPublicCajupayWebhookRoute,
   ApiPublicCaktoWebhookRoute: ApiPublicCaktoWebhookRoute,
   ApiPublicChatAnonRoute: ApiPublicChatAnonRoute,
