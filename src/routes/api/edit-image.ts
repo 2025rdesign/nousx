@@ -21,13 +21,22 @@ const LIBERAL_SUBSTITUTIONS: Array<[RegExp, string]> = [
   [/\bsexy\b/gi, "alluring, elegant"],
   [/\bgostos[ao]s?\b/gi, "attractive, elegant"],
   [/\bs[ée]xi\b/gi, "alluring, elegant"],
+  [/\bvestido\s+sensual\b/gi, "elegant form-fitting dress, editorial"],
+  [/\bmais\s+curt[ao]\b/gi, "mini dress, short hemline"],
+  [/\bapertad[ao]s?\b/gi, "bodycon, fitted silhouette"],
+  [/\bdecotad[ao]s?\b/gi, "low neckline, décolleté"],
+  [/\btransparentes?\b/gi, "sheer fabric, artistic"],
+  [/\bsem\s+suti[ãa]\b/gi, "braless, natural, artistic"],
+  [/\bcurvas?\b/gi, "elegant silhouette"],
+  [/\bbund[ao]s?\b/gi, "elegant figure"],
+  [/\bseios?\b/gi, "elegant figure"],
 ];
 
 function rewriteLiberal(prompt: string): string {
   let out = prompt;
   for (const [re, rep] of LIBERAL_SUBSTITUTIONS) out = out.replace(re, rep);
   out = out.replace(/\s+/g, " ").trim();
-  return `${out}, professional photography, artistic, editorial fashion, high quality, tasteful`;
+  return `Editorial fashion photography, professional studio lighting, ${out}, tasteful, Vogue editorial, 8k, high fashion`;
 }
 
 function rewriteNeutral(prompt: string): string {

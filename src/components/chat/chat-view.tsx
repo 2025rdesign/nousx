@@ -129,6 +129,12 @@ export function ChatView({ conversationId }: Props) {
   const pendingNavigationConversationIdRef = useRef<string | null>(null);
   const hydratedConversationIdRef = useRef<string | null>(conversationId);
 
+  // Sticky reference image: last image available for edit/visual reference.
+  // - Set when user uploads a new image, or when the assistant generates/edits one.
+  // - PERSISTS across moderation blocks so a retry can reuse the same reference.
+  // - Reset only when the conversation changes (new context).
+  const stickyImageRefRef = useRef<string | null>(null);
+
   const {
     data: dbMessages,
     isLoading: messagesLoading,
@@ -172,6 +178,7 @@ export function ChatView({ conversationId }: Props) {
 
     lastConversationIdRef.current = conversationId;
     hydratedConversationIdRef.current = null;
+    stickyImageRefRef.current = null;
 
     if (isPendingNavigation) {
       pendingNavigationConversationIdRef.current = null;
@@ -210,6 +217,13 @@ export function ChatView({ conversationId }: Props) {
   ) {
     console.log("[IMG 1] iniciando geracao");
 
+    // If the user just uploaded a new image, that becomes the sticky reference
+    // immediately — so later messages (edits, follow-ups) can find it even if
+    // the first attempt is blocked by moderation.
+    if (image) {
+      stickyImageRefRef.current = image;
+    }
+
     const baseMessages = messages;
     const latestImageCtx = getLatestImageContext(baseMessages);
     const latestAssistantImageUrl = getLatestAssistantImageUrl(baseMessages);
@@ -218,20 +232,26 @@ export function ChatView({ conversationId }: Props) {
     const isImageFollowUp =
       !image && !file && detectImageFollowUp(text, !!latestImageCtx);
     // EDIÇÃO DE IMAGEM (Ultra-only):
-    // dispara quando o usuário acabou de anexar uma imagem OU pede para
-    // editar a última imagem GERADA pela IA, e o texto contém intenção
-    // explícita de edição. Não consome o caminho do Gemini.
-    const editSourceImage = image ?? latestAssistantImageUrl ?? null;
+    // dispara quando há uma imagem disponível (recém anexada, sticky de
+    // tentativa anterior, ou última gerada pela IA) E o texto contém
+    // intenção explícita de edição.
+    const editSourceImage =
+      image ?? stickyImageRefRef.current ?? latestAssistantImageUrl ?? null;
     const wantsEdit =
       !file && !!editSourceImage && IMAGE_EDIT_INTENT_RE.test(text);
 
+    // GERAÇÃO: permite imagem anexada (usada como referência visual no prompt,
+    // NÃO como âncora de edição pixel-a-pixel).
     const wantsImage =
-      !wantsEdit &&
-      !image && !file && (detectImageIntent(text) || isImageFollowUp);
+      !wantsEdit && !file && (detectImageIntent(text) || isImageFollowUp);
+
+    const visualContextHint = image
+      ? "\n\n[O usuário anexou uma imagem como referência visual — use estilo, composição, paleta e tema dela como inspiração para uma NOVA imagem.]"
+      : "";
     const imagePrompt =
       wantsImage && latestImageCtx?.description
-        ? `${text}\n\nContexto visual da conversa anterior: ${latestImageCtx.description.slice(0, 1200)}`
-        : text;
+        ? `${text}\n\nContexto visual da conversa anterior: ${latestImageCtx.description.slice(0, 1200)}${visualContextHint}`
+        : `${text}${visualContextHint}`;
 
     console.log("[CHAT] gerar imagem:", wantsImage, "| text:", text.slice(0, 120));
     console.log("[CHAT] follow-up de imagem:", isImageFollowUp);
@@ -400,6 +420,7 @@ export function ChatView({ conversationId }: Props) {
           image_url: data.url,
           streaming: false,
         };
+        stickyImageRefRef.current = data.url;
         setMessages((prev) => [...prev, editedMessage]);
         void saveMsg({
           data: {
@@ -536,6 +557,7 @@ export function ChatView({ conversationId }: Props) {
         };
 
         console.log("[IMG 4] atualizando mensagem");
+        stickyImageRefRef.current = data.url;
         setMessages((prev) => [...prev, assistantImageMessage]);
         void saveMsg({
           data: {
@@ -827,6 +849,7 @@ export function ChatView({ conversationId }: Props) {
             image_url: imgData.url,
             streaming: false,
           };
+          stickyImageRefRef.current = imgData.url;
           setMessages((prev) => [...prev, imageMsg]);
           void saveMsg({
             data: {
