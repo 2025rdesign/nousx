@@ -839,7 +839,7 @@ export function ChatView({ conversationId }: Props) {
       const isAbort = error instanceof Error && error.name === "AbortError";
       console.error(error);
 
-      if (wantsImage) {
+      if (wantsImage || wantsEdit) {
         if (!isAbort) {
           notify.error(error instanceof Error ? error.message : "Algo deu errado.");
         }
@@ -928,7 +928,9 @@ export function ChatView({ conversationId }: Props) {
               {messages.map((message) => (
                 <MessageItem key={message.id} msg={message} />
               ))}
-              {awaitingReply && !hasStreamingMessage && inflightMode === "image" ? (
+              {awaitingReply &&
+              !hasStreamingMessage &&
+              (inflightMode === "image" || inflightMode === "edit") ? (
                 <TypingIndicator mode={inflightMode} />
               ) : null}
             </div>
