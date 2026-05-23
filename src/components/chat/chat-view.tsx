@@ -184,7 +184,10 @@ export function ChatView({ conversationId }: Props) {
         ...(prev ?? []),
         tempUser,
       ]);
-      setOptimisticUser(null);
+      // Mantemos o optimisticUser visivel ate o final do fluxo.
+      // No / a query useQuery esta com conversationId=null e nao le
+      // o cache de ["messages", convId], entao limpar aqui faria a
+      // mensagem do usuario sumir durante o streaming.
 
       // ── Image generation branch ──────────────────────────────────────────
       if (wantsImage) {
