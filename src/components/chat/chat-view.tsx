@@ -184,10 +184,14 @@ export function ChatView({ conversationId }: Props) {
         ...(prev ?? []),
         tempUser,
       ]);
-      // Mantemos o optimisticUser visivel ate o final do fluxo.
-      // No / a query useQuery esta com conversationId=null e nao le
-      // o cache de ["messages", convId], entao limpar aqui faria a
-      // mensagem do usuario sumir durante o streaming.
+      // Em conversas existentes, a query ja esta ativa e o tempUser
+      // acima ja aparece em `messages` — podemos limpar o optimistico.
+      // Em conversas novas (isNew), a query desta tela usa conversationId=null,
+      // entao mantemos o optimisticUser visivel ate o navigate remontar
+      // o componente com a key da nova conversa (que ai le do cache).
+      if (!isNew) {
+        setOptimisticUser(null);
+      }
 
       // ── Image generation branch ──────────────────────────────────────────
       if (wantsImage) {
