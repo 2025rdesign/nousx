@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
+import { downloadAsset } from "@/lib/download";
 import {
   listGallery,
   deleteGalleryItem,
@@ -205,17 +206,20 @@ function Gallery() {
                     </span>
                   </div>
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex items-center justify-center gap-2">
-                    <a
-                      href={img.image_url}
-                      download
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadAsset(
+                          img.image_url,
+                          `auraia-${img.source === "chat" ? "chat" : "studio"}-${Date.now()}.jpg`,
+                        );
+                      }}
                       className="pointer-events-auto inline-flex items-center justify-center size-9 rounded-full bg-background/90 text-foreground hover:bg-background"
                       aria-label="Baixar"
                     >
                       <Download className="size-4" />
-                    </a>
+                    </button>
                     <button
                       type="button"
                       onClick={(e) => {
@@ -280,16 +284,18 @@ function Gallery() {
                 className="w-full max-h-[80vh] object-contain bg-black"
               />
               <div className="absolute top-2 right-2 flex gap-2">
-                <Button asChild size="icon" variant="secondary">
-                  <a
-                    href={lightboxItem.image_url}
-                    download
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Baixar"
-                  >
-                    <Download className="size-4" />
-                  </a>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  onClick={() =>
+                    downloadAsset(
+                      lightboxItem.image_url,
+                      `auraia-${lightboxItem.source === "chat" ? "chat" : "studio"}-${Date.now()}.jpg`,
+                    )
+                  }
+                  aria-label="Baixar"
+                >
+                  <Download className="size-4" />
                 </Button>
                 <Button
                   size="icon"
@@ -420,16 +426,16 @@ function AudioCard({
           <Copy className="size-4" />
         </button>
         {item.audio_url && (
-          <a
-            href={item.audio_url}
-            download
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() =>
+              downloadAsset(item.audio_url!, `auraia-audio-${Date.now()}.mp3`)
+            }
             className="size-8 rounded-md hover:bg-secondary flex items-center justify-center text-muted-foreground"
             aria-label="Baixar"
           >
             <Download className="size-4" />
-          </a>
+          </button>
         )}
         <button
           type="button"
