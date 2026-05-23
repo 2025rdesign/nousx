@@ -5,6 +5,39 @@ import type { Database } from "@/integrations/supabase/types";
 const XAI_ENDPOINT = "https://api.x.ai/v1/images/edits";
 const XAI_IMAGE_MODEL = "grok-imagine-image-quality";
 
+const MODERATION_RE =
+  /moderation|blocked|content[_\s-]?policy|explicit|safety|inappropriate|violation/i;
+const SENSITIVE_TERMS_RE =
+  /\b(nude|naked|nudity|nsfw|sex|sexual|porn|pornograph\w*|erotic|fetish|kink|breast|nipple|genital|penis|vagina|butt|ass|topless|lingerie|underwear|bikini|gore|gory|blood|bloody|kill|killing|murder|weapon|gun|knife|drug|drugs|cocaine|heroin|violence|violent|hate|nazi)\w*/gi;
+
+function sanitizePrompt(prompt: string): string {
+  const cleaned = prompt.replace(SENSITIVE_TERMS_RE, "").replace(/\s+/g, " ").trim();
+  const base = cleaned || "edit this image";
+  return `${base}, tasteful, artistic, high quality photography`;
+}
+
+function isModeration(status: number, text: string) {
+  return (status === 400 || status === 422) && MODERATION_RE.test(text);
+}
+
+async function callXaiEdit(apiKey: string, prompt: string, imageUrl: string) {
+  const res = await fetch(XAI_ENDPOINT, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: XAI_IMAGE_MODEL,
+      prompt,
+      image: { url: imageUrl, type: "image_url" },
+      n: 1,
+    }),
+  });
+  const text = await res.text();
+  return { status: res.status, ok: res.ok, text };
+}
+
 function json(body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
     status,
@@ -80,36 +113,29 @@ export const Route = createFileRoute("/api/edit-image")({
             imageKind: imageUrl.startsWith("data:") ? "dataurl" : "http",
           });
 
-          const res = await fetch(XAI_ENDPOINT, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: XAI_IMAGE_MODEL,
-              prompt,
-              image: { url: imageUrl, type: "image_url" },
-              n: 1,
-            }),
-          });
-
-          if (!res.ok) {
-            const txt = await res.text().catch(() => "");
-            console.error("[EDIT-IMAGE] upstream", res.status, txt.slice(0, 500));
-            if (res.status === 400 && /content moderation|rejected by content moderation/i.test(txt)) {
+          let attempt = await callXaiEdit(apiKey, prompt, imageUrl);
+          if (!attempt.ok && isModeration(attempt.status, attempt.text)) {
+            console.warn("[EDIT-IMAGE] moderation hit, retrying sanitized");
+            const retryPrompt = sanitizePrompt(prompt);
+            attempt = await callXaiEdit(apiKey, retryPrompt, imageUrl);
+            if (!attempt.ok && isModeration(attempt.status, attempt.text)) {
+              console.warn("[EDIT-IMAGE] moderation persistiu após retry");
               return json(
                 {
-                  error:
-                    "Edição bloqueada pelo provedor. Tente reformular com uma descrição menos explícita.",
+                  error: "content_moderation",
+                  code: "moderation",
+                  message: "Conteúdo bloqueado por moderação.",
                 },
                 422,
               );
             }
+          }
+          if (!attempt.ok) {
+            console.error("[EDIT-IMAGE] upstream", attempt.status, attempt.text.slice(0, 500));
             return json({ error: "Não foi possível editar a imagem." }, 500);
           }
 
-          const data = (await res.json()) as {
+          const data = JSON.parse(attempt.text) as {
             data?: Array<{ url?: string }>;
             images?: Array<{ url?: string }>;
           };

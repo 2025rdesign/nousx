@@ -8,6 +8,34 @@ const DEEPSEEK_ENDPOINT = "https://api.deepseek.com/chat/completions";
 
 type ImageFormat = "portrait" | "square" | "landscape" | null;
 
+const MODERATION_RE =
+  /moderation|blocked|content[_\s-]?policy|explicit|safety|inappropriate|violation/i;
+const SENSITIVE_TERMS_RE =
+  /\b(nude|naked|nudity|nsfw|sex|sexual|porn|pornograph\w*|erotic|fetish|kink|breast|nipple|genital|penis|vagina|butt|ass|topless|lingerie|underwear|bikini|gore|gory|blood|bloody|kill|killing|murder|weapon|gun|knife|drug|drugs|cocaine|heroin|violence|violent|hate|nazi)\w*/gi;
+
+function sanitizePrompt(prompt: string): string {
+  const cleaned = prompt.replace(SENSITIVE_TERMS_RE, "").replace(/\s+/g, " ").trim();
+  const base = cleaned || "an artistic scene";
+  return `${base}, tasteful, artistic, high quality photography`;
+}
+
+async function callXai(apiKey: string, prompt: string) {
+  const res = await fetch(XAI_ENDPOINT, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ model: XAI_IMAGE_MODEL, prompt, n: 1 }),
+  });
+  const txt = await res.text();
+  return { status: res.status, ok: res.ok, text: txt };
+}
+
+function isModeration(status: number, text: string) {
+  return (status === 400 || status === 422) && MODERATION_RE.test(text);
+}
+
 function detectRequestedFormat(text: string): {
   format: ImageFormat;
   suffix: string;
@@ -191,33 +219,28 @@ export const Route = createFileRoute("/api/generate-image")({
           console.log("[GENERATE-IMAGE] technical prompt:", technicalPrompt.slice(0, 200));
           console.log("[GENERATE-IMAGE] Chamando API Grok...");
 
-          const res = await fetch(XAI_ENDPOINT, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: XAI_IMAGE_MODEL,
-              prompt: technicalPrompt,
-              n: 1,
-            }),
-          });
-          if (!res.ok) {
-            const txt = await res.text().catch(() => "");
-            console.error("[GENERATE-IMAGE] upstream", res.status, txt.slice(0, 500));
-            if (res.status === 400 && /content moderation|rejected by content moderation/i.test(txt)) {
+          let attempt = await callXai(apiKey, technicalPrompt);
+          if (!attempt.ok && isModeration(attempt.status, attempt.text)) {
+            console.warn("[GENERATE-IMAGE] moderation hit, retrying sanitized");
+            const retryPrompt = sanitizePrompt(technicalPrompt);
+            attempt = await callXai(apiKey, retryPrompt);
+            if (!attempt.ok && isModeration(attempt.status, attempt.text)) {
+              console.warn("[GENERATE-IMAGE] moderation persistiu após retry");
               return json(
                 {
-                  error:
-                    "Esse pedido foi bloqueado pelo provedor de imagem. Tente reformular com uma descrição menos explícita.",
+                  error: "content_moderation",
+                  code: "moderation",
+                  message: "Conteúdo bloqueado por moderação.",
                 },
                 422,
               );
             }
+          }
+          if (!attempt.ok) {
+            console.error("[GENERATE-IMAGE] upstream", attempt.status, attempt.text.slice(0, 500));
             return json({ error: "Não foi possível gerar a imagem." }, 500);
           }
-          const data = (await res.json()) as {
+          const data = JSON.parse(attempt.text) as {
             data?: Array<{ url?: string }>;
             images?: Array<{ url?: string }>;
           };
