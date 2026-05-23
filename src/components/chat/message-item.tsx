@@ -45,8 +45,13 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
   const { open: openCanvas } = useCodeCanvas();
   const { hasActive } = useActivePlan();
   const imageUrl = msg.image_url ?? getInlineImageUrl(msg.content);
+  // Quando a mensagem da IA contém uma imagem, descartamos qualquer texto
+  // residual gerado pela API (ex.: "Aqui está a imagem de..."). O botão
+  // "Baixar imagem" já é exibido abaixo, então a bolha não precisa de legenda.
   const textContent = imageUrl
-    ? msg.content.replace(imageUrl, "").replace(/!\[[^\]]*\]\(\s*\)/g, "").trim()
+    ? isUser
+      ? msg.content.replace(imageUrl, "").replace(/!\[[^\]]*\]\([^)]*\)/g, "").trim()
+      : ""
     : msg.content;
 
   if (imageUrl && !isUser) {
