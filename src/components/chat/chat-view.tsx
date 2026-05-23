@@ -802,6 +802,9 @@ export function ChatView({ conversationId }: Props) {
       // Gemini blocked image/file analysis by safety filters — show the
       // friendly analysis-block message instead of the silent fallback.
       if (analysisBlocked && !accum.trim()) {
+        // Drop the empty streaming placeholder before the helper appends
+        // the friendly message — avoids a flashing empty bubble.
+        setMessages((prev) => prev.filter((m) => m.id !== assistantId));
         await appendAssistantMessage({
           convId,
           text: ANALYSIS_BLOCK_TEXT,
@@ -810,8 +813,6 @@ export function ChatView({ conversationId }: Props) {
           baseMessages,
           userMsg,
         });
-        // Remove the placeholder streaming bubble (helper appends its own).
-        setMessages((prev) => prev.filter((m) => m.id !== assistantId));
         return;
       }
 
