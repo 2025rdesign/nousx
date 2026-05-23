@@ -135,6 +135,71 @@ export function ChatView({ conversationId }: Props) {
   // - Reset only when the conversation changes (new context).
   const stickyImageRefRef = useRef<string | null>(null);
 
+  // ============================================================
+  // Centralized error / moderation message helpers.
+  // Rules:
+  //  - Loading/typing indicator is ALWAYS cleared before the message
+  //    appears (resets sending + awaitingReply + inflightMode + 50ms tick).
+  //  - Message is persisted to history so the chat is never empty.
+  //  - User message is assumed to have been saved by the caller.
+  // ============================================================
+  async function appendAssistantMessage(opts: {
+    convId: string;
+    text: string;
+    isNew: boolean;
+    titleSeed: string;
+    baseMessages: ChatMsg[];
+    userMsg: ChatMsg;
+  }) {
+    setSending(false);
+    setAwaitingReply(false);
+    setInflightMode("default");
+    // Micro-delay so React paints the loading-off state before the
+    // assistant bubble appears — prevents the "text overlapping skeleton" flash.
+    await new Promise((r) => setTimeout(r, 50));
+    const msg: ChatMsg = {
+      id: `assistant-${Date.now()}`,
+      role: "assistant",
+      content: opts.text,
+      streaming: false,
+    };
+    setMessages((prev) => [...prev, msg]);
+    await saveMsg({
+      data: { conversationId: opts.convId, role: "assistant", content: opts.text },
+    }).catch(() => undefined);
+    queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    if (opts.isNew) {
+      try {
+        await rename({ data: { id: opts.convId, title: opts.titleSeed.slice(0, 30) } });
+      } catch {
+        /* ignore */
+      }
+      queryClient.setQueryData<ChatMsg[]>(
+        ["messages", opts.convId],
+        [...opts.baseMessages, opts.userMsg, msg].map((m) => ({ ...m, streaming: false })),
+      );
+      navigate({ to: "/c/$conversationId", params: { conversationId: opts.convId } });
+    }
+  }
+
+  const MOD_BLOCK_TEXT =
+    "✨ Esse conteúdo não passou pelos filtros do chat. " +
+    "No **Estúdio AuraIA** você cria sem restrições.\n\n" +
+    "[🎨 Ir para o Estúdio](/studio)";
+  const ANALYSIS_BLOCK_TEXT =
+    "🔍 Não consegui analisar essa imagem pelos filtros de conteúdo. " +
+    "Descreva o que quer saber e tento ajudar de outra forma.";
+  const PLAN_PLUS_REQUIRED_TEXT =
+    "🖼️ A geração de imagens no chat é exclusiva para assinantes **Plus** e **Ultra**. " +
+    "Acesse os planos para assinar.\n\n[Ver planos](/configuracoes)";
+  const PLAN_ULTRA_REQUIRED_TEXT =
+    "✏️ A edição de imagens no chat é exclusiva para assinantes **Ultra**. " +
+    "Acesse os planos para fazer upgrade.\n\n[Ver planos](/configuracoes)";
+  const NETWORK_ERROR_TEXT =
+    "⚡ Algo deu errado na conexão. Tente enviar novamente.";
+  const GENERIC_ERROR_TEXT =
+    "😕 Algo inesperado aconteceu. Tente novamente.";
+
   const {
     data: dbMessages,
     isLoading: messagesLoading,
