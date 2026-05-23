@@ -6,18 +6,21 @@ export const addManualCredits = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { email, credits, daysValid } = data;
 
-    // 1. Buscar usuário no auth
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from("auth.users")
-      .select("id")
-      .eq("email", email)
-      .single();
+    // 1. Buscar usuário no auth via admin API
+    const { data: usersData, error: userError } = await supabaseAdmin.auth.admin.listUsers({
+      perPage: 1,
+    });
 
     if (userError) {
-      throw new Error(`Usuário não encontrado: ${userError.message}`);
+      throw new Error(`Erro ao buscar usuários: ${userError.message}`);
     }
 
-    const userId = userData.id;
+    const user = usersData.users.find((u) => u.email === email);
+    if (!user) {
+      throw new Error(`Usuário com email ${email} não encontrado`);
+    }
+
+    const userId = user.id;
 
     // 2. Atualizar/adicionar saldo na tabela credits
     const { error: creditError } = await supabaseAdmin
