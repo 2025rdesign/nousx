@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -17,6 +17,12 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
 import { downloadAsset } from "@/lib/download";
@@ -52,6 +58,19 @@ function formatDate(iso: string) {
   }
 }
 
+function useCoarsePointer(): boolean {
+  const [isCoarse, setIsCoarse] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(hover: none) and (pointer: coarse)");
+    const update = () => setIsCoarse(mq.matches);
+    update();
+    mq.addEventListener?.("change", update);
+    return () => mq.removeEventListener?.("change", update);
+  }, []);
+  return isCoarse;
+}
+
 function formatDuration(sec: number | null) {
   if (!sec || sec < 1) return "—";
   const m = Math.floor(sec / 60);
@@ -66,6 +85,8 @@ function Gallery() {
   const delFn = useServerFn(deleteGalleryItem);
   const [filter, setFilter] = useState<Filter>("all");
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const [actionSheetIdx, setActionSheetIdx] = useState<number | null>(null);
+  const isCoarsePointer = useCoarsePointer();
 
   const query = useInfiniteQuery({
     queryKey: ["gallery-v2", filter],
@@ -103,6 +124,8 @@ function Gallery() {
   const showAudios = filter === "audio";
   const lightboxItem =
     lightboxIdx !== null ? images[lightboxIdx] ?? null : null;
+  const actionSheetItem =
+    actionSheetIdx !== null ? images[actionSheetIdx] ?? null : null;
 
   return (
     <div className="h-full overflow-auto">
@@ -183,7 +206,13 @@ function Gallery() {
                 <div className="group relative aspect-square rounded-lg overflow-hidden bg-muted">
                   <button
                     type="button"
-                    onClick={() => setLightboxIdx(idx)}
+                    onClick={() => {
+                      if (isCoarsePointer) {
+                        setActionSheetIdx(idx);
+                      } else {
+                        setLightboxIdx(idx);
+                      }
+                    }}
                     className="block w-full h-full"
                   >
                     <img
@@ -205,7 +234,8 @@ function Gallery() {
                       {img.source === "chat" ? "Chat" : "Estúdio"}
                     </span>
                   </div>
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex items-center justify-center gap-2">
+                  {/* Desktop hover actions only — mobile uses the bottom sheet */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none hidden md:flex items-center justify-center gap-2">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -360,6 +390,68 @@ function Gallery() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Mobile bottom sheet — touch devices only */}
+      <Sheet
+        open={actionSheetItem !== null}
+        onOpenChange={(o) => !o && setActionSheetIdx(null)}
+      >
+        <SheetContent
+          side="bottom"
+          className="bg-background border-border rounded-t-2xl p-4"
+          style={{ paddingBottom: "max(env(safe-area-inset-bottom), 16px)" }}
+        >
+          <SheetHeader>
+            <SheetTitle className="text-base">Opções</SheetTitle>
+          </SheetHeader>
+          {actionSheetItem && (
+            <div className="mt-3 flex flex-col gap-2">
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3 min-h-[52px] text-base"
+                onClick={() => {
+                  notify.info("Publicação em breve.");
+                  setActionSheetIdx(null);
+                }}
+              >
+                🌐 Publicar
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3 min-h-[52px] text-base"
+                onClick={() => {
+                  downloadAsset(
+                    actionSheetItem.image_url,
+                    `auraia-${actionSheetItem.source === "chat" ? "chat" : "studio"}-${Date.now()}.jpg`,
+                  );
+                  setActionSheetIdx(null);
+                }}
+              >
+                ⬇️ Baixar
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3 min-h-[52px] text-base text-destructive border-destructive/30"
+                onClick={() => {
+                  if (confirm("Tem certeza que deseja apagar esta imagem?")) {
+                    del.mutate({ kind: "image", id: actionSheetItem.id });
+                    setActionSheetIdx(null);
+                  }
+                }}
+              >
+                🗑️ Apagar
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-center min-h-[52px] text-base"
+                onClick={() => setActionSheetIdx(null)}
+              >
+                ✕ Cancelar
+              </Button>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

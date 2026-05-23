@@ -135,6 +135,71 @@ export function ChatView({ conversationId }: Props) {
   // - Reset only when the conversation changes (new context).
   const stickyImageRefRef = useRef<string | null>(null);
 
+  // ============================================================
+  // Centralized error / moderation message helpers.
+  // Rules:
+  //  - Loading/typing indicator is ALWAYS cleared before the message
+  //    appears (resets sending + awaitingReply + inflightMode + 50ms tick).
+  //  - Message is persisted to history so the chat is never empty.
+  //  - User message is assumed to have been saved by the caller.
+  // ============================================================
+  async function appendAssistantMessage(opts: {
+    convId: string;
+    text: string;
+    isNew: boolean;
+    titleSeed: string;
+    baseMessages: ChatMsg[];
+    userMsg: ChatMsg;
+  }) {
+    setSending(false);
+    setAwaitingReply(false);
+    setInflightMode("default");
+    // Micro-delay so React paints the loading-off state before the
+    // assistant bubble appears — prevents the "text overlapping skeleton" flash.
+    await new Promise((r) => setTimeout(r, 50));
+    const msg: ChatMsg = {
+      id: `assistant-${Date.now()}`,
+      role: "assistant",
+      content: opts.text,
+      streaming: false,
+    };
+    setMessages((prev) => [...prev, msg]);
+    await saveMsg({
+      data: { conversationId: opts.convId, role: "assistant", content: opts.text },
+    }).catch(() => undefined);
+    queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    if (opts.isNew) {
+      try {
+        await rename({ data: { id: opts.convId, title: opts.titleSeed.slice(0, 30) } });
+      } catch {
+        /* ignore */
+      }
+      queryClient.setQueryData<ChatMsg[]>(
+        ["messages", opts.convId],
+        [...opts.baseMessages, opts.userMsg, msg].map((m) => ({ ...m, streaming: false })),
+      );
+      navigate({ to: "/c/$conversationId", params: { conversationId: opts.convId } });
+    }
+  }
+
+  const MOD_BLOCK_TEXT =
+    "✨ Esse conteúdo não passou pelos filtros do chat. " +
+    "No **Estúdio AuraIA** você cria sem restrições.\n\n" +
+    "[🎨 Ir para o Estúdio](/studio)";
+  const ANALYSIS_BLOCK_TEXT =
+    "🔍 Não consegui analisar essa imagem pelos filtros de conteúdo. " +
+    "Descreva o que quer saber e tento ajudar de outra forma.";
+  const PLAN_PLUS_REQUIRED_TEXT =
+    "🖼️ A geração de imagens no chat é exclusiva para assinantes **Plus** e **Ultra**. " +
+    "Acesse os planos para assinar.\n\n[Ver planos](/configuracoes)";
+  const PLAN_ULTRA_REQUIRED_TEXT =
+    "✏️ A edição de imagens no chat é exclusiva para assinantes **Ultra**. " +
+    "Acesse os planos para fazer upgrade.\n\n[Ver planos](/configuracoes)";
+  const NETWORK_ERROR_TEXT =
+    "⚡ Algo deu errado na conexão. Tente enviar novamente.";
+  const GENERIC_ERROR_TEXT =
+    "😕 Algo inesperado aconteceu. Tente novamente.";
+
   const {
     data: dbMessages,
     isLoading: messagesLoading,
@@ -353,59 +418,28 @@ export function ChatView({ conversationId }: Props) {
         });
 
         if (res.status === 402) {
-          const upgradeText =
-            "Para editar imagens no chat, você precisa do plano **Ultra**. " +
-            "Acesse a página de planos para assinar! 🪄\n\n[Ver Planos](/configuracoes)";
-          const upgradeMessage: ChatMsg = {
-            id: `assistant-upgrade-${Date.now()}`,
-            role: "assistant",
-            content: upgradeText,
-            streaming: false,
-          };
-          setMessages((prev) => [...prev, upgradeMessage]);
-          void saveMsg({
-            data: { conversationId: convId, role: "assistant", content: upgradeText },
-          }).catch(() => undefined);
-          queryClient.invalidateQueries({ queryKey: ["conversations"] });
-          if (isNew) {
-            try {
-              await rename({ data: { id: convId, title: text.slice(0, 30) } });
-            } catch (error) {
-              console.warn("rename failed", error);
-            }
-            navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
-          }
+          await appendAssistantMessage({
+            convId,
+            text: PLAN_ULTRA_REQUIRED_TEXT,
+            isNew,
+            titleSeed: text,
+            baseMessages,
+            userMsg,
+          });
           return;
         }
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: "Falha ao editar imagem." }));
           if (res.status === 422 && (err.code === "moderation" || err.error === "content_moderation")) {
-            const modText =
-              "✨ Hmm, esse conteúdo não rolou aqui no chat.\n\n" +
-              "O chat usa uma IA com filtros de conteúdo que bloqueou essa geração. " +
-              "Mas calma — no **Estúdio de Criação** da AuraIA você consegue gerar esse tipo de imagem sem restrições, " +
-              "com modelos exclusivos e alta qualidade.\n\n" +
-              "[🎨 Ir para o Estúdio](/studio)";
-            const modMsg: ChatMsg = {
-              id: `assistant-moderation-${Date.now()}`,
-              role: "assistant",
-              content: modText,
-              streaming: false,
-            };
-            setMessages((prev) => [...prev, modMsg]);
-            await saveMsg({
-              data: { conversationId: convId, role: "assistant", content: modText },
-            }).catch(() => undefined);
-            queryClient.invalidateQueries({ queryKey: ["conversations"] });
-            if (isNew) {
-              try { await rename({ data: { id: convId, title: text.slice(0, 30) } }); } catch {}
-              queryClient.setQueryData<ChatMsg[]>(
-                ["messages", convId],
-                [...baseMessages, userMsg, modMsg].map((m) => ({ ...m, streaming: false })),
-              );
-              navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
-            }
+            await appendAssistantMessage({
+              convId,
+              text: MOD_BLOCK_TEXT,
+              isNew,
+              titleSeed: text,
+              baseMessages,
+              userMsg,
+            });
             return;
           }
           throw new Error(err.error || "Falha ao editar imagem.");
@@ -471,72 +505,28 @@ export function ChatView({ conversationId }: Props) {
         if (res.status === 402) {
           console.log("[CHAT] plano ativo:", false);
           console.log("[CHAT] plano inativo — exibindo mensagem de upgrade");
-
-          const upgradeText =
-            "Geração de imagem no chat é exclusiva do plano **Plus** ou **Ultra**.\n\n" +
-            "Você ainda pode gerar imagens no **Estúdio** usando seus créditos avulsos.\n\n" +
-            "[Ver Planos](/configuracoes)";
-
-          const upgradeMessage: ChatMsg = {
-            id: `assistant-upgrade-${Date.now()}`,
-            role: "assistant",
-            content: upgradeText,
-            streaming: false,
-          };
-
-          setMessages((prev) => [...prev, upgradeMessage]);
-          void saveMsg({
-            data: {
-              conversationId: convId,
-              role: "assistant",
-              content: upgradeText,
-            },
-          }).catch((error) => {
-            console.error("[CHAT-SAVE-ASSISTANT] falha ao salvar upgrade:", error);
+          await appendAssistantMessage({
+            convId,
+            text: PLAN_PLUS_REQUIRED_TEXT,
+            isNew,
+            titleSeed: text,
+            baseMessages,
+            userMsg,
           });
-
-          queryClient.invalidateQueries({ queryKey: ["conversations"] });
-
-          if (isNew) {
-            try {
-              await rename({ data: { id: convId, title: text.slice(0, 30) } });
-            } catch (error) {
-              console.warn("rename failed", error);
-            }
-            navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
-          }
-
           return;
         }
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: "Falha ao gerar imagem." }));
           if (res.status === 422 && (err.code === "moderation" || err.error === "content_moderation")) {
-            const modText =
-              "✨ Hmm, esse conteúdo não rolou aqui no chat.\n\n" +
-              "O chat usa uma IA com filtros de conteúdo que bloqueou essa geração. " +
-              "Mas calma — no **Estúdio de Criação** da AuraIA você consegue gerar esse tipo de imagem sem restrições, " +
-              "com modelos exclusivos e alta qualidade.\n\n" +
-              "[🎨 Ir para o Estúdio](/studio)";
-            const modMsg: ChatMsg = {
-              id: `assistant-moderation-${Date.now()}`,
-              role: "assistant",
-              content: modText,
-              streaming: false,
-            };
-            setMessages((prev) => [...prev, modMsg]);
-            await saveMsg({
-              data: { conversationId: convId, role: "assistant", content: modText },
-            }).catch(() => undefined);
-            queryClient.invalidateQueries({ queryKey: ["conversations"] });
-            if (isNew) {
-              try { await rename({ data: { id: convId, title: text.slice(0, 30) } }); } catch {}
-              queryClient.setQueryData<ChatMsg[]>(
-                ["messages", convId],
-                [...baseMessages, userMsg, modMsg].map((m) => ({ ...m, streaming: false })),
-              );
-              navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
-            }
+            await appendAssistantMessage({
+              convId,
+              text: MOD_BLOCK_TEXT,
+              isNew,
+              titleSeed: text,
+              baseMessages,
+              userMsg,
+            });
             return;
           }
           throw new Error(err.error || "Falha ao gerar imagem.");
@@ -712,6 +702,7 @@ export function ChatView({ conversationId }: Props) {
       let reasoningAccum = "";
       let buffer = "";
       let gotFirstChunk = false;
+      let analysisBlocked = false;
 
       const stallController = new AbortController();
       const stallTimer = setTimeout(() => {
@@ -753,6 +744,10 @@ export function ChatView({ conversationId }: Props) {
 
         try {
           const json = JSON.parse(payload);
+          if (json?.lovable_block === "analysis") {
+            analysisBlocked = true;
+            return;
+          }
           const delta = typeof json.choices?.[0]?.delta?.content === "string"
             ? json.choices[0].delta.content
             : "";
@@ -803,6 +798,23 @@ export function ChatView({ conversationId }: Props) {
       }
 
       const finalContent = accum || "Desculpe, não consegui responder agora.";
+
+      // Gemini blocked image/file analysis by safety filters — show the
+      // friendly analysis-block message instead of the silent fallback.
+      if (analysisBlocked && !accum.trim()) {
+        // Drop the empty streaming placeholder before the helper appends
+        // the friendly message — avoids a flashing empty bubble.
+        setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+        await appendAssistantMessage({
+          convId,
+          text: ANALYSIS_BLOCK_TEXT,
+          isNew,
+          titleSeed: text,
+          baseMessages,
+          userMsg,
+        });
+        return;
+      }
 
       // FALLBACK: DeepSeek confirmed it would generate an image but no image
       // was produced. Detect the confirmation pattern and trigger image
@@ -937,51 +949,47 @@ export function ChatView({ conversationId }: Props) {
       const isAbort = error instanceof Error && error.name === "AbortError";
       console.error(error);
 
+      // Never expose technical errors / provider names to the user.
+      const friendlyText = isAbort ? NETWORK_ERROR_TEXT : GENERIC_ERROR_TEXT;
+      const lastConvId = conversationId ?? lastConversationIdRef.current;
+
       if (wantsImage || wantsEdit) {
         if (!isAbort) {
-          const errText = "Algo deu errado. Tente novamente.";
+          setSending(false);
+          setAwaitingReply(false);
+          setInflightMode("default");
+          await new Promise((r) => setTimeout(r, 50));
           const errMsg: ChatMsg = {
             id: `assistant-error-${Date.now()}`,
             role: "assistant",
-            content: errText,
+            content: friendlyText,
             streaming: false,
           };
           setMessages((prev) => [...prev, errMsg]);
-          // Best-effort: save to history if we have a conversation id
-          const lastConvId = conversationId ?? lastConversationIdRef.current;
           if (lastConvId) {
             void saveMsg({
-              data: { conversationId: lastConvId, role: "assistant", content: errText },
+              data: { conversationId: lastConvId, role: "assistant", content: friendlyText },
             }).catch(() => undefined);
           }
-          notify.error(error instanceof Error ? error.message : errText);
         }
       } else {
-        const fallbackText = isAbort
-          ? "A resposta demorou muito. Tente novamente."
-          : error instanceof Error
-            ? error.message
-            : "Algo deu errado.";
-
         setMessages((prev) =>
           prev.map((message) =>
             message.id === assistantId
-              ? {
-                  ...message,
-                  content: fallbackText,
-                  streaming: false,
-                }
+              ? { ...message, content: friendlyText, streaming: false }
               : message,
           ),
         );
-
-        if (!isAbort) {
-          notify.error(fallbackText);
+        if (!isAbort && lastConvId) {
+          void saveMsg({
+            data: { conversationId: lastConvId, role: "assistant", content: friendlyText },
+          }).catch(() => undefined);
         }
       }
     } finally {
       setSending(false);
       setAwaitingReply(false);
+      setInflightMode("default");
     }
   }
 
