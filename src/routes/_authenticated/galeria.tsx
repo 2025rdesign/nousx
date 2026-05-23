@@ -58,6 +58,19 @@ function formatDate(iso: string) {
   }
 }
 
+function useCoarsePointer(): boolean {
+  const [isCoarse, setIsCoarse] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(hover: none) and (pointer: coarse)");
+    const update = () => setIsCoarse(mq.matches);
+    update();
+    mq.addEventListener?.("change", update);
+    return () => mq.removeEventListener?.("change", update);
+  }, []);
+  return isCoarse;
+}
+
 function formatDuration(sec: number | null) {
   if (!sec || sec < 1) return "—";
   const m = Math.floor(sec / 60);
