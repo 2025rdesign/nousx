@@ -19,7 +19,7 @@ import { useActivePlan } from "@/hooks/use-active-plan";
 import { VoiceModeModal } from "./voice-mode-modal";
 
 const IMAGE_INTENT_RE =
-  /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|mostr(?:a|e|ar)|me\s+(?:d[áa]|d[êe]|manda|mostra|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?)\b[^\n]{0,30}\b(image(?:m|ns)|fotos?|ilustra[cç](?:[ãa]o|[õo]es)|desenhos?|figuras?|artes?|pinturas?|wallpapers?|retratos?|p[ôo]ster(?:es)?|banners?|capas?)\b([^\n]*)/i;
+  /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|mostr(?:a|e|ar)|transform(?:a|e|ar)|convert(?:a|e|er)|me\s+(?:d[áa]|d[êe]|manda|mostra|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?)\b[^\n]{0,30}\b(image(?:m|ns)|fotos?|ilustra[cç](?:[ãa]o|[õo]es)|desenhos?|figuras?|artes?|pinturas?|wallpapers?|retratos?|p[ôo]ster(?:es)?|banners?|capas?|vetor(?:es|ial|iais)?|logos?|logotipos?|[íi]cones?|stickers?|emojis?|avatares?|personagens?|cenas?|gifs?)\b([^\n]*)/i;
 
 const MIN_DESCRIPTION_CHARS = 10;
 
@@ -48,15 +48,29 @@ function detectImageIntent(text: string): boolean {
   return after.length >= MIN_DESCRIPTION_CHARS;
 }
 
-function getLatestAssistantImage(messages: ChatMsg[]) {
+function getLatestImageContext(messages: ChatMsg[]) {
+  // Find the most recent message containing an image (user-uploaded or assistant-generated)
+  // and its associated description.
+  let latestImageIdx = -1;
   for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const message = messages[i];
-    if (message.role === "assistant" && message.image_url) {
-      return message;
+    if (messages[i].image_url) {
+      latestImageIdx = i;
+      break;
     }
   }
-
-  return null;
+  if (latestImageIdx === -1) return null;
+  const imageMsg = messages[latestImageIdx];
+  // If user uploaded the image, the description is usually the next assistant reply.
+  let description = imageMsg.content || "";
+  if (imageMsg.role === "user") {
+    for (let j = latestImageIdx + 1; j < messages.length; j += 1) {
+      if (messages[j].role === "assistant" && messages[j].content) {
+        description = messages[j].content;
+        break;
+      }
+    }
+  }
+  return { description: description.trim() };
 }
 
 function detectImageFollowUp(text: string, hasPreviousAssistantImage: boolean): boolean {
@@ -66,6 +80,11 @@ function detectImageFollowUp(text: string, hasPreviousAssistantImage: boolean): 
   if (trimmed.length <= 120) return true;
   return IMAGE_FOLLOW_UP_RE.test(trimmed) || VISUAL_EDIT_CUE_RE.test(trimmed);
 }
+
+// Phrases DeepSeek emits when it decided to "generate" an image instead of
+// just answering — used as a safety net if client-side detection missed.
+const DEEPSEEK_IMAGE_CONFIRM_RE =
+  /\b(gerando\s+(?:a\s+)?imagem|vou\s+gerar|criando\s+(?:a\s+)?imagem|gerando\s+agora|aqui\s+est[áa]\s+(?:a\s+)?(?:sua\s+)?(?:imagem|foto|ilustra[cç][ãa]o)|criando\s+agora|come[cç]ando\s+a\s+gera[cç][ãa]o)\b/i;
 
 interface Props {
   conversationId: string | null;
@@ -180,12 +199,17 @@ export function ChatView({ conversationId }: Props) {
     console.log("[IMG 1] iniciando geracao");
 
     const baseMessages = messages;
-    const latestAssistantImage = getLatestAssistantImage(baseMessages);
-    const isImageFollowUp = !image && !file && detectImageFollowUp(text, !!latestAssistantImage);
-    const wantsImage = !image && !file && (detectImageIntent(text) || isImageFollowUp);
-    const imagePrompt = isImageFollowUp && latestAssistantImage?.content
-      ? `${text}\n\nContexto da imagem anterior: ${latestAssistantImage.content}`
-      : text;
+    const latestImageCtx = getLatestImageContext(baseMessages);
+    // Follow-up fires for ANY recent image in the conversation
+    // (assistant-generated OR user-uploaded that the AI just analyzed).
+    const isImageFollowUp =
+      !image && !file && detectImageFollowUp(text, !!latestImageCtx);
+    const wantsImage =
+      !image && !file && (detectImageIntent(text) || isImageFollowUp);
+    const imagePrompt =
+      wantsImage && latestImageCtx?.description
+        ? `${text}\n\nContexto visual da conversa anterior: ${latestImageCtx.description.slice(0, 1200)}`
+        : text;
 
     console.log("[CHAT] gerar imagem:", wantsImage, "| text:", text.slice(0, 120));
     console.log("[CHAT] follow-up de imagem:", isImageFollowUp);
@@ -563,6 +587,92 @@ export function ChatView({ conversationId }: Props) {
       }
 
       const finalContent = accum || "Desculpe, não consegui responder agora.";
+
+      // FALLBACK: DeepSeek confirmed it would generate an image but no image
+      // was produced. Detect the confirmation pattern and trigger image
+      // generation transparently. Only fires when the user has an active
+      // plan (Plus/Ultra) — otherwise /api/generate-image returns 402.
+      const shouldFallbackToImage =
+        !wantsImage &&
+        hasActive &&
+        (planId === "plus" || planId === "ultra") &&
+        DEEPSEEK_IMAGE_CONFIRM_RE.test(finalContent);
+
+      if (shouldFallbackToImage) {
+        console.log("[CHAT] fallback: DeepSeek confirmou geracao — acionando /api/generate-image");
+        // Swap the assistant text bubble back into a loading state.
+        setInflightMode("image");
+        setAwaitingReply(true);
+        setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+
+        try {
+          const fallbackPrompt = latestImageCtx?.description
+            ? `${text}\n\nContexto visual da conversa anterior: ${latestImageCtx.description.slice(0, 1200)}`
+            : text;
+
+          const imgRes = await fetch("/api/generate-image", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ prompt: fallbackPrompt }),
+          });
+
+          if (!imgRes.ok) {
+            const err = await imgRes.json().catch(() => ({ error: "Falha ao gerar imagem." }));
+            throw new Error(err.error || "Falha ao gerar imagem.");
+          }
+
+          const imgData = (await imgRes.json()) as { url: string; caption?: string };
+          const caption = (imgData.caption ?? "Aqui está sua imagem.").trim();
+          const imageMsg: ChatMsg = {
+            id: `assistant-image-${Date.now()}`,
+            role: "assistant",
+            content: caption,
+            image_url: imgData.url,
+            streaming: false,
+          };
+          setMessages((prev) => [...prev, imageMsg]);
+          void saveMsg({
+            data: {
+              conversationId: convId,
+              role: "assistant",
+              content: caption,
+              imageUrl: imgData.url,
+            },
+          }).catch((error) => {
+            console.error("[CHAT-SAVE-ASSISTANT] falha ao salvar imagem (fallback):", error);
+          });
+
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+
+          if (isNew) {
+            try {
+              await rename({ data: { id: convId, title: text.slice(0, 30) } });
+            } catch (error) {
+              console.warn("rename failed", error);
+            }
+            queryClient.setQueryData<ChatMsg[]>(
+              ["messages", convId],
+              [...baseMessages, userMsg, imageMsg].map((m) => ({ ...m, streaming: false })),
+            );
+            navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
+          }
+          return;
+        } catch (fallbackErr) {
+          console.error("[CHAT] fallback de imagem falhou:", fallbackErr);
+          // Restore the original text reply if image generation failed.
+          const restored: ChatMsg = {
+            id: assistantId,
+            role: "assistant",
+            content: finalContent,
+            reasoning: reasoningAccum || null,
+            streaming: false,
+          };
+          setMessages((prev) => [...prev, restored]);
+        }
+      }
 
       setMessages((prev) =>
         prev.map((message) =>
