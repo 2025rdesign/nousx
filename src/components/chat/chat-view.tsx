@@ -211,11 +211,17 @@ export function ChatView({ conversationId }: Props) {
 
     const baseMessages = messages;
     const latestAssistantImage = getLatestAssistantImage(baseMessages);
-    const isImageFollowUp = !image && !file && detectImageFollowUp(text, !!latestAssistantImage);
-    const wantsImage = !image && !file && (detectImageIntent(text) || isImageFollowUp);
-    const imagePrompt = isImageFollowUp && latestAssistantImage?.content
-      ? `${text}\n\nContexto da imagem anterior: ${latestAssistantImage.content}`
-      : text;
+    const latestImageCtx = getLatestImageContext(baseMessages);
+    // Follow-up fires for ANY recent image in the conversation
+    // (assistant-generated OR user-uploaded that the AI just analyzed).
+    const isImageFollowUp =
+      !image && !file && detectImageFollowUp(text, !!latestImageCtx);
+    const wantsImage =
+      !image && !file && (detectImageIntent(text) || isImageFollowUp);
+    const imagePrompt =
+      wantsImage && latestImageCtx?.description
+        ? `${text}\n\nContexto visual da conversa anterior: ${latestImageCtx.description.slice(0, 1200)}`
+        : text;
 
     console.log("[CHAT] gerar imagem:", wantsImage, "| text:", text.slice(0, 120));
     console.log("[CHAT] follow-up de imagem:", isImageFollowUp);
