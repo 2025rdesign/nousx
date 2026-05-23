@@ -374,12 +374,16 @@ export function ChatView({ conversationId }: Props) {
               streaming: false,
             };
             setMessages((prev) => [...prev, modMsg]);
-            void saveMsg({
+            await saveMsg({
               data: { conversationId: convId, role: "assistant", content: modText },
             }).catch(() => undefined);
             queryClient.invalidateQueries({ queryKey: ["conversations"] });
             if (isNew) {
               try { await rename({ data: { id: convId, title: text.slice(0, 30) } }); } catch {}
+              queryClient.setQueryData<ChatMsg[]>(
+                ["messages", convId],
+                [...baseMessages, userMsg, modMsg].map((m) => ({ ...m, streaming: false })),
+              );
               navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
             }
             return;
@@ -500,12 +504,16 @@ export function ChatView({ conversationId }: Props) {
               streaming: false,
             };
             setMessages((prev) => [...prev, modMsg]);
-            void saveMsg({
+            await saveMsg({
               data: { conversationId: convId, role: "assistant", content: modText },
             }).catch(() => undefined);
             queryClient.invalidateQueries({ queryKey: ["conversations"] });
             if (isNew) {
               try { await rename({ data: { id: convId, title: text.slice(0, 30) } }); } catch {}
+              queryClient.setQueryData<ChatMsg[]>(
+                ["messages", convId],
+                [...baseMessages, userMsg, modMsg].map((m) => ({ ...m, streaming: false })),
+              );
               navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
             }
             return;
