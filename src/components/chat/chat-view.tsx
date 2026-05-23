@@ -285,6 +285,10 @@ export function ChatView({ conversationId }: Props) {
       const token = sess.session?.access_token;
       if (!token) throw new Error("Sessão expirada.");
 
+      const userId = sess.session?.user?.id;
+      console.log("[CHAT-SEND] enviando mensagem:", text.slice(0, 200));
+      console.log("[CHAT-SEND] usuario:", userId);
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -298,9 +302,23 @@ export function ChatView({ conversationId }: Props) {
           hasFile: !!file,
         }),
       });
+      console.log("[CHAT-RECV] response status:", res.status);
+      console.log(
+        "[CHAT-RECV] content-type:",
+        res.headers.get("content-type"),
+      );
+      console.log("[CHAT-RECV] response.body existe:", !!res.body);
       if (!res.ok || !res.body) {
-        const err = await res.json().catch(() => ({ error: "Falha ao responder." }));
-        throw new Error(err.error || "Falha ao responder.");
+        const errText = await res.text().catch(() => "");
+        console.error("[CHAT-ERROR] response nao ok:", res.status, errText);
+        let errMsg = "Falha ao responder.";
+        try {
+          const parsed = JSON.parse(errText);
+          if (parsed?.error) errMsg = parsed.error;
+        } catch {
+          /* ignore */
+        }
+        throw new Error(errMsg);
       }
 
       const reader = res.body.getReader();
@@ -309,6 +327,7 @@ export function ChatView({ conversationId }: Props) {
       let accum = "";
       let reasoningAccum = "";
       let buf = "";
+      let gotFirstChunk = false;
 
       setAwaitingReply(false);
       setStreaming({
@@ -318,6 +337,20 @@ export function ChatView({ conversationId }: Props) {
         reasoning: null,
         streaming: true,
       });
+
+      // Fallback de seguranca: se nenhum chunk chegar em 15s, aborta e mostra erro.
+      const stallController = new AbortController();
+      const stallTimer = setTimeout(() => {
+        if (!gotFirstChunk) {
+          console.error("[CHAT-ERROR] timeout: nenhum chunk em 15s");
+          stallController.abort();
+          try {
+            reader.cancel();
+          } catch {
+            /* ignore */
+          }
+        }
+      }, 15000);
 
       const appendChunk = (text: string, reasoningText?: string) => {
         const safeText = text || "";
@@ -363,18 +396,36 @@ export function ChatView({ conversationId }: Props) {
         }
       };
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const lines = buf.split("\n");
-        buf = lines.pop() ?? "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            console.log(
+              "[CHAT-DONE] streaming finalizado, total:",
+              accum.length,
+            );
+            break;
+          }
+          if (value) {
+            gotFirstChunk = true;
+            console.log("[CHAT-CHUNK] chunk recebido:", value.length, "bytes");
+          }
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split("\n");
+          buf = lines.pop() ?? "";
 
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed.startsWith("data:")) continue;
-          processPayload(trimmed.slice(5).trim());
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data:")) continue;
+            processPayload(trimmed.slice(5).trim());
+          }
         }
+      } finally {
+        clearTimeout(stallTimer);
+      }
+
+      if (!gotFirstChunk && stallController.signal.aborted) {
+        throw new Error("A resposta demorou muito. Tente novamente.");
       }
 
       const tail = decoder.decode();
