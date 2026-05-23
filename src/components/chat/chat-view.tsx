@@ -92,6 +92,17 @@ export function ChatView({ conversationId }: Props) {
   const hasUltra = hasActive && planId === "ultra";
   const [voiceOpen, setVoiceOpen] = useState(false);
 
+  const [streaming, setStreaming] = useState<ChatMsg | null>(null);
+  const [sending, setSending] = useState(false);
+  const [awaitingReply, setAwaitingReply] = useState(false);
+  const [inflightMode, setInflightMode] = useState<
+    "default" | "web" | "reasoning" | "image"
+  >("default");
+  const [optimisticUser, setOptimisticUser] = useState<ChatMsg | null>(null);
+  const [optimisticAssistant, setOptimisticAssistant] = useState<ChatMsg | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastStreamEndRef = useRef(0);
+
   const { data: dbMessages, isLoading: messagesLoading } = useQuery({
     queryKey: ["messages", conversationId],
     queryFn: () =>
@@ -103,17 +114,6 @@ export function ChatView({ conversationId }: Props) {
     refetchOnReconnect: !refetchLocked,
     refetchOnMount: !refetchLocked,
   });
-
-  const [streaming, setStreaming] = useState<ChatMsg | null>(null);
-  const [sending, setSending] = useState(false);
-  const [awaitingReply, setAwaitingReply] = useState(false);
-  const [inflightMode, setInflightMode] = useState<
-    "default" | "web" | "reasoning" | "image"
-  >("default");
-  const [optimisticUser, setOptimisticUser] = useState<ChatMsg | null>(null);
-  const [optimisticAssistant, setOptimisticAssistant] = useState<ChatMsg | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const lastStreamEndRef = useRef(0);
 
   const rawMessages: ChatMsg[] = (dbMessages as ChatMsg[] | undefined) ?? [];
   const refetchLocked = conversationId
