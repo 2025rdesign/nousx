@@ -1,7 +1,7 @@
 // CACHE_VERSION é substituído automaticamente a cada build pelo plugin
 // `sw-cache-version` em vite.config.ts. Mudança de bytes garante que o
 // navegador detecte a nova versão e dispare o fluxo de update.
-const CACHE_VERSION = '__CACHE_VERSION__';
+const CACHE_VERSION = 'build-1779573576864';
 
 self.addEventListener('install', () => {
   // Ativa imediatamente o novo SW sem esperar fechar todas as abas.
