@@ -362,7 +362,16 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
   );
 }
 
-export const MessageItem = memo(MessageItemInner);
+export const MessageItem = memo(
+  MessageItemInner,
+  (prev, next) =>
+    prev.msg.id === next.msg.id &&
+    prev.msg.content === next.msg.content &&
+    prev.msg.reasoning === next.msg.reasoning &&
+    prev.msg.streaming === next.msg.streaming &&
+    prev.msg.image_url === next.msg.image_url &&
+    prev.msg.role === next.msg.role,
+);
 
 export function TypingIndicator({
   mode = "default",
