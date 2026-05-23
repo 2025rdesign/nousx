@@ -129,6 +129,7 @@ export function ChatView({ conversationId }: Props) {
     if (!conversationId) return;
     if (hydratedConversationIdRef.current === conversationId) return;
     if (messages.length > 0) return;
+    if (!dbMessages) return;
 
     setMessages(
       (((dbMessages as ChatMsg[] | undefined) ?? []).map((message) => ({
