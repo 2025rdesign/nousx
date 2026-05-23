@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -17,6 +17,12 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
 import { downloadAsset } from "@/lib/download";
@@ -66,6 +72,8 @@ function Gallery() {
   const delFn = useServerFn(deleteGalleryItem);
   const [filter, setFilter] = useState<Filter>("all");
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const [actionSheetIdx, setActionSheetIdx] = useState<number | null>(null);
+  const isCoarsePointer = useCoarsePointer();
 
   const query = useInfiniteQuery({
     queryKey: ["gallery-v2", filter],
