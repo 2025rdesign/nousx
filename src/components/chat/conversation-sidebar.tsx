@@ -315,7 +315,10 @@ export function ConversationSidebar({
   }
 
   return (
-    <div className="flex flex-col h-full w-full bg-sidebar">
+    <div
+      className="flex flex-col h-full w-full bg-sidebar"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
       <div className="p-3 border-b border-border">
         <Link
           to="/"

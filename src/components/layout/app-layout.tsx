@@ -67,7 +67,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
     "?";
 
   return (
-    <div className="h-screen w-full flex bg-background text-foreground overflow-hidden">
+    <div
+      className="h-screen w-full flex bg-background text-foreground overflow-hidden"
+      style={{
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
+      }}
+    >
       {/* Desktop sidebar — sempre visível enquanto autenticado */}
       {showSidebar && !collapsed && (
         <aside className="hidden md:flex w-64 shrink-0 border-r border-border bg-sidebar">
@@ -85,7 +91,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
       )}
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 shrink-0 flex items-center gap-2 px-3 md:px-4 border-b border-border bg-background/80 backdrop-blur">
+        <header
+          className="shrink-0 flex items-center gap-2 px-3 md:px-4 border-b border-border bg-background/80 backdrop-blur min-h-14"
+          style={{ paddingTop: "env(safe-area-inset-top)" }}
+        >
           <Button
             variant="ghost"
             size="icon"
