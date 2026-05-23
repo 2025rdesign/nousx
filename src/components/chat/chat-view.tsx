@@ -557,6 +557,7 @@ export function ChatView({ conversationId }: Props) {
         };
 
         console.log("[IMG 4] atualizando mensagem");
+        stickyImageRefRef.current = data.url;
         setMessages((prev) => [...prev, assistantImageMessage]);
         void saveMsg({
           data: {
