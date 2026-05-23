@@ -994,11 +994,15 @@ function StudioInner() {
 
             {result && (
               <div className="flex gap-2">
-                <Button asChild variant="outline" className="flex-1">
-                  <a href={result} download target="_blank" rel="noopener noreferrer">
-                    <Download className="size-4" />
-                    Baixar
-                  </a>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() =>
+                    downloadAsset(result, `auraia-studio-${Date.now()}.jpg`)
+                  }
+                >
+                  <Download className="size-4" />
+                  Baixar
                 </Button>
                 <Button
                   variant="outline"
