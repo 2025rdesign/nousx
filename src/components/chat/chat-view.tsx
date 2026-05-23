@@ -102,6 +102,9 @@ export function ChatView({ conversationId }: Props) {
   const [optimisticAssistant, setOptimisticAssistant] = useState<ChatMsg | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastStreamEndRef = useRef(0);
+  const refetchLocked = conversationId
+    ? !!streaming || Date.now() - lastStreamEndRef.current < 3000
+    : false;
 
   const { data: dbMessages, isLoading: messagesLoading } = useQuery({
     queryKey: ["messages", conversationId],
@@ -116,9 +119,6 @@ export function ChatView({ conversationId }: Props) {
   });
 
   const rawMessages: ChatMsg[] = (dbMessages as ChatMsg[] | undefined) ?? [];
-  const refetchLocked = conversationId
-    ? !!streaming || Date.now() - lastStreamEndRef.current < 3000
-    : false;
   const messages = useMemo(() => {
     if (!streaming) return rawMessages;
     const withoutDuplicate = rawMessages.filter((msg) => msg.id !== streaming.id);
