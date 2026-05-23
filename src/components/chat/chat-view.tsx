@@ -19,7 +19,7 @@ import { useActivePlan } from "@/hooks/use-active-plan";
 import { VoiceModeModal } from "./voice-mode-modal";
 
 const IMAGE_INTENT_RE =
-  /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|mostr(?:a|e|ar)|me\s+(?:d[áa]|d[êe]|manda|mostra|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?)\b[^\n]{0,30}\b(image(?:m|ns)|fotos?|ilustra[cç](?:[ãa]o|[õo]es)|desenhos?|figuras?|artes?|pinturas?|wallpapers?|retratos?|p[ôo]ster(?:es)?|banners?|capas?)\b([^\n]*)/i;
+  /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|mostr(?:a|e|ar)|transform(?:a|e|ar)|convert(?:a|e|er)|me\s+(?:d[áa]|d[êe]|manda|mostra|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?)\b[^\n]{0,30}\b(image(?:m|ns)|fotos?|ilustra[cç](?:[ãa]o|[õo]es)|desenhos?|figuras?|artes?|pinturas?|wallpapers?|retratos?|p[ôo]ster(?:es)?|banners?|capas?|vetor(?:es|ial|iais)?|logos?|logotipos?|[íi]cones?|stickers?|emojis?|avatares?|personagens?|cenas?|gifs?)\b([^\n]*)/i;
 
 const MIN_DESCRIPTION_CHARS = 10;
 
@@ -59,6 +59,31 @@ function getLatestAssistantImage(messages: ChatMsg[]) {
   return null;
 }
 
+function getLatestImageContext(messages: ChatMsg[]) {
+  // Find the most recent message containing an image (user-uploaded or assistant-generated)
+  // and its associated description.
+  let latestImageIdx = -1;
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    if (messages[i].image_url) {
+      latestImageIdx = i;
+      break;
+    }
+  }
+  if (latestImageIdx === -1) return null;
+  const imageMsg = messages[latestImageIdx];
+  // If user uploaded the image, the description is usually the next assistant reply.
+  let description = imageMsg.content || "";
+  if (imageMsg.role === "user") {
+    for (let j = latestImageIdx + 1; j < messages.length; j += 1) {
+      if (messages[j].role === "assistant" && messages[j].content) {
+        description = messages[j].content;
+        break;
+      }
+    }
+  }
+  return { description: description.trim() };
+}
+
 function detectImageFollowUp(text: string, hasPreviousAssistantImage: boolean): boolean {
   if (!hasPreviousAssistantImage) return false;
   const trimmed = text.trim();
@@ -66,6 +91,11 @@ function detectImageFollowUp(text: string, hasPreviousAssistantImage: boolean): 
   if (trimmed.length <= 120) return true;
   return IMAGE_FOLLOW_UP_RE.test(trimmed) || VISUAL_EDIT_CUE_RE.test(trimmed);
 }
+
+// Phrases DeepSeek emits when it decided to "generate" an image instead of
+// just answering — used as a safety net if client-side detection missed.
+const DEEPSEEK_IMAGE_CONFIRM_RE =
+  /\b(gerando\s+(?:a\s+)?imagem|vou\s+gerar|criando\s+(?:a\s+)?imagem|gerando\s+agora|aqui\s+est[áa]\s+(?:a\s+)?(?:sua\s+)?(?:imagem|foto|ilustra[cç][ãa]o)|criando\s+agora|come[cç]ando\s+a\s+gera[cç][ãa]o)\b/i;
 
 interface Props {
   conversationId: string | null;
