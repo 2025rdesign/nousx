@@ -14,6 +14,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { FaviconTheme } from "@/components/theme-favicon";
 import { AuthProvider } from "@/hooks/use-auth";
 import { FloatingAudioPlayer } from "@/components/chat/audio-player";
+import { SwRegister } from "@/components/sw-register";
 
 function NotFoundComponent() {
   return (
@@ -138,7 +139,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         rel: "apple-touch-icon",
-        href: "https://central.daev.ca/wp-content/uploads/2026/05/FAVICON-AURA.png",
+        href: "https://central.daev.ca/wp-content/uploads/2026/05/PWAAURA.png",
       },
       {
         rel: "preload",
@@ -195,6 +196,7 @@ function RootComponent() {
           <Outlet />
           <Toaster position="top-center" richColors />
           <FloatingAudioPlayer />
+          <SwRegister />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
