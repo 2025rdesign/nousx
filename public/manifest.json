@@ -8,14 +8,16 @@
   "theme_color": "#6C47FF",
   "icons": [
     {
-      "src": "https://central.daev.ca/wp-content/uploads/2026/05/icone-logo-nousx-favicon-scaled.png",
-      "sizes": "32x32",
-      "type": "image/png"
+      "src": "https://central.daev.ca/wp-content/uploads/2026/05/PWAAURA.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "https://central.daev.ca/wp-content/uploads/2026/05/icone-logo-nousx-pwa-scaled.png",
+      "src": "https://central.daev.ca/wp-content/uploads/2026/05/PWAAURA.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
