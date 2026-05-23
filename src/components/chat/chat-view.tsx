@@ -129,6 +129,12 @@ export function ChatView({ conversationId }: Props) {
   const pendingNavigationConversationIdRef = useRef<string | null>(null);
   const hydratedConversationIdRef = useRef<string | null>(conversationId);
 
+  // Sticky reference image: last image available for edit/visual reference.
+  // - Set when user uploads a new image, or when the assistant generates/edits one.
+  // - PERSISTS across moderation blocks so a retry can reuse the same reference.
+  // - Reset only when the conversation changes (new context).
+  const stickyImageRefRef = useRef<string | null>(null);
+
   const {
     data: dbMessages,
     isLoading: messagesLoading,
@@ -172,6 +178,7 @@ export function ChatView({ conversationId }: Props) {
 
     lastConversationIdRef.current = conversationId;
     hydratedConversationIdRef.current = null;
+    stickyImageRefRef.current = null;
 
     if (isPendingNavigation) {
       pendingNavigationConversationIdRef.current = null;
