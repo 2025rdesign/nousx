@@ -390,6 +390,68 @@ function Gallery() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Mobile bottom sheet — touch devices only */}
+      <Sheet
+        open={actionSheetItem !== null}
+        onOpenChange={(o) => !o && setActionSheetIdx(null)}
+      >
+        <SheetContent
+          side="bottom"
+          className="bg-background border-border rounded-t-2xl p-4"
+          style={{ paddingBottom: "max(env(safe-area-inset-bottom), 16px)" }}
+        >
+          <SheetHeader>
+            <SheetTitle className="text-base">Opções</SheetTitle>
+          </SheetHeader>
+          {actionSheetItem && (
+            <div className="mt-3 flex flex-col gap-2">
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3 min-h-[52px] text-base"
+                onClick={() => {
+                  notify.info("Publicação em breve.");
+                  setActionSheetIdx(null);
+                }}
+              >
+                🌐 Publicar
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3 min-h-[52px] text-base"
+                onClick={() => {
+                  downloadAsset(
+                    actionSheetItem.image_url,
+                    `auraia-${actionSheetItem.source === "chat" ? "chat" : "studio"}-${Date.now()}.jpg`,
+                  );
+                  setActionSheetIdx(null);
+                }}
+              >
+                ⬇️ Baixar
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3 min-h-[52px] text-base text-destructive border-destructive/30"
+                onClick={() => {
+                  if (confirm("Tem certeza que deseja apagar esta imagem?")) {
+                    del.mutate({ kind: "image", id: actionSheetItem.id });
+                    setActionSheetIdx(null);
+                  }
+                }}
+              >
+                🗑️ Apagar
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-center min-h-[52px] text-base"
+                onClick={() => setActionSheetIdx(null)}
+              >
+                ✕ Cancelar
+              </Button>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
