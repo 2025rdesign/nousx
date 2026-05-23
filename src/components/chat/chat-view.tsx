@@ -98,11 +98,31 @@ export function ChatView({ conversationId }: Props) {
   const pendingNavigationConversationIdRef = useRef<string | null>(null);
   const hydratedConversationIdRef = useRef<string | null>(conversationId);
 
-  const { data: dbMessages, isLoading: messagesLoading } = useQuery({
+  const {
+    data: dbMessages,
+    isLoading: messagesLoading,
+    isError: messagesError,
+    refetch: refetchMessages,
+  } = useQuery({
     queryKey: ["messages", conversationId],
     queryFn: async () => {
       if (!conversationId) return [] as ChatMsg[];
-      return (await fetchMessages({ data: { conversationId } })) as ChatMsg[];
+      console.log("[CHAT-OPEN] abrindo chatId:", conversationId);
+      console.log("[CHAT-OPEN] buscando mensagens...");
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 10_000),
+      );
+      try {
+        const result = (await Promise.race([
+          fetchMessages({ data: { conversationId } }),
+          timeout,
+        ])) as ChatMsg[];
+        console.log("[CHAT-OPEN] mensagens recebidas:", result.length);
+        return result;
+      } catch (err) {
+        console.error("[CHAT-OPEN] erro:", err);
+        throw err;
+      }
     },
     enabled: !!conversationId,
     staleTime: 5 * 60_000,
@@ -110,6 +130,7 @@ export function ChatView({ conversationId }: Props) {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: false,
+    retry: 1,
   });
 
   useEffect(() => {
