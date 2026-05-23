@@ -321,3 +321,10 @@ button, a, [role="button"] {
   0%, 100% { opacity: var(--min-op, 0.2); transform: scale(1); }
   50% { opacity: var(--max-op, 1); transform: scale(1.15); }
 }
+
+/* Studio history actions: hidden on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .studio-history-actions {
+    display: none !important;
+  }
+}

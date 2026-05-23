@@ -117,7 +117,7 @@ function HistoryThumb({
           style={{ opacity: loaded ? 1 : 0 }}
         />
       )}
-      <div className="absolute inset-0 bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+      <div className="absolute inset-0 bg-background/70 hidden group-hover:flex items-center justify-center gap-1 studio-history-actions">
         {children}
       </div>
     </div>
