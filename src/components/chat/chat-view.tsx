@@ -420,6 +420,7 @@ export function ChatView({ conversationId }: Props) {
           image_url: data.url,
           streaming: false,
         };
+        stickyImageRefRef.current = data.url;
         setMessages((prev) => [...prev, editedMessage]);
         void saveMsg({
           data: {
