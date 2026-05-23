@@ -366,7 +366,26 @@ export const Route = createFileRoute("/api/chat")({
                 if (!payload || payload === "[DONE]") continue;
                 try {
                   const json = JSON.parse(payload);
-                  const parts = json?.candidates?.[0]?.content?.parts;
+                  // Detect Gemini safety / moderation blocks. When the model
+                  // refuses to analyze (typically explicit imagery), emit a
+                  // sentinel the client renders as a friendly message.
+                  const candidate = json?.candidates?.[0];
+                  const finishReason = candidate?.finishReason;
+                  const promptBlock = json?.promptFeedback?.blockReason;
+                  if (
+                    promptBlock ||
+                    finishReason === "SAFETY" ||
+                    finishReason === "PROHIBITED_CONTENT" ||
+                    finishReason === "BLOCKLIST"
+                  ) {
+                    const blockFrame = `data: ${JSON.stringify({
+                      choices: [{ delta: { content: "" }, finish_reason: "content_filter" }],
+                      lovable_block: "analysis",
+                    })}\n\n`;
+                    await writer.write(encoder.encode(blockFrame));
+                    continue;
+                  }
+                  const parts = candidate?.content?.parts;
                   if (Array.isArray(parts)) {
                     let text = "";
                     for (const p of parts) {
