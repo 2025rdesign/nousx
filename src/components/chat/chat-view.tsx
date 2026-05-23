@@ -212,11 +212,21 @@ export function ChatView({ conversationId }: Props) {
 
     const baseMessages = messages;
     const latestImageCtx = getLatestImageContext(baseMessages);
+    const latestAssistantImageUrl = getLatestAssistantImageUrl(baseMessages);
     // Follow-up fires for ANY recent image in the conversation
     // (assistant-generated OR user-uploaded that the AI just analyzed).
     const isImageFollowUp =
       !image && !file && detectImageFollowUp(text, !!latestImageCtx);
+    // EDIÇÃO DE IMAGEM (Ultra-only):
+    // dispara quando o usuário acabou de anexar uma imagem OU pede para
+    // editar a última imagem GERADA pela IA, e o texto contém intenção
+    // explícita de edição. Não consome o caminho do Gemini.
+    const editSourceImage = image ?? latestAssistantImageUrl ?? null;
+    const wantsEdit =
+      !file && !!editSourceImage && IMAGE_EDIT_INTENT_RE.test(text);
+
     const wantsImage =
+      !wantsEdit &&
       !image && !file && (detectImageIntent(text) || isImageFollowUp);
     const imagePrompt =
       wantsImage && latestImageCtx?.description
@@ -246,10 +256,20 @@ export function ChatView({ conversationId }: Props) {
 
     setSending(true);
     setInflightMode(
-      wantsImage ? "image" : webSearch ? "web" : reasoning ? "reasoning" : "default",
+      wantsEdit
+        ? "edit"
+        : wantsImage
+          ? "image"
+          : webSearch
+            ? "web"
+            : reasoning
+              ? "reasoning"
+              : "default",
     );
     setAwaitingReply(true);
-    setMessages((prev) => (wantsImage ? [...prev, userMsg] : [...prev, userMsg, assistantMsg]));
+    setMessages((prev) =>
+      wantsImage || wantsEdit ? [...prev, userMsg] : [...prev, userMsg, assistantMsg],
+    );
 
     try {
       let convId = conversationId;
