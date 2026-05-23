@@ -99,6 +99,9 @@ export function ChatView({ conversationId }: Props) {
     enabled: !!conversationId,
     staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: !refetchLocked,
+    refetchOnMount: !refetchLocked,
   });
 
   const [streaming, setStreaming] = useState<ChatMsg | null>(null);
@@ -181,7 +184,7 @@ export function ChatView({ conversationId }: Props) {
       }
 
       // Save user message
-      await saveMsg({
+      const savedUser = await saveMsg({
         data: {
           conversationId: convId,
           role: "user",
@@ -189,10 +192,11 @@ export function ChatView({ conversationId }: Props) {
           imageUrl: image,
         },
       });
-      queryClient.setQueryData<ChatMsg[]>(["messages", convId], (prev) => [
-        ...(prev ?? []),
-        tempUser,
-      ]);
+      queryClient.setQueryData<ChatMsg[]>(["messages", convId], (prev) => {
+        const base = prev ?? [];
+        const withoutTemp = base.filter((msg) => msg.id !== tempUser.id);
+        return [...withoutTemp, savedUser as ChatMsg];
+      });
       // Em conversas existentes, a query ja esta ativa e o tempUser
       // acima ja aparece em `messages` — podemos limpar o optimistico.
       // Em conversas novas (isNew), a query desta tela usa conversationId=null,
@@ -248,7 +252,7 @@ export function ChatView({ conversationId }: Props) {
           content: caption,
           image_url: data.url,
         });
-        await saveMsg({
+        const savedAssistant = await saveMsg({
           data: {
             conversationId: convId,
             role: "assistant",
@@ -256,7 +260,10 @@ export function ChatView({ conversationId }: Props) {
             imageUrl: data.url,
           },
         });
-        queryClient.invalidateQueries({ queryKey: ["messages", convId] });
+        queryClient.setQueryData<ChatMsg[]>(["messages", convId], (prev) => [
+          ...(prev ?? []),
+          savedAssistant as ChatMsg,
+        ]);
         queryClient.invalidateQueries({ queryKey: ["conversations"] });
         if (isNew) {
           try {
@@ -336,7 +343,7 @@ export function ChatView({ conversationId }: Props) {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      const streamId = `stream-${Date.now()}`;
+      const streamId = `streaming-${Date.now()}`;
       let accum = "";
       let reasoningAccum = "";
       let buf = "";
@@ -452,22 +459,35 @@ export function ChatView({ conversationId }: Props) {
       const finalContent = accum || "Desculpe, não consegui responder agora.";
 
       if (finalContent) {
-        await saveMsg({
+        lastStreamEndRef.current = Date.now();
+        const savedAssistant = await saveMsg({
           data: { conversationId: convId, role: "assistant", content: finalContent },
         });
-        // Atualiza cache E remove streaming na MESMA renderizacao
-        // para evitar o "pisca" entre a bolha de streaming sumir e
-        // a mensagem persistida aparecer.
-        queryClient.setQueryData<ChatMsg[]>(["messages", convId], (prev) => [
-          ...(prev ?? []),
-          {
-            id: `tmp-a-${Date.now()}`,
-            role: "assistant",
-            content: finalContent,
-            reasoning: reasoningAccum || null,
-          },
-        ]);
-        setStreaming(null);
+        const persistedAssistant: ChatMsg = {
+          ...(savedAssistant as ChatMsg),
+          reasoning: reasoningAccum || null,
+          streaming: false,
+        };
+        setStreaming((prev) =>
+          prev?.id === streamId
+            ? {
+                ...prev,
+                ...persistedAssistant,
+              }
+            : persistedAssistant,
+        );
+        queryClient.setQueryData<ChatMsg[]>(["messages", convId], (prev) => {
+          const base = prev ?? [];
+          const existingIndex = base.findIndex((msg) => msg.id === streamId);
+          if (existingIndex >= 0) {
+            return base.map((msg) => (msg.id === streamId ? persistedAssistant : msg));
+          }
+          const deduped = base.filter((msg) => msg.id !== persistedAssistant.id);
+          return [...deduped, persistedAssistant];
+        });
+        setTimeout(() => {
+          setStreaming((prev) => (prev?.id === persistedAssistant.id ? null : prev));
+        }, 0);
       } else {
         setStreaming(null);
       }
@@ -478,8 +498,9 @@ export function ChatView({ conversationId }: Props) {
       // Sincronia tardia com o banco (IDs reais), sem afetar a UI atual.
       const messagesKey = ["messages", convId] as const;
       setTimeout(() => {
+        if (Date.now() - lastStreamEndRef.current < 3000) return;
         queryClient.invalidateQueries({ queryKey: messagesKey });
-      }, 2000);
+      }, 3000);
 
       if (isNew) {
         try {
