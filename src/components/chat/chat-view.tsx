@@ -217,6 +217,13 @@ export function ChatView({ conversationId }: Props) {
   ) {
     console.log("[IMG 1] iniciando geracao");
 
+    // If the user just uploaded a new image, that becomes the sticky reference
+    // immediately — so later messages (edits, follow-ups) can find it even if
+    // the first attempt is blocked by moderation.
+    if (image) {
+      stickyImageRefRef.current = image;
+    }
+
     const baseMessages = messages;
     const latestImageCtx = getLatestImageContext(baseMessages);
     const latestAssistantImageUrl = getLatestAssistantImageUrl(baseMessages);
@@ -225,20 +232,26 @@ export function ChatView({ conversationId }: Props) {
     const isImageFollowUp =
       !image && !file && detectImageFollowUp(text, !!latestImageCtx);
     // EDIÇÃO DE IMAGEM (Ultra-only):
-    // dispara quando o usuário acabou de anexar uma imagem OU pede para
-    // editar a última imagem GERADA pela IA, e o texto contém intenção
-    // explícita de edição. Não consome o caminho do Gemini.
-    const editSourceImage = image ?? latestAssistantImageUrl ?? null;
+    // dispara quando há uma imagem disponível (recém anexada, sticky de
+    // tentativa anterior, ou última gerada pela IA) E o texto contém
+    // intenção explícita de edição.
+    const editSourceImage =
+      image ?? stickyImageRefRef.current ?? latestAssistantImageUrl ?? null;
     const wantsEdit =
       !file && !!editSourceImage && IMAGE_EDIT_INTENT_RE.test(text);
 
+    // GERAÇÃO: permite imagem anexada (usada como referência visual no prompt,
+    // NÃO como âncora de edição pixel-a-pixel).
     const wantsImage =
-      !wantsEdit &&
-      !image && !file && (detectImageIntent(text) || isImageFollowUp);
+      !wantsEdit && !file && (detectImageIntent(text) || isImageFollowUp);
+
+    const visualContextHint = image
+      ? "\n\n[O usuário anexou uma imagem como referência visual — use estilo, composição, paleta e tema dela como inspiração para uma NOVA imagem.]"
+      : "";
     const imagePrompt =
       wantsImage && latestImageCtx?.description
-        ? `${text}\n\nContexto visual da conversa anterior: ${latestImageCtx.description.slice(0, 1200)}`
-        : text;
+        ? `${text}\n\nContexto visual da conversa anterior: ${latestImageCtx.description.slice(0, 1200)}${visualContextHint}`
+        : `${text}${visualContextHint}`;
 
     console.log("[CHAT] gerar imagem:", wantsImage, "| text:", text.slice(0, 120));
     console.log("[CHAT] follow-up de imagem:", isImageFollowUp);
