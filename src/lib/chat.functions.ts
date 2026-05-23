@@ -147,17 +147,21 @@ export const saveMessage = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { supabase } = context;
-    const { error } = await supabase.from("messages").insert({
-      conversation_id: data.conversationId,
-      role: data.role,
-      content: data.content,
-      image_url: data.imageUrl ?? null,
-    });
+    const { data: row, error } = await supabase
+      .from("messages")
+      .insert({
+        conversation_id: data.conversationId,
+        role: data.role,
+        content: data.content,
+        image_url: data.imageUrl ?? null,
+      })
+      .select("id, role, content, image_url, created_at")
+      .single();
     if (error) throw new Error(error.message);
     // Bump conversation updated_at
     await supabase
       .from("conversations")
       .update({ updated_at: new Date().toISOString() })
       .eq("id", data.conversationId);
-    return { ok: true };
+    return row;
   });
