@@ -153,7 +153,7 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
         ) : (
           <>
             {msg.reasoning && <ReasoningBlock text={msg.reasoning} />}
-            {textContent && (
+            {(textContent || msg.streaming) && (
             <div
               className="text-foreground"
               style={{
@@ -298,7 +298,7 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                 },
               }}
             >
-              {textContent || "​"}
+              {textContent || ""}
             </ReactMarkdown>
             {msg.streaming && (
               <span aria-hidden className="stream-cursor" />
