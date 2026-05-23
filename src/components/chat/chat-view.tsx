@@ -48,17 +48,6 @@ function detectImageIntent(text: string): boolean {
   return after.length >= MIN_DESCRIPTION_CHARS;
 }
 
-function getLatestAssistantImage(messages: ChatMsg[]) {
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const message = messages[i];
-    if (message.role === "assistant" && message.image_url) {
-      return message;
-    }
-  }
-
-  return null;
-}
-
 function getLatestImageContext(messages: ChatMsg[]) {
   // Find the most recent message containing an image (user-uploaded or assistant-generated)
   // and its associated description.
@@ -210,7 +199,6 @@ export function ChatView({ conversationId }: Props) {
     console.log("[IMG 1] iniciando geracao");
 
     const baseMessages = messages;
-    const latestAssistantImage = getLatestAssistantImage(baseMessages);
     const latestImageCtx = getLatestImageContext(baseMessages);
     // Follow-up fires for ANY recent image in the conversation
     // (assistant-generated OR user-uploaded that the AI just analyzed).
