@@ -317,6 +317,10 @@ export function ChatView({ conversationId }: Props) {
           } catch (error) {
             console.warn("rename failed", error);
           }
+          queryClient.setQueryData<ChatMsg[]>(
+            ["messages", convId],
+            [...baseMessages, userMsg, assistantImageMessage].map((m) => ({ ...m, streaming: false })),
+          );
           navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
         }
 
