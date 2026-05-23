@@ -117,7 +117,12 @@ export function ChatInput({
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-3 md:px-4 pb-4 pt-2">
+    <div
+      className="w-full max-w-3xl mx-auto px-3 md:px-4 pt-2"
+      style={{
+        paddingBottom: "max(env(safe-area-inset-bottom), 16px)",
+      }}
+    >
       <div className="rounded-2xl border border-border bg-card shadow-sm focus-within:border-accent transition-colors">
         {(image || file || extracting) && (
           <div className="px-3 pt-3 flex items-center gap-2 flex-wrap">
