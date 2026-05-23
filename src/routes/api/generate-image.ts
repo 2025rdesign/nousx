@@ -281,21 +281,31 @@ export const Route = createFileRoute("/api/generate-image")({
           console.log("[GENERATE-IMAGE] Chamando API Grok...");
 
           let attempt = await callXai(apiKey, technicalPrompt);
+
+          // 3-layer moderation retry
           if (!attempt.ok && isModeration(attempt.status, attempt.text)) {
-            console.warn("[GENERATE-IMAGE] moderation hit, retrying sanitized");
-            const retryPrompt = sanitizePrompt(technicalPrompt);
-            attempt = await callXai(apiKey, retryPrompt);
-            if (!attempt.ok && isModeration(attempt.status, attempt.text)) {
-              console.warn("[GENERATE-IMAGE] moderation persistiu após retry");
-              return json(
-                {
-                  error: "content_moderation",
-                  code: "moderation",
-                  message: "Conteúdo bloqueado por moderação.",
-                },
-                422,
-              );
-            }
+            console.warn("[GENERATE-IMAGE] moderation hit — Layer 1 (liberal)");
+            attempt = await callXai(apiKey, `${rewriteLiberal(userPrompt)}${suffix}`);
+          }
+          if (!attempt.ok && isModeration(attempt.status, attempt.text)) {
+            console.warn("[GENERATE-IMAGE] Layer 2 (neutral)");
+            attempt = await callXai(apiKey, `${rewriteNeutral(userPrompt)}${suffix}`);
+          }
+          if (!attempt.ok && isModeration(attempt.status, attempt.text)) {
+            console.warn("[GENERATE-IMAGE] Layer 3 (Gemini rewrite)");
+            const gem = await rewriteViaGemini(userPrompt);
+            if (gem) attempt = await callXai(apiKey, `${gem}${suffix}`);
+          }
+          if (!attempt.ok && isModeration(attempt.status, attempt.text)) {
+            console.warn("[GENERATE-IMAGE] moderation persistiu após 3 camadas");
+            return json(
+              {
+                error: "content_moderation",
+                code: "moderation",
+                message: "Conteúdo bloqueado por moderação.",
+              },
+              422,
+            );
           }
           if (!attempt.ok) {
             console.error("[GENERATE-IMAGE] upstream", attempt.status, attempt.text.slice(0, 500));
