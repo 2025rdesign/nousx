@@ -916,7 +916,22 @@ export function ChatView({ conversationId }: Props) {
 
       if (wantsImage || wantsEdit) {
         if (!isAbort) {
-          notify.error(error instanceof Error ? error.message : "Algo deu errado.");
+          const errText = "Algo deu errado. Tente novamente.";
+          const errMsg: ChatMsg = {
+            id: `assistant-error-${Date.now()}`,
+            role: "assistant",
+            content: errText,
+            streaming: false,
+          };
+          setMessages((prev) => [...prev, errMsg]);
+          // Best-effort: save to history if we have a conversation id
+          const lastConvId = conversationId ?? lastConversationIdRef.current;
+          if (lastConvId) {
+            void saveMsg({
+              data: { conversationId: lastConvId, role: "assistant", content: errText },
+            }).catch(() => undefined);
+          }
+          notify.error(error instanceof Error ? error.message : errText);
         }
       } else {
         const fallbackText = isAbort
