@@ -702,6 +702,7 @@ export function ChatView({ conversationId }: Props) {
       let reasoningAccum = "";
       let buffer = "";
       let gotFirstChunk = false;
+      let analysisBlocked = false;
 
       const stallController = new AbortController();
       const stallTimer = setTimeout(() => {
@@ -743,6 +744,10 @@ export function ChatView({ conversationId }: Props) {
 
         try {
           const json = JSON.parse(payload);
+          if (json?.lovable_block === "analysis") {
+            analysisBlocked = true;
+            return;
+          }
           const delta = typeof json.choices?.[0]?.delta?.content === "string"
             ? json.choices[0].delta.content
             : "";
@@ -793,6 +798,22 @@ export function ChatView({ conversationId }: Props) {
       }
 
       const finalContent = accum || "Desculpe, não consegui responder agora.";
+
+      // Gemini blocked image/file analysis by safety filters — show the
+      // friendly analysis-block message instead of the silent fallback.
+      if (analysisBlocked && !accum.trim()) {
+        await appendAssistantMessage({
+          convId,
+          text: ANALYSIS_BLOCK_TEXT,
+          isNew,
+          titleSeed: text,
+          baseMessages,
+          userMsg,
+        });
+        // Remove the placeholder streaming bubble (helper appends its own).
+        setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+        return;
+      }
 
       // FALLBACK: DeepSeek confirmed it would generate an image but no image
       // was produced. Detect the confirmation pattern and trigger image
