@@ -186,10 +186,6 @@ export function ChatView({ conversationId }: Props) {
       ]);
       setOptimisticUser(null);
 
-      if (isNew) {
-        navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
-      }
-
       // ── Image generation branch ──────────────────────────────────────────
       if (wantsImage) {
         console.log("[IMG 2] chamando API");
@@ -252,6 +248,7 @@ export function ChatView({ conversationId }: Props) {
           } catch (e) {
             console.warn("rename failed", e);
           }
+          navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
         }
         return;
       }
@@ -471,6 +468,7 @@ export function ChatView({ conversationId }: Props) {
         } catch (e) {
           console.warn("rename failed", e);
         }
+        navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
       }
     } catch (err) {
       const isAbort = err instanceof Error && err.name === "AbortError";
