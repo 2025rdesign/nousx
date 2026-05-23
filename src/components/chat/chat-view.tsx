@@ -949,51 +949,47 @@ export function ChatView({ conversationId }: Props) {
       const isAbort = error instanceof Error && error.name === "AbortError";
       console.error(error);
 
+      // Never expose technical errors / provider names to the user.
+      const friendlyText = isAbort ? NETWORK_ERROR_TEXT : GENERIC_ERROR_TEXT;
+      const lastConvId = conversationId ?? lastConversationIdRef.current;
+
       if (wantsImage || wantsEdit) {
         if (!isAbort) {
-          const errText = "Algo deu errado. Tente novamente.";
+          setSending(false);
+          setAwaitingReply(false);
+          setInflightMode("default");
+          await new Promise((r) => setTimeout(r, 50));
           const errMsg: ChatMsg = {
             id: `assistant-error-${Date.now()}`,
             role: "assistant",
-            content: errText,
+            content: friendlyText,
             streaming: false,
           };
           setMessages((prev) => [...prev, errMsg]);
-          // Best-effort: save to history if we have a conversation id
-          const lastConvId = conversationId ?? lastConversationIdRef.current;
           if (lastConvId) {
             void saveMsg({
-              data: { conversationId: lastConvId, role: "assistant", content: errText },
+              data: { conversationId: lastConvId, role: "assistant", content: friendlyText },
             }).catch(() => undefined);
           }
-          notify.error(error instanceof Error ? error.message : errText);
         }
       } else {
-        const fallbackText = isAbort
-          ? "A resposta demorou muito. Tente novamente."
-          : error instanceof Error
-            ? error.message
-            : "Algo deu errado.";
-
         setMessages((prev) =>
           prev.map((message) =>
             message.id === assistantId
-              ? {
-                  ...message,
-                  content: fallbackText,
-                  streaming: false,
-                }
+              ? { ...message, content: friendlyText, streaming: false }
               : message,
           ),
         );
-
-        if (!isAbort) {
-          notify.error(fallbackText);
+        if (!isAbort && lastConvId) {
+          void saveMsg({
+            data: { conversationId: lastConvId, role: "assistant", content: friendlyText },
+          }).catch(() => undefined);
         }
       }
     } finally {
       setSending(false);
       setAwaitingReply(false);
+      setInflightMode("default");
     }
   }
 
