@@ -81,7 +81,11 @@ export function ChatView({ conversationId }: Props) {
   const { planId, hasActive } = useActivePlan();
   const hasUltra = hasActive && planId === "ultra";
 
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [messages, setMessages] = useState<ChatMsg[]>(() => {
+    if (!conversationId) return [];
+    const cached = queryClient.getQueryData<ChatMsg[]>(["messages", conversationId]);
+    return cached ? cached.map((m) => ({ ...m, streaming: false })) : [];
+  });
   const [sending, setSending] = useState(false);
   const [awaitingReply, setAwaitingReply] = useState(false);
   const [inflightMode, setInflightMode] = useState<
@@ -92,7 +96,7 @@ export function ChatView({ conversationId }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastConversationIdRef = useRef<string | null>(conversationId);
   const pendingNavigationConversationIdRef = useRef<string | null>(null);
-  const hydratedConversationIdRef = useRef<string | null>(null);
+  const hydratedConversationIdRef = useRef<string | null>(conversationId);
 
   const { data: dbMessages, isLoading: messagesLoading } = useQuery({
     queryKey: ["messages", conversationId],
@@ -313,6 +317,10 @@ export function ChatView({ conversationId }: Props) {
           } catch (error) {
             console.warn("rename failed", error);
           }
+          queryClient.setQueryData<ChatMsg[]>(
+            ["messages", convId],
+            [...baseMessages, userMsg, assistantImageMessage].map((m) => ({ ...m, streaming: false })),
+          );
           navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
         }
 
@@ -419,6 +427,14 @@ export function ChatView({ conversationId }: Props) {
           } catch (error) {
             console.warn("rename failed", error);
           }
+          queryClient.setQueryData<ChatMsg[]>(
+            ["messages", convId],
+            [
+              ...baseMessages,
+              userMsg,
+              { ...assistantMsg, content: finalContent, streaming: false },
+            ].map((m) => ({ ...m, streaming: false })),
+          );
           navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
         }
 
@@ -554,6 +570,19 @@ export function ChatView({ conversationId }: Props) {
         } catch (error) {
           console.warn("rename failed", error);
         }
+        queryClient.setQueryData<ChatMsg[]>(
+          ["messages", convId],
+          [
+            ...baseMessages,
+            userMsg,
+            {
+              ...assistantMsg,
+              content: finalContent,
+              reasoning: reasoningAccum || null,
+              streaming: false,
+            },
+          ].map((m) => ({ ...m, streaming: false })),
+        );
         navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
       }
     } catch (error) {
