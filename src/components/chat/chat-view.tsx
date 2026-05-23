@@ -184,7 +184,14 @@ export function ChatView({ conversationId }: Props) {
         ...(prev ?? []),
         tempUser,
       ]);
-      setOptimisticUser(null);
+      // Em conversas existentes, a query ja esta ativa e o tempUser
+      // acima ja aparece em `messages` — podemos limpar o optimistico.
+      // Em conversas novas (isNew), a query desta tela usa conversationId=null,
+      // entao mantemos o optimisticUser visivel ate o navigate remontar
+      // o componente com a key da nova conversa (que ai le do cache).
+      if (!isNew) {
+        setOptimisticUser(null);
+      }
 
       // ── Image generation branch ──────────────────────────────────────────
       if (wantsImage) {
