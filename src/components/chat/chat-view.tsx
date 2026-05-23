@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -110,8 +110,17 @@ export function ChatView({ conversationId }: Props) {
   const [optimisticUser, setOptimisticUser] = useState<ChatMsg | null>(null);
   const [optimisticAssistant, setOptimisticAssistant] = useState<ChatMsg | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastStreamEndRef = useRef(0);
 
-  const messages: ChatMsg[] = (dbMessages as ChatMsg[] | undefined) ?? [];
+  const rawMessages: ChatMsg[] = (dbMessages as ChatMsg[] | undefined) ?? [];
+  const refetchLocked = conversationId
+    ? !!streaming || Date.now() - lastStreamEndRef.current < 3000
+    : false;
+  const messages = useMemo(() => {
+    if (!streaming) return rawMessages;
+    const withoutDuplicate = rawMessages.filter((msg) => msg.id !== streaming.id);
+    return [...withoutDuplicate, streaming];
+  }, [rawMessages, streaming]);
 
   useEffect(() => {
     if (!optimisticAssistant?.image_url) return;
