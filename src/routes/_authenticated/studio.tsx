@@ -1106,17 +1106,17 @@ function StudioInner() {
           >
             <X className="size-5" />
           </button>
-          <a
-            href={result}
-            download
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (result) downloadAsset(result, `auraia-studio-${Date.now()}.jpg`);
+            }}
             className="absolute bottom-4 right-4 size-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
             aria-label="Baixar"
           >
             <Download className="size-5" />
-          </a>
+          </button>
         </div>
       )}
     </div>
