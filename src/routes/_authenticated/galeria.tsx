@@ -124,6 +124,8 @@ function Gallery() {
   const showAudios = filter === "audio";
   const lightboxItem =
     lightboxIdx !== null ? images[lightboxIdx] ?? null : null;
+  const actionSheetItem =
+    actionSheetIdx !== null ? images[actionSheetIdx] ?? null : null;
 
   return (
     <div className="h-full overflow-auto">
