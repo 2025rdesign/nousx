@@ -77,6 +77,14 @@ function getLatestImageContext(messages: ChatMsg[]) {
   return { description: description.trim() };
 }
 
+function getLatestAssistantImageUrl(messages: ChatMsg[]): string | null {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const m = messages[i];
+    if (m.role === "assistant" && m.image_url) return m.image_url;
+  }
+  return null;
+}
+
 function detectImageFollowUp(text: string, hasPreviousAssistantImage: boolean): boolean {
   if (!hasPreviousAssistantImage) return false;
   const trimmed = text.trim();
@@ -112,7 +120,7 @@ export function ChatView({ conversationId }: Props) {
   const [sending, setSending] = useState(false);
   const [awaitingReply, setAwaitingReply] = useState(false);
   const [inflightMode, setInflightMode] = useState<
-    "default" | "web" | "reasoning" | "image"
+    "default" | "web" | "reasoning" | "image" | "edit"
   >("default");
   const [voiceOpen, setVoiceOpen] = useState(false);
 
