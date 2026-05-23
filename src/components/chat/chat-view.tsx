@@ -283,16 +283,35 @@ export function ChatView({ conversationId }: Props) {
         queryClient.invalidateQueries({ queryKey: ["conversations"] });
       }
 
-      void saveMsg({
-        data: {
-          conversationId: convId,
-          role: "user",
-          content: displayText,
-          imageUrl: image,
-        },
-      }).catch((error) => {
-        console.error("[CHAT-SAVE-USER] falha ao salvar mensagem do usuario:", error);
-      });
+      // Persist user message FIRST so the chat history is never empty,
+      // even if the assistant call fails or moderation blocks it.
+      const userSavePromise = (wantsImage || wantsEdit)
+        ? saveMsg({
+            data: {
+              conversationId: convId,
+              role: "user",
+              content: displayText,
+              imageUrl: image,
+            },
+          }).catch((error) => {
+            console.error("[CHAT-SAVE-USER] falha ao salvar mensagem do usuario:", error);
+          })
+        : (() => {
+            void saveMsg({
+              data: {
+                conversationId: convId,
+                role: "user",
+                content: displayText,
+                imageUrl: image,
+              },
+            }).catch((error) => {
+              console.error("[CHAT-SAVE-USER] falha ao salvar mensagem do usuario:", error);
+            });
+            return Promise.resolve();
+          })();
+      if (wantsImage || wantsEdit) {
+        await userSavePromise;
+      }
 
       if (wantsEdit && editSourceImage) {
         console.log("[EDIT] chamando /api/edit-image", {
@@ -355,12 +374,16 @@ export function ChatView({ conversationId }: Props) {
               streaming: false,
             };
             setMessages((prev) => [...prev, modMsg]);
-            void saveMsg({
+            await saveMsg({
               data: { conversationId: convId, role: "assistant", content: modText },
             }).catch(() => undefined);
             queryClient.invalidateQueries({ queryKey: ["conversations"] });
             if (isNew) {
               try { await rename({ data: { id: convId, title: text.slice(0, 30) } }); } catch {}
+              queryClient.setQueryData<ChatMsg[]>(
+                ["messages", convId],
+                [...baseMessages, userMsg, modMsg].map((m) => ({ ...m, streaming: false })),
+              );
               navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
             }
             return;
@@ -481,12 +504,16 @@ export function ChatView({ conversationId }: Props) {
               streaming: false,
             };
             setMessages((prev) => [...prev, modMsg]);
-            void saveMsg({
+            await saveMsg({
               data: { conversationId: convId, role: "assistant", content: modText },
             }).catch(() => undefined);
             queryClient.invalidateQueries({ queryKey: ["conversations"] });
             if (isNew) {
               try { await rename({ data: { id: convId, title: text.slice(0, 30) } }); } catch {}
+              queryClient.setQueryData<ChatMsg[]>(
+                ["messages", convId],
+                [...baseMessages, userMsg, modMsg].map((m) => ({ ...m, streaming: false })),
+              );
               navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
             }
             return;
@@ -889,7 +916,22 @@ export function ChatView({ conversationId }: Props) {
 
       if (wantsImage || wantsEdit) {
         if (!isAbort) {
-          notify.error(error instanceof Error ? error.message : "Algo deu errado.");
+          const errText = "Algo deu errado. Tente novamente.";
+          const errMsg: ChatMsg = {
+            id: `assistant-error-${Date.now()}`,
+            role: "assistant",
+            content: errText,
+            streaming: false,
+          };
+          setMessages((prev) => [...prev, errMsg]);
+          // Best-effort: save to history if we have a conversation id
+          const lastConvId = conversationId ?? lastConversationIdRef.current;
+          if (lastConvId) {
+            void saveMsg({
+              data: { conversationId: lastConvId, role: "assistant", content: errText },
+            }).catch(() => undefined);
+          }
+          notify.error(error instanceof Error ? error.message : errText);
         }
       } else {
         const fallbackText = isAbort
