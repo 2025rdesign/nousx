@@ -204,7 +204,13 @@ function Gallery() {
                 <div className="group relative aspect-square rounded-lg overflow-hidden bg-muted">
                   <button
                     type="button"
-                    onClick={() => setLightboxIdx(idx)}
+                    onClick={() => {
+                      if (isCoarsePointer) {
+                        setActionSheetIdx(idx);
+                      } else {
+                        setLightboxIdx(idx);
+                      }
+                    }}
                     className="block w-full h-full"
                   >
                     <img
@@ -226,7 +232,8 @@ function Gallery() {
                       {img.source === "chat" ? "Chat" : "Estúdio"}
                     </span>
                   </div>
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex items-center justify-center gap-2">
+                  {/* Desktop hover actions only — mobile uses the bottom sheet */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none hidden md:flex items-center justify-center gap-2">
                     <button
                       type="button"
                       onClick={(e) => {
