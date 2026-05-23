@@ -294,6 +294,93 @@ export function ChatView({ conversationId }: Props) {
         console.error("[CHAT-SAVE-USER] falha ao salvar mensagem do usuario:", error);
       });
 
+      if (wantsEdit && editSourceImage) {
+        console.log("[EDIT] chamando /api/edit-image", {
+          hasUltra,
+          source: editSourceImage.startsWith("data:") ? "uploaded" : "previous-generated",
+        });
+
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) throw new Error("Sessão expirada.");
+
+        const res = await fetch("/api/edit-image", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ prompt: text, imageUrl: editSourceImage }),
+        });
+
+        if (res.status === 402) {
+          const upgradeText =
+            "Para editar imagens no chat, você precisa do plano **Ultra**. " +
+            "Acesse a página de planos para assinar! 🪄\n\n[Ver Planos](/configuracoes)";
+          const upgradeMessage: ChatMsg = {
+            id: `assistant-upgrade-${Date.now()}`,
+            role: "assistant",
+            content: upgradeText,
+            streaming: false,
+          };
+          setMessages((prev) => [...prev, upgradeMessage]);
+          void saveMsg({
+            data: { conversationId: convId, role: "assistant", content: upgradeText },
+          }).catch(() => undefined);
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          if (isNew) {
+            try {
+              await rename({ data: { id: convId, title: text.slice(0, 30) } });
+            } catch (error) {
+              console.warn("rename failed", error);
+            }
+            navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
+          }
+          return;
+        }
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "Falha ao editar imagem." }));
+          throw new Error(err.error || "Falha ao editar imagem.");
+        }
+
+        const data = (await res.json()) as { url: string; caption?: string };
+        const caption = (data.caption ?? "Aqui está sua imagem editada.").trim();
+        const editedMessage: ChatMsg = {
+          id: `assistant-edit-${Date.now()}`,
+          role: "assistant",
+          content: caption,
+          image_url: data.url,
+          streaming: false,
+        };
+        setMessages((prev) => [...prev, editedMessage]);
+        void saveMsg({
+          data: {
+            conversationId: convId,
+            role: "assistant",
+            content: caption,
+            imageUrl: data.url,
+          },
+        }).catch((error) => {
+          console.error("[CHAT-SAVE-ASSISTANT] falha ao salvar imagem editada:", error);
+        });
+        queryClient.invalidateQueries({ queryKey: ["conversations"] });
+
+        if (isNew) {
+          try {
+            await rename({ data: { id: convId, title: text.slice(0, 30) } });
+          } catch (error) {
+            console.warn("rename failed", error);
+          }
+          queryClient.setQueryData<ChatMsg[]>(
+            ["messages", convId],
+            [...baseMessages, userMsg, editedMessage].map((m) => ({ ...m, streaming: false })),
+          );
+          navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
+        }
+        return;
+      }
+
       if (wantsImage) {
         console.log("[IMG 2] chamando API");
         console.log("[CHAT] chamando /api/generate-image (DeepSeek bypassado)");
