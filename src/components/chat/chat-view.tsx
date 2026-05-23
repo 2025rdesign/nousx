@@ -21,6 +21,10 @@ import { VoiceModeModal } from "./voice-mode-modal";
 const IMAGE_INTENT_RE =
   /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|mostr(?:a|e|ar)|transform(?:a|e|ar)|convert(?:a|e|er)|me\s+(?:d[áa]|d[êe]|manda|mostra|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?)\b[^\n]{0,30}\b(image(?:m|ns)|fotos?|ilustra[cç](?:[ãa]o|[õo]es)|desenhos?|figuras?|artes?|pinturas?|wallpapers?|retratos?|p[ôo]ster(?:es)?|banners?|capas?|vetor(?:es|ial|iais)?|logos?|logotipos?|[íi]cones?|stickers?|emojis?|avatares?|personagens?|cenas?|gifs?)\b([^\n]*)/i;
 
+// Intenção de EDITAR uma imagem existente (não apenas analisar).
+const IMAGE_EDIT_INTENT_RE =
+  /\b(mude|muda|troque|troca|retire|retira|remova|remove|coloque|coloca|adicione|adiciona|altere|altera|edite|edita|tire|tira|bote|bota|ponha|p[oõ]e|deixe|deixa|torne|torna|transform(?:e|a|ar)|transport(?:e|a|ar)|substitua|substitui|inclua|inclui|apague|apaga|melhore|melhora|ajuste|ajusta|refa[cç]a|regenere|aumente|aumenta|diminua|diminui|deixa\s+mais|deixe\s+mais|sem\s+|com\s+|pinte|pinta|colorize)\b/i;
+
 const MIN_DESCRIPTION_CHARS = 10;
 
 const IMAGE_FOLLOW_UP_RE =
