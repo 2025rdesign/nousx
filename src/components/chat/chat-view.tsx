@@ -341,6 +341,30 @@ export function ChatView({ conversationId }: Props) {
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: "Falha ao editar imagem." }));
+          if (res.status === 422 && (err.code === "moderation" || err.error === "content_moderation")) {
+            const modText =
+              "✨ Hmm, esse conteúdo não rolou aqui no chat.\n\n" +
+              "O chat usa uma IA com filtros de conteúdo que bloqueou essa geração. " +
+              "Mas calma — no **Estúdio de Criação** da AuraIA você consegue gerar esse tipo de imagem sem restrições, " +
+              "com modelos exclusivos e alta qualidade.\n\n" +
+              "[🎨 Ir para o Estúdio](/studio)";
+            const modMsg: ChatMsg = {
+              id: `assistant-moderation-${Date.now()}`,
+              role: "assistant",
+              content: modText,
+              streaming: false,
+            };
+            setMessages((prev) => [...prev, modMsg]);
+            void saveMsg({
+              data: { conversationId: convId, role: "assistant", content: modText },
+            }).catch(() => undefined);
+            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+            if (isNew) {
+              try { await rename({ data: { id: convId, title: text.slice(0, 30) } }); } catch {}
+              navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
+            }
+            return;
+          }
           throw new Error(err.error || "Falha ao editar imagem.");
         }
 
@@ -443,6 +467,30 @@ export function ChatView({ conversationId }: Props) {
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: "Falha ao gerar imagem." }));
+          if (res.status === 422 && (err.code === "moderation" || err.error === "content_moderation")) {
+            const modText =
+              "✨ Hmm, esse conteúdo não rolou aqui no chat.\n\n" +
+              "O chat usa uma IA com filtros de conteúdo que bloqueou essa geração. " +
+              "Mas calma — no **Estúdio de Criação** da AuraIA você consegue gerar esse tipo de imagem sem restrições, " +
+              "com modelos exclusivos e alta qualidade.\n\n" +
+              "[🎨 Ir para o Estúdio](/studio)";
+            const modMsg: ChatMsg = {
+              id: `assistant-moderation-${Date.now()}`,
+              role: "assistant",
+              content: modText,
+              streaming: false,
+            };
+            setMessages((prev) => [...prev, modMsg]);
+            void saveMsg({
+              data: { conversationId: convId, role: "assistant", content: modText },
+            }).catch(() => undefined);
+            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+            if (isNew) {
+              try { await rename({ data: { id: convId, title: text.slice(0, 30) } }); } catch {}
+              navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
+            }
+            return;
+          }
           throw new Error(err.error || "Falha ao gerar imagem.");
         }
 
