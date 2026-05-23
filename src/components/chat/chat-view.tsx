@@ -283,16 +283,35 @@ export function ChatView({ conversationId }: Props) {
         queryClient.invalidateQueries({ queryKey: ["conversations"] });
       }
 
-      void saveMsg({
-        data: {
-          conversationId: convId,
-          role: "user",
-          content: displayText,
-          imageUrl: image,
-        },
-      }).catch((error) => {
-        console.error("[CHAT-SAVE-USER] falha ao salvar mensagem do usuario:", error);
-      });
+      // Persist user message FIRST so the chat history is never empty,
+      // even if the assistant call fails or moderation blocks it.
+      const userSavePromise = (wantsImage || wantsEdit)
+        ? saveMsg({
+            data: {
+              conversationId: convId,
+              role: "user",
+              content: displayText,
+              imageUrl: image,
+            },
+          }).catch((error) => {
+            console.error("[CHAT-SAVE-USER] falha ao salvar mensagem do usuario:", error);
+          })
+        : (() => {
+            void saveMsg({
+              data: {
+                conversationId: convId,
+                role: "user",
+                content: displayText,
+                imageUrl: image,
+              },
+            }).catch((error) => {
+              console.error("[CHAT-SAVE-USER] falha ao salvar mensagem do usuario:", error);
+            });
+            return Promise.resolve();
+          })();
+      if (wantsImage || wantsEdit) {
+        await userSavePromise;
+      }
 
       if (wantsEdit && editSourceImage) {
         console.log("[EDIT] chamando /api/edit-image", {
