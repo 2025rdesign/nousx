@@ -1,19 +1,27 @@
-const VERSION = 'v1';
-const CACHE_NAME = 'auraia-' + VERSION;
+// CACHE_VERSION é substituído automaticamente a cada build pelo plugin
+// `sw-cache-version` em vite.config.ts. Mudança de bytes garante que o
+// navegador detecte a nova versão e dispare o fluxo de update.
+const CACHE_VERSION = 'build-1779573576864';
 
 self.addEventListener('install', () => {
+  // Ativa imediatamente o novo SW sem esperar fechar todas as abas.
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys()
-      .then((keys) =>
-        Promise.all(
-          keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-        )
-      )
-      .then(() => self.clients.claim())
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k)),
+      );
+      await self.clients.claim();
+      // Notifica todas as abas abertas que existe nova versão.
+      const clients = await self.clients.matchAll({ type: 'window' });
+      for (const client of clients) {
+        client.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION });
+      }
+    })(),
   );
 });
 
@@ -23,7 +31,6 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
-  // Apenas mesma origem; ignora APIs e SSE.
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/')) return;
 
@@ -32,10 +39,10 @@ self.addEventListener('fetch', (event) => {
       .then((response) => {
         if (response && response.status === 200 && response.type === 'basic') {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone)).catch(() => {});
+          caches.open(CACHE_VERSION).then((cache) => cache.put(req, clone)).catch(() => {});
         }
         return response;
       })
-      .catch(() => caches.match(req))
+      .catch(() => caches.match(req)),
   );
 });

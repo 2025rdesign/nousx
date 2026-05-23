@@ -262,6 +262,8 @@ export const improvePrompt = createServerFn({ method: "POST" })
   .inputValidator((d: {
     prompt: string;
     model?: "DEFAULT" | "REALISM" | "ANIME";
+    gender?: "FEMALE" | "MALE" | "TRANS";
+    aspectRatio?: "9:16" | "16:9" | "1:1" | "4:5";
     characterName?: string;
     characterAppearance?: string;
     editModel?: "CREATIVE" | "REALISM" | "QWEN_PRO";
@@ -272,6 +274,8 @@ export const improvePrompt = createServerFn({ method: "POST" })
       .object({
         prompt: z.string().min(1).max(2000),
         model: z.enum(["DEFAULT", "REALISM", "ANIME"]).optional(),
+        gender: z.enum(["FEMALE", "MALE", "TRANS"]).optional(),
+        aspectRatio: z.enum(["9:16", "16:9", "1:1", "4:5"]).optional(),
         characterName: z.string().max(120).optional(),
         characterAppearance: z.string().max(4000).optional(),
         editModel: z.enum(["CREATIVE", "REALISM", "QWEN_PRO"]).optional(),
@@ -303,11 +307,19 @@ export const improvePrompt = createServerFn({ method: "POST" })
     const characterLine = hasCharacter
       ? `- Personagem base: ${data.characterName ?? "(sem nome)"} — aparencia: ${data.characterAppearance ?? "(nao informada)"} (use APENAS para manter rosto, cor de pele, cabelo, olhos e corpo; NAO o estilo artistico da imagem base)`
       : "- Personagem base: nenhum (novo personagem)";
+    const genderLine = data.gender
+      ? `- Genero: ${data.gender === "FEMALE" ? "Feminino" : data.gender === "MALE" ? "Masculino" : "Trans"}`
+      : "- Genero: nao informado";
+    const aspectLine = data.aspectRatio
+      ? `- Proporcao: ${data.aspectRatio}`
+      : "- Proporcao: nao informada";
     const systemPrompt = `Voce e especialista em prompts para geracao de imagem AI.
 
 CONTEXTO COMPLETO DA GERACAO:
 ${characterLine}
 - Estilo atual selecionado: ${editModelDesc}
+${genderLine}
+${aspectLine}
 ${hqLine}
 ${poseLine}
 - Descricao atual do usuario: ${data.prompt}

@@ -34,6 +34,22 @@ export function SwRegister() {
 
     let intervalId: ReturnType<typeof setInterval> | undefined;
 
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type === "SW_UPDATED") {
+        setUpdateReady(true);
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", onMessage);
+
+    const onVisibility = () => {
+      if (document.visibilityState !== "visible") return;
+      navigator.serviceWorker
+        .getRegistration()
+        .then((reg) => reg?.update())
+        .catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     navigator.serviceWorker
       .register("/sw.js")
       .then((registration) => {
@@ -65,6 +81,8 @@ export function SwRegister() {
 
     return () => {
       if (intervalId) clearInterval(intervalId);
+      navigator.serviceWorker.removeEventListener("message", onMessage);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 

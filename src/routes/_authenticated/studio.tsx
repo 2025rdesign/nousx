@@ -635,52 +635,7 @@ function StudioInner() {
                   onChange={setAppearance}
                 />
               </div>
-              <div className="flex items-center justify-between">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={!appearance.trim() || improving}
-                  onClick={async () => {
-                    try {
-                      setImproving(true);
-                      const r = await improveFn({
-                        data: {
-                          prompt: appearance.trim(),
-                          model,
-                          characterName: activeProfile?.name,
-                          characterAppearance: activeProfile?.appearance ?? undefined,
-                          editModel: activeProfile ? editModel : undefined,
-                          highQuality,
-                          poseLabel: poseId
-                            ? (POSES.find((p) => p.id === poseId)?.posePrompt
-                                || POSES.find((p) => p.id === poseId)?.label
-                                || undefined)
-                            : (posePrompt.trim() || undefined),
-                        },
-                      });
-                      setAppearance(r.prompt);
-                      if (r.negativePrompt) setNegativePrompt(r.negativePrompt);
-                      notify.success("Prompt melhorado!");
-                    } catch (e) {
-                      notify.error(e instanceof Error ? e.message : "Erro ao melhorar.");
-                    } finally {
-                      setImproving(false);
-                    }
-                  }}
-                >
-                  {improving ? (
-                    <>
-                      <Loader2 className="size-3.5 animate-spin" />
-                      Melhorando...
-                    </>
-                  ) : (
-                    <>
-                      <Wand2 className="size-3.5" />
-                      Melhorar prompt
-                    </>
-                  )}
-                </Button>
+              <div className="flex items-center justify-end">
                 <span className="text-[11px] text-muted-foreground">
                   {appearance.length}/2000
                 </span>
@@ -892,6 +847,53 @@ function StudioInner() {
             <div className="text-center text-xs text-muted-foreground">
               Esta geração custará <span className="font-semibold text-foreground">{cost} crédito{cost > 1 ? "s" : ""}</span>.
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-primary text-primary hover:bg-primary/10 hover:text-primary"
+              disabled={!appearance.trim() || improving || isLoading}
+              onClick={async () => {
+                try {
+                  setImproving(true);
+                  const r = await improveFn({
+                    data: {
+                      prompt: appearance.trim(),
+                      model,
+                      gender,
+                      aspectRatio: aspect,
+                      characterName: activeProfile?.name,
+                      characterAppearance: activeProfile?.appearance ?? undefined,
+                      editModel: activeProfile ? editModel : undefined,
+                      highQuality,
+                      poseLabel: poseId
+                        ? (POSES.find((p) => p.id === poseId)?.posePrompt
+                            || POSES.find((p) => p.id === poseId)?.label
+                            || undefined)
+                        : (posePrompt.trim() || undefined),
+                    },
+                  });
+                  setAppearance(r.prompt);
+                  if (r.negativePrompt) setNegativePrompt(r.negativePrompt);
+                  notify.success("Prompt melhorado!");
+                } catch (e) {
+                  notify.error(e instanceof Error ? e.message : "Erro ao melhorar.");
+                } finally {
+                  setImproving(false);
+                }
+              }}
+            >
+              {improving ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Melhorando...
+                </>
+              ) : (
+                <>
+                  <SparklesIcon className="size-4" />
+                  Melhorar prompt com IA
+                </>
+              )}
+            </Button>
             <Button
               className="w-full"
               disabled={!appearance.trim() || isLoading}
