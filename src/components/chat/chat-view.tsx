@@ -555,7 +555,6 @@ export function ChatView({ conversationId }: Props) {
               ))}
               {optimisticUser && <MessageItem msg={optimisticUser} />}
               {optimisticAssistant && <MessageItem msg={optimisticAssistant} />}
-              {streaming && <MessageItem msg={streaming} />}
               {awaitingReply && !streaming && <TypingIndicator mode={inflightMode} />}
             </div>
           </div>
