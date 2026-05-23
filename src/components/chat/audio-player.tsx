@@ -157,7 +157,7 @@ export function FloatingAudioPlayer() {
     if (!blobUrl) return;
     const link = document.createElement("a");
     link.href = blobUrl;
-    link.download = `auraia-voz-${Date.now()}.mp3`;
+    link.download = `auraia-audio-${Date.now()}.mp3`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
