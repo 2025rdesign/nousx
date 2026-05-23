@@ -440,21 +440,15 @@ export function ChatView({ conversationId }: Props) {
         processPayload(buf.trim().slice(5).trim());
       }
 
-      setStreaming((prev) =>
-        prev && prev.id === streamId
-          ? {
-              ...prev,
-              streaming: false,
-            }
-          : prev,
-      );
-
       const finalContent = accum || "Desculpe, não consegui responder agora.";
 
       if (finalContent) {
         await saveMsg({
           data: { conversationId: convId, role: "assistant", content: finalContent },
         });
+        // Atualiza cache E remove streaming na MESMA renderizacao
+        // para evitar o "pisca" entre a bolha de streaming sumir e
+        // a mensagem persistida aparecer.
         queryClient.setQueryData<ChatMsg[]>(["messages", convId], (prev) => [
           ...(prev ?? []),
           {
@@ -464,10 +458,19 @@ export function ChatView({ conversationId }: Props) {
             reasoning: reasoningAccum || null,
           },
         ]);
+        setStreaming(null);
+      } else {
+        setStreaming(null);
       }
-      setStreaming(null);
-      queryClient.invalidateQueries({ queryKey: ["messages", convId] });
+      // Invalida apenas a lista de conversas imediatamente (sidebar).
+      // A lista de mensagens ja esta correta localmente; evitamos refetch
+      // imediato para nao causar re-render que troca IDs e gera "pisca".
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      // Sincronia tardia com o banco (IDs reais), sem afetar a UI atual.
+      const messagesKey = ["messages", convId] as const;
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: messagesKey });
+      }, 2000);
 
       if (isNew) {
         try {
