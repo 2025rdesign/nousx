@@ -600,6 +600,92 @@ export function ChatView({ conversationId }: Props) {
 
       const finalContent = accum || "Desculpe, não consegui responder agora.";
 
+      // FALLBACK: DeepSeek confirmed it would generate an image but no image
+      // was produced. Detect the confirmation pattern and trigger image
+      // generation transparently. Only fires when the user has an active
+      // plan (Plus/Ultra) — otherwise /api/generate-image returns 402.
+      const shouldFallbackToImage =
+        !wantsImage &&
+        hasActive &&
+        (planId === "plus" || planId === "ultra") &&
+        DEEPSEEK_IMAGE_CONFIRM_RE.test(finalContent);
+
+      if (shouldFallbackToImage) {
+        console.log("[CHAT] fallback: DeepSeek confirmou geracao — acionando /api/generate-image");
+        // Swap the assistant text bubble back into a loading state.
+        setInflightMode("image");
+        setAwaitingReply(true);
+        setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+
+        try {
+          const fallbackPrompt = latestImageCtx?.description
+            ? `${text}\n\nContexto visual da conversa anterior: ${latestImageCtx.description.slice(0, 1200)}`
+            : text;
+
+          const imgRes = await fetch("/api/generate-image", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ prompt: fallbackPrompt }),
+          });
+
+          if (!imgRes.ok) {
+            const err = await imgRes.json().catch(() => ({ error: "Falha ao gerar imagem." }));
+            throw new Error(err.error || "Falha ao gerar imagem.");
+          }
+
+          const imgData = (await imgRes.json()) as { url: string; caption?: string };
+          const caption = (imgData.caption ?? "Aqui está sua imagem.").trim();
+          const imageMsg: ChatMsg = {
+            id: `assistant-image-${Date.now()}`,
+            role: "assistant",
+            content: caption,
+            image_url: imgData.url,
+            streaming: false,
+          };
+          setMessages((prev) => [...prev, imageMsg]);
+          void saveMsg({
+            data: {
+              conversationId: convId,
+              role: "assistant",
+              content: caption,
+              imageUrl: imgData.url,
+            },
+          }).catch((error) => {
+            console.error("[CHAT-SAVE-ASSISTANT] falha ao salvar imagem (fallback):", error);
+          });
+
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+
+          if (isNew) {
+            try {
+              await rename({ data: { id: convId, title: text.slice(0, 30) } });
+            } catch (error) {
+              console.warn("rename failed", error);
+            }
+            queryClient.setQueryData<ChatMsg[]>(
+              ["messages", convId],
+              [...baseMessages, userMsg, imageMsg].map((m) => ({ ...m, streaming: false })),
+            );
+            navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
+          }
+          return;
+        } catch (fallbackErr) {
+          console.error("[CHAT] fallback de imagem falhou:", fallbackErr);
+          // Restore the original text reply if image generation failed.
+          const restored: ChatMsg = {
+            id: assistantId,
+            role: "assistant",
+            content: finalContent,
+            reasoning: reasoningAccum || null,
+            streaming: false,
+          };
+          setMessages((prev) => [...prev, restored]);
+        }
+      }
+
       setMessages((prev) =>
         prev.map((message) =>
           message.id === assistantId
