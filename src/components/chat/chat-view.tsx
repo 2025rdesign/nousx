@@ -849,6 +849,7 @@ export function ChatView({ conversationId }: Props) {
             image_url: imgData.url,
             streaming: false,
           };
+          stickyImageRefRef.current = imgData.url;
           setMessages((prev) => [...prev, imageMsg]);
           void saveMsg({
             data: {
