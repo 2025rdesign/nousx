@@ -418,59 +418,28 @@ export function ChatView({ conversationId }: Props) {
         });
 
         if (res.status === 402) {
-          const upgradeText =
-            "Para editar imagens no chat, você precisa do plano **Ultra**. " +
-            "Acesse a página de planos para assinar! 🪄\n\n[Ver Planos](/configuracoes)";
-          const upgradeMessage: ChatMsg = {
-            id: `assistant-upgrade-${Date.now()}`,
-            role: "assistant",
-            content: upgradeText,
-            streaming: false,
-          };
-          setMessages((prev) => [...prev, upgradeMessage]);
-          void saveMsg({
-            data: { conversationId: convId, role: "assistant", content: upgradeText },
-          }).catch(() => undefined);
-          queryClient.invalidateQueries({ queryKey: ["conversations"] });
-          if (isNew) {
-            try {
-              await rename({ data: { id: convId, title: text.slice(0, 30) } });
-            } catch (error) {
-              console.warn("rename failed", error);
-            }
-            navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
-          }
+          await appendAssistantMessage({
+            convId,
+            text: PLAN_ULTRA_REQUIRED_TEXT,
+            isNew,
+            titleSeed: text,
+            baseMessages,
+            userMsg,
+          });
           return;
         }
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: "Falha ao editar imagem." }));
           if (res.status === 422 && (err.code === "moderation" || err.error === "content_moderation")) {
-            const modText =
-              "✨ Hmm, esse conteúdo não rolou aqui no chat.\n\n" +
-              "O chat usa uma IA com filtros de conteúdo que bloqueou essa geração. " +
-              "Mas calma — no **Estúdio de Criação** da AuraIA você consegue gerar esse tipo de imagem sem restrições, " +
-              "com modelos exclusivos e alta qualidade.\n\n" +
-              "[🎨 Ir para o Estúdio](/studio)";
-            const modMsg: ChatMsg = {
-              id: `assistant-moderation-${Date.now()}`,
-              role: "assistant",
-              content: modText,
-              streaming: false,
-            };
-            setMessages((prev) => [...prev, modMsg]);
-            await saveMsg({
-              data: { conversationId: convId, role: "assistant", content: modText },
-            }).catch(() => undefined);
-            queryClient.invalidateQueries({ queryKey: ["conversations"] });
-            if (isNew) {
-              try { await rename({ data: { id: convId, title: text.slice(0, 30) } }); } catch {}
-              queryClient.setQueryData<ChatMsg[]>(
-                ["messages", convId],
-                [...baseMessages, userMsg, modMsg].map((m) => ({ ...m, streaming: false })),
-              );
-              navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
-            }
+            await appendAssistantMessage({
+              convId,
+              text: MOD_BLOCK_TEXT,
+              isNew,
+              titleSeed: text,
+              baseMessages,
+              userMsg,
+            });
             return;
           }
           throw new Error(err.error || "Falha ao editar imagem.");
