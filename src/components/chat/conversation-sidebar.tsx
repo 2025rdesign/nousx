@@ -31,6 +31,7 @@ import {
   deleteConversation,
   togglePinConversation,
   renameConversation,
+  getMessages,
 } from "@/lib/chat.functions";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
@@ -83,6 +84,7 @@ export function ConversationSidebar({
   const deleteFn = useServerFn(deleteConversation);
   const pinFn = useServerFn(togglePinConversation);
   const renameFn = useServerFn(renameConversation);
+  const fetchMessagesFn = useServerFn(getMessages);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const { user } = useAuth();
@@ -123,12 +125,34 @@ export function ConversationSidebar({
     },
   });
 
-  const { data: conversations = [] } = useQuery({
+  const { data: conversations = [], isLoading: convLoading } = useQuery({
     queryKey: ["conversations"],
     queryFn: () => fetchList(),
     staleTime: 60_000,
     gcTime: 5 * 60_000,
+    placeholderData: [],
+    refetchOnWindowFocus: false,
   });
+
+  // Prefetch das 3 conversas mais recentes para abertura instantânea.
+  useEffect(() => {
+    const list = conversations as Conv[];
+    if (!list || list.length === 0) return;
+    const recent = list
+      .slice()
+      .sort(
+        (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+      )
+      .slice(0, 3);
+    for (const c of recent) {
+      queryClient.prefetchQuery({
+        queryKey: ["messages", c.id],
+        queryFn: () => fetchMessagesFn({ data: { conversationId: c.id } }),
+        staleTime: 60_000,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(conversations as Conv[]).length]);
 
   const del = useMutation({
     mutationFn: (id: string) => deleteFn({ data: { id } }),
