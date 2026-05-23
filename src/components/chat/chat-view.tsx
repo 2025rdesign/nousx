@@ -81,7 +81,11 @@ export function ChatView({ conversationId }: Props) {
   const { planId, hasActive } = useActivePlan();
   const hasUltra = hasActive && planId === "ultra";
 
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [messages, setMessages] = useState<ChatMsg[]>(() => {
+    if (!conversationId) return [];
+    const cached = queryClient.getQueryData<ChatMsg[]>(["messages", conversationId]);
+    return cached ? cached.map((m) => ({ ...m, streaming: false })) : [];
+  });
   const [sending, setSending] = useState(false);
   const [awaitingReply, setAwaitingReply] = useState(false);
   const [inflightMode, setInflightMode] = useState<
@@ -92,7 +96,7 @@ export function ChatView({ conversationId }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastConversationIdRef = useRef<string | null>(conversationId);
   const pendingNavigationConversationIdRef = useRef<string | null>(null);
-  const hydratedConversationIdRef = useRef<string | null>(null);
+  const hydratedConversationIdRef = useRef<string | null>(conversationId);
 
   const { data: dbMessages, isLoading: messagesLoading } = useQuery({
     queryKey: ["messages", conversationId],
