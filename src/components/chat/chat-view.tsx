@@ -98,11 +98,31 @@ export function ChatView({ conversationId }: Props) {
   const pendingNavigationConversationIdRef = useRef<string | null>(null);
   const hydratedConversationIdRef = useRef<string | null>(conversationId);
 
-  const { data: dbMessages, isLoading: messagesLoading } = useQuery({
+  const {
+    data: dbMessages,
+    isLoading: messagesLoading,
+    isError: messagesError,
+    refetch: refetchMessages,
+  } = useQuery({
     queryKey: ["messages", conversationId],
     queryFn: async () => {
       if (!conversationId) return [] as ChatMsg[];
-      return (await fetchMessages({ data: { conversationId } })) as ChatMsg[];
+      console.log("[CHAT-OPEN] abrindo chatId:", conversationId);
+      console.log("[CHAT-OPEN] buscando mensagens...");
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 10_000),
+      );
+      try {
+        const result = (await Promise.race([
+          fetchMessages({ data: { conversationId } }),
+          timeout,
+        ])) as ChatMsg[];
+        console.log("[CHAT-OPEN] mensagens recebidas:", result.length);
+        return result;
+      } catch (err) {
+        console.error("[CHAT-OPEN] erro:", err);
+        throw err;
+      }
     },
     enabled: !!conversationId,
     staleTime: 5 * 60_000,
@@ -110,6 +130,7 @@ export function ChatView({ conversationId }: Props) {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: false,
+    retry: 1,
   });
 
   useEffect(() => {
@@ -625,11 +646,40 @@ export function ChatView({ conversationId }: Props) {
   const hasStreamingMessage = messages.some((message) => message.streaming);
   const hasContent = messages.length > 0 || awaitingReply;
   const showSkeleton = !!conversationId && messagesLoading && !hasContent;
+  const showError = !!conversationId && messagesError && !hasContent;
+  const showEmptyChat =
+    !!conversationId &&
+    !messagesLoading &&
+    !messagesError &&
+    !hasContent &&
+    Array.isArray(dbMessages) &&
+    (dbMessages as ChatMsg[]).length === 0;
 
   return (
     <CodeCanvasProvider>
       <div className="h-full flex flex-col">
-        {showSkeleton ? (
+        {showError ? (
+          <div className="flex-1 overflow-y-auto">
+            <div className="w-full max-w-md mx-auto px-4 py-16 text-center space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Não foi possível carregar este chat. Tente novamente.
+              </p>
+              <button
+                type="button"
+                onClick={() => refetchMessages()}
+                className="rounded-md bg-secondary px-4 py-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          </div>
+        ) : showEmptyChat ? (
+          <div className="flex-1 overflow-y-auto">
+            <div className="w-full max-w-md mx-auto px-4 py-16 text-center text-sm text-muted-foreground">
+              Chat sem mensagens. Envie a primeira mensagem abaixo.
+            </div>
+          </div>
+        ) : showSkeleton ? (
           <div className="flex-1 overflow-y-auto">
             <div className="w-full max-w-3xl mx-auto px-3 md:px-4 py-6 space-y-4">
               {Array.from({ length: 4 }).map((_, index) => (

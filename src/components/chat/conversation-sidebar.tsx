@@ -31,6 +31,7 @@ import {
   deleteConversation,
   togglePinConversation,
   renameConversation,
+  getMessages,
 } from "@/lib/chat.functions";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
@@ -83,6 +84,7 @@ export function ConversationSidebar({
   const deleteFn = useServerFn(deleteConversation);
   const pinFn = useServerFn(togglePinConversation);
   const renameFn = useServerFn(renameConversation);
+  const fetchMessagesFn = useServerFn(getMessages);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const { user } = useAuth();
@@ -123,12 +125,34 @@ export function ConversationSidebar({
     },
   });
 
-  const { data: conversations = [] } = useQuery({
+  const { data: conversations = [], isLoading: convLoading } = useQuery({
     queryKey: ["conversations"],
     queryFn: () => fetchList(),
     staleTime: 60_000,
     gcTime: 5 * 60_000,
+    placeholderData: [],
+    refetchOnWindowFocus: false,
   });
+
+  // Prefetch das 3 conversas mais recentes para abertura instantânea.
+  useEffect(() => {
+    const list = conversations as Conv[];
+    if (!list || list.length === 0) return;
+    const recent = list
+      .slice()
+      .sort(
+        (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+      )
+      .slice(0, 3);
+    for (const c of recent) {
+      queryClient.prefetchQuery({
+        queryKey: ["messages", c.id],
+        queryFn: () => fetchMessagesFn({ data: { conversationId: c.id } }),
+        staleTime: 60_000,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(conversations as Conv[]).length]);
 
   const del = useMutation({
     mutationFn: (id: string) => deleteFn({ data: { id } }),
@@ -337,6 +361,17 @@ export function ConversationSidebar({
 
       <ScrollArea className="flex-1 px-2">
         <div className="space-y-4 py-2">
+          {convLoading && (conversations as Conv[]).length === 0 && (
+            <ul className="space-y-1 px-1">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <li
+                  key={i}
+                  className="h-7 rounded-md bg-secondary/60 animate-pulse"
+                  style={{ width: `${70 + ((i * 7) % 25)}%` }}
+                />
+              ))}
+            </ul>
+          )}
           {pinned.length > 0 && (
             <div>
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
