@@ -21,6 +21,10 @@ import { VoiceModeModal } from "./voice-mode-modal";
 const IMAGE_INTENT_RE =
   /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|mostr(?:a|e|ar)|transform(?:a|e|ar)|convert(?:a|e|er)|me\s+(?:d[áa]|d[êe]|manda|mostra|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?)\b[^\n]{0,30}\b(image(?:m|ns)|fotos?|ilustra[cç](?:[ãa]o|[õo]es)|desenhos?|figuras?|artes?|pinturas?|wallpapers?|retratos?|p[ôo]ster(?:es)?|banners?|capas?|vetor(?:es|ial|iais)?|logos?|logotipos?|[íi]cones?|stickers?|emojis?|avatares?|personagens?|cenas?|gifs?)\b([^\n]*)/i;
 
+// Intenção de EDITAR uma imagem existente (não apenas analisar).
+const IMAGE_EDIT_INTENT_RE =
+  /\b(mude|muda|troque|troca|retire|retira|remova|remove|coloque|coloca|adicione|adiciona|altere|altera|edite|edita|tire|tira|bote|bota|ponha|p[oõ]e|deixe|deixa|torne|torna|transform(?:e|a|ar)|transport(?:e|a|ar)|substitua|substitui|inclua|inclui|apague|apaga|melhore|melhora|ajuste|ajusta|refa[cç]a|regenere|aumente|aumenta|diminua|diminui|deixa\s+mais|deixe\s+mais|sem\s+|com\s+|pinte|pinta|colorize)\b/i;
+
 const MIN_DESCRIPTION_CHARS = 10;
 
 const IMAGE_FOLLOW_UP_RE =
@@ -73,6 +77,14 @@ function getLatestImageContext(messages: ChatMsg[]) {
   return { description: description.trim() };
 }
 
+function getLatestAssistantImageUrl(messages: ChatMsg[]): string | null {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const m = messages[i];
+    if (m.role === "assistant" && m.image_url) return m.image_url;
+  }
+  return null;
+}
+
 function detectImageFollowUp(text: string, hasPreviousAssistantImage: boolean): boolean {
   if (!hasPreviousAssistantImage) return false;
   const trimmed = text.trim();
@@ -108,7 +120,7 @@ export function ChatView({ conversationId }: Props) {
   const [sending, setSending] = useState(false);
   const [awaitingReply, setAwaitingReply] = useState(false);
   const [inflightMode, setInflightMode] = useState<
-    "default" | "web" | "reasoning" | "image"
+    "default" | "web" | "reasoning" | "image" | "edit"
   >("default");
   const [voiceOpen, setVoiceOpen] = useState(false);
 
@@ -200,11 +212,21 @@ export function ChatView({ conversationId }: Props) {
 
     const baseMessages = messages;
     const latestImageCtx = getLatestImageContext(baseMessages);
+    const latestAssistantImageUrl = getLatestAssistantImageUrl(baseMessages);
     // Follow-up fires for ANY recent image in the conversation
     // (assistant-generated OR user-uploaded that the AI just analyzed).
     const isImageFollowUp =
       !image && !file && detectImageFollowUp(text, !!latestImageCtx);
+    // EDIÇÃO DE IMAGEM (Ultra-only):
+    // dispara quando o usuário acabou de anexar uma imagem OU pede para
+    // editar a última imagem GERADA pela IA, e o texto contém intenção
+    // explícita de edição. Não consome o caminho do Gemini.
+    const editSourceImage = image ?? latestAssistantImageUrl ?? null;
+    const wantsEdit =
+      !file && !!editSourceImage && IMAGE_EDIT_INTENT_RE.test(text);
+
     const wantsImage =
+      !wantsEdit &&
       !image && !file && (detectImageIntent(text) || isImageFollowUp);
     const imagePrompt =
       wantsImage && latestImageCtx?.description
@@ -234,10 +256,20 @@ export function ChatView({ conversationId }: Props) {
 
     setSending(true);
     setInflightMode(
-      wantsImage ? "image" : webSearch ? "web" : reasoning ? "reasoning" : "default",
+      wantsEdit
+        ? "edit"
+        : wantsImage
+          ? "image"
+          : webSearch
+            ? "web"
+            : reasoning
+              ? "reasoning"
+              : "default",
     );
     setAwaitingReply(true);
-    setMessages((prev) => (wantsImage ? [...prev, userMsg] : [...prev, userMsg, assistantMsg]));
+    setMessages((prev) =>
+      wantsImage || wantsEdit ? [...prev, userMsg] : [...prev, userMsg, assistantMsg],
+    );
 
     try {
       let convId = conversationId;
@@ -261,6 +293,93 @@ export function ChatView({ conversationId }: Props) {
       }).catch((error) => {
         console.error("[CHAT-SAVE-USER] falha ao salvar mensagem do usuario:", error);
       });
+
+      if (wantsEdit && editSourceImage) {
+        console.log("[EDIT] chamando /api/edit-image", {
+          hasUltra,
+          source: editSourceImage.startsWith("data:") ? "uploaded" : "previous-generated",
+        });
+
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) throw new Error("Sessão expirada.");
+
+        const res = await fetch("/api/edit-image", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ prompt: text, imageUrl: editSourceImage }),
+        });
+
+        if (res.status === 402) {
+          const upgradeText =
+            "Para editar imagens no chat, você precisa do plano **Ultra**. " +
+            "Acesse a página de planos para assinar! 🪄\n\n[Ver Planos](/configuracoes)";
+          const upgradeMessage: ChatMsg = {
+            id: `assistant-upgrade-${Date.now()}`,
+            role: "assistant",
+            content: upgradeText,
+            streaming: false,
+          };
+          setMessages((prev) => [...prev, upgradeMessage]);
+          void saveMsg({
+            data: { conversationId: convId, role: "assistant", content: upgradeText },
+          }).catch(() => undefined);
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          if (isNew) {
+            try {
+              await rename({ data: { id: convId, title: text.slice(0, 30) } });
+            } catch (error) {
+              console.warn("rename failed", error);
+            }
+            navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
+          }
+          return;
+        }
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "Falha ao editar imagem." }));
+          throw new Error(err.error || "Falha ao editar imagem.");
+        }
+
+        const data = (await res.json()) as { url: string; caption?: string };
+        const caption = (data.caption ?? "Aqui está sua imagem editada.").trim();
+        const editedMessage: ChatMsg = {
+          id: `assistant-edit-${Date.now()}`,
+          role: "assistant",
+          content: caption,
+          image_url: data.url,
+          streaming: false,
+        };
+        setMessages((prev) => [...prev, editedMessage]);
+        void saveMsg({
+          data: {
+            conversationId: convId,
+            role: "assistant",
+            content: caption,
+            imageUrl: data.url,
+          },
+        }).catch((error) => {
+          console.error("[CHAT-SAVE-ASSISTANT] falha ao salvar imagem editada:", error);
+        });
+        queryClient.invalidateQueries({ queryKey: ["conversations"] });
+
+        if (isNew) {
+          try {
+            await rename({ data: { id: convId, title: text.slice(0, 30) } });
+          } catch (error) {
+            console.warn("rename failed", error);
+          }
+          queryClient.setQueryData<ChatMsg[]>(
+            ["messages", convId],
+            [...baseMessages, userMsg, editedMessage].map((m) => ({ ...m, streaming: false })),
+          );
+          navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
+        }
+        return;
+      }
 
       if (wantsImage) {
         console.log("[IMG 2] chamando API");
@@ -720,7 +839,7 @@ export function ChatView({ conversationId }: Props) {
       const isAbort = error instanceof Error && error.name === "AbortError";
       console.error(error);
 
-      if (wantsImage) {
+      if (wantsImage || wantsEdit) {
         if (!isAbort) {
           notify.error(error instanceof Error ? error.message : "Algo deu errado.");
         }
@@ -809,7 +928,9 @@ export function ChatView({ conversationId }: Props) {
               {messages.map((message) => (
                 <MessageItem key={message.id} msg={message} />
               ))}
-              {awaitingReply && !hasStreamingMessage && inflightMode === "image" ? (
+              {awaitingReply &&
+              !hasStreamingMessage &&
+              (inflightMode === "image" || inflightMode === "edit") ? (
                 <TypingIndicator mode={inflightMode} />
               ) : null}
             </div>

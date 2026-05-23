@@ -20,6 +20,7 @@ import { Route as PagamentoFalhaRouteImport } from './routes/pagamento.falha'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiMpWebhookRouteImport } from './routes/api/mp-webhook'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
+import { Route as ApiEditImageRouteImport } from './routes/api/edit-image'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiCaktoWebhookRouteImport } from './routes/api/cakto-webhook'
 import { Route as AuthenticatedStudioRouteImport } from './routes/_authenticated/studio'
@@ -84,6 +85,11 @@ const ApiMpWebhookRoute = ApiMpWebhookRouteImport.update({
 const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
   id: '/api/generate-image',
   path: '/api/generate-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEditImageRoute = ApiEditImageRouteImport.update({
+  id: '/api/edit-image',
+  path: '/api/edit-image',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChatRoute = ApiChatRouteImport.update({
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/studio': typeof AuthenticatedStudioRoute
   '/api/cakto-webhook': typeof ApiCaktoWebhookRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/edit-image': typeof ApiEditImageRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/mp-webhook': typeof ApiMpWebhookRoute
   '/api/tts': typeof ApiTtsRoute
@@ -179,6 +186,7 @@ export interface FileRoutesByTo {
   '/studio': typeof AuthenticatedStudioRoute
   '/api/cakto-webhook': typeof ApiCaktoWebhookRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/edit-image': typeof ApiEditImageRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/mp-webhook': typeof ApiMpWebhookRoute
   '/api/tts': typeof ApiTtsRoute
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/_authenticated/studio': typeof AuthenticatedStudioRoute
   '/api/cakto-webhook': typeof ApiCaktoWebhookRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/edit-image': typeof ApiEditImageRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/mp-webhook': typeof ApiMpWebhookRoute
   '/api/tts': typeof ApiTtsRoute
@@ -229,6 +238,7 @@ export interface FileRouteTypes {
     | '/studio'
     | '/api/cakto-webhook'
     | '/api/chat'
+    | '/api/edit-image'
     | '/api/generate-image'
     | '/api/mp-webhook'
     | '/api/tts'
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/studio'
     | '/api/cakto-webhook'
     | '/api/chat'
+    | '/api/edit-image'
     | '/api/generate-image'
     | '/api/mp-webhook'
     | '/api/tts'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/_authenticated/studio'
     | '/api/cakto-webhook'
     | '/api/chat'
+    | '/api/edit-image'
     | '/api/generate-image'
     | '/api/mp-webhook'
     | '/api/tts'
@@ -296,6 +308,7 @@ export interface RootRouteChildren {
   TermosRoute: typeof TermosRoute
   ApiCaktoWebhookRoute: typeof ApiCaktoWebhookRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiEditImageRoute: typeof ApiEditImageRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiMpWebhookRoute: typeof ApiMpWebhookRoute
   ApiTtsRoute: typeof ApiTtsRoute
@@ -384,6 +397,13 @@ declare module '@tanstack/react-router' {
       path: '/api/generate-image'
       fullPath: '/api/generate-image'
       preLoaderRoute: typeof ApiGenerateImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/edit-image': {
+      id: '/api/edit-image'
+      path: '/api/edit-image'
+      fullPath: '/api/edit-image'
+      preLoaderRoute: typeof ApiEditImageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/chat': {
@@ -496,6 +516,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermosRoute: TermosRoute,
   ApiCaktoWebhookRoute: ApiCaktoWebhookRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiEditImageRoute: ApiEditImageRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiMpWebhookRoute: ApiMpWebhookRoute,
   ApiTtsRoute: ApiTtsRoute,
