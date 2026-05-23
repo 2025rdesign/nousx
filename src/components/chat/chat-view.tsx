@@ -427,6 +427,14 @@ export function ChatView({ conversationId }: Props) {
           } catch (error) {
             console.warn("rename failed", error);
           }
+          queryClient.setQueryData<ChatMsg[]>(
+            ["messages", convId],
+            [
+              ...baseMessages,
+              userMsg,
+              { ...assistantMsg, content: finalContent, streaming: false },
+            ].map((m) => ({ ...m, streaming: false })),
+          );
           navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
         }
 
@@ -562,6 +570,19 @@ export function ChatView({ conversationId }: Props) {
         } catch (error) {
           console.warn("rename failed", error);
         }
+        queryClient.setQueryData<ChatMsg[]>(
+          ["messages", convId],
+          [
+            ...baseMessages,
+            userMsg,
+            {
+              ...assistantMsg,
+              content: finalContent,
+              reasoning: reasoningAccum || null,
+              streaming: false,
+            },
+          ].map((m) => ({ ...m, streaming: false })),
+        );
         navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
       }
     } catch (error) {
