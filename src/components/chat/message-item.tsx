@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useActivePlan } from "@/hooks/use-active-plan";
 import { audioPlayerStore } from "./audio-player-store";
 import { notify } from "@/lib/notify";
+import { downloadAsset } from "@/lib/download";
+import { Link as RouterLink } from "@tanstack/react-router";
 import {
   Tooltip,
   TooltipContent,
@@ -141,15 +143,15 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                   e.currentTarget.style.display = "none";
                 }}
               />
-              <a
-                href={imageUrl}
-                download="aura-imagem.jpg"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() =>
+                  downloadAsset(imageUrl, `auraia-chat-${Date.now()}.jpg`)
+                }
                 className="mt-2 inline-flex text-[11px] text-muted-foreground transition-colors hover:text-foreground"
               >
                 Baixar imagem
-              </a>
+              </button>
             </div>
           )
         )}
@@ -249,14 +251,31 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                     }}
                   />
                 ),
-                a: ({ node: _n, ...props }) => (
-                  <a
-                    {...props}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary underline"
-                  />
-                ),
+                a: ({ node: _n, href, children, ...props }: any) => {
+                  const isInternal =
+                    typeof href === "string" && href.startsWith("/");
+                  if (isInternal) {
+                    return (
+                      <RouterLink
+                        to={href}
+                        className="text-primary underline"
+                      >
+                        {children}
+                      </RouterLink>
+                    );
+                  }
+                  return (
+                    <a
+                      {...props}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline"
+                    >
+                      {children}
+                    </a>
+                  );
+                },
                 table: ({ node: _n, ...props }) => (
                   <div
                     className="my-3 overflow-x-auto rounded-md border bg-muted/30 border-border"

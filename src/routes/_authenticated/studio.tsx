@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { notify } from "@/lib/notify";
+import { downloadAsset } from "@/lib/download";
 import { AlertTriangle, ArrowLeft, Download, Globe, Lock, Loader2, Maximize2, Plus, Sparkles as SparklesIcon, Trash2, Wand2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -994,11 +995,15 @@ function StudioInner() {
 
             {result && (
               <div className="flex gap-2">
-                <Button asChild variant="outline" className="flex-1">
-                  <a href={result} download target="_blank" rel="noopener noreferrer">
-                    <Download className="size-4" />
-                    Baixar
-                  </a>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() =>
+                    downloadAsset(result, `auraia-studio-${Date.now()}.jpg`)
+                  }
+                >
+                  <Download className="size-4" />
+                  Baixar
                 </Button>
                 <Button
                   variant="outline"
@@ -1101,17 +1106,17 @@ function StudioInner() {
           >
             <X className="size-5" />
           </button>
-          <a
-            href={result}
-            download
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (result) downloadAsset(result, `auraia-studio-${Date.now()}.jpg`);
+            }}
             className="absolute bottom-4 right-4 size-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
             aria-label="Baixar"
           >
             <Download className="size-5" />
-          </a>
+          </button>
         </div>
       )}
     </div>
