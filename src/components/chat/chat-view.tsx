@@ -129,6 +129,8 @@ export function ChatView({ conversationId }: Props) {
   const rename = useServerFn(renameConversation);
   const { planId, hasActive, subscription, isLoading: planLoading } = useActivePlan();
   const hasUltra = hasActive && planId === "ultra";
+  const { user } = useAuth();
+  const fetchSubServerFn = useServerFn(getMySubscription);
 
   const [messages, setMessages] = useState<ChatMsg[]>(() => {
     if (!conversationId) return [];
