@@ -1,9 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
-import { Sparkles, Wand2 } from "lucide-react";
+import { ArrowLeft, Sparkles, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,10 +15,15 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { UserAvatar } from "@/components/user-avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { listPublicCharacters, listPublicProfiles } from "@/lib/studio.functions";
 import { GridPageSkeleton } from "@/components/route-skeletons";
+import { useTheme } from "@/components/theme-provider";
+import { useRouter } from "@tanstack/react-router";
 
 const AGE_KEY = "nousx-age-confirmed";
+const LOGO_DARK =
+  "https://central.daev.ca/wp-content/uploads/2026/05/AURA-IA-IMAGEM-DASH.png";
+const LOGO_LIGHT =
+  "https://central.daev.ca/wp-content/uploads/2026/05/AURA-IA-IMAGEM-DASH-VARIANTE-MODO-CLARO.png";
 
 export const Route = createFileRoute("/explorar")({
   component: Explore,
@@ -31,7 +35,9 @@ export const Route = createFileRoute("/explorar")({
 function Explore() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const router = useRouter();
   const queryClient = useQueryClient();
+  const { theme } = useTheme();
 
   const [confirmed, setConfirmed] = useState(false);
   useEffect(() => {
@@ -62,20 +68,15 @@ function Explore() {
     };
   }, [queryClient]);
 
-  const fetchImages = useServerFn(listPublicCharacters);
-  const fetchProfiles = useServerFn(listPublicProfiles);
-
   const { data: images = [], isLoading: liImages } = useQuery({
     queryKey: ["public-characters"],
-    queryFn: () => fetchImages(),
-    enabled: confirmed,
+    queryFn: fetchPublicCharacters,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
   });
   const { data: characters = [], isLoading: liChars } = useQuery({
     queryKey: ["public-profiles"],
-    queryFn: () => fetchProfiles(),
-    enabled: confirmed,
+    queryFn: fetchPublicProfiles,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
   });
@@ -102,14 +103,39 @@ function Explore() {
     else goAuth("signup");
   };
 
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.history.back();
+    } else {
+      navigate({ to: "/" });
+    }
+  };
+
+  const logoSrc = theme === "dark" ? LOGO_DARK : LOGO_LIGHT;
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Top bar */}
       <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur">
         <div className="max-w-6xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between gap-3">
-          <Link to="/" className="font-semibold tracking-tight">
-            AuraIA
-          </Link>
+          <div className="flex items-center gap-2 min-w-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBack}
+              className="gap-1 px-2"
+            >
+              <ArrowLeft className="size-4" />
+              <span className="hidden sm:inline">Voltar</span>
+            </Button>
+            <Link to="/" className="flex items-center shrink-0">
+              <img
+                src={logoSrc}
+                alt="AuraIA"
+                className="h-8 w-auto object-contain"
+              />
+            </Link>
+          </div>
           <nav className="flex items-center gap-2">
             {user ? (
               <>
@@ -377,4 +403,73 @@ function dedupeById<T extends { id: string }>(rows: T[]): T[] {
     out.push(r);
   }
   return out;
+}
+
+async function attachCreators<T extends { user_id?: string | null }>(
+  rows: T[],
+): Promise<Array<T & { creator_name: string | null }>> {
+  const ids = Array.from(
+    new Set(rows.map((r) => r.user_id).filter(Boolean)),
+  ) as string[];
+  if (ids.length === 0) {
+    return rows.map((r) => ({ ...r, creator_name: null }));
+  }
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, name")
+    .in("id", ids);
+  const map = new Map<string, string | null>(
+    (data || []).map((p: any) => [p.id, p.name ?? null]),
+  );
+  return rows.map((r) => ({
+    ...r,
+    creator_name: r.user_id ? map.get(r.user_id) ?? null : null,
+  }));
+}
+
+async function fetchPublicCharacters() {
+  const { data, error } = await supabase
+    .from("characters")
+    .select("id, name, image_url, created_at, user_id, profile_id")
+    .eq("is_public", true)
+    .eq("is_approved", true)
+    .not("image_url", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) throw new Error(error.message);
+  const rows = dedupeById((data || []) as any[]);
+  const profileIds = Array.from(
+    new Set(rows.map((r: any) => r.profile_id).filter(Boolean)),
+  ) as string[];
+  let profileNameMap = new Map<string, string | null>();
+  if (profileIds.length > 0) {
+    const { data: profs } = await supabase
+      .from("character_profiles")
+      .select("id, name")
+      .in("id", profileIds);
+    profileNameMap = new Map(
+      (profs || []).map((p: any) => [p.id, p.name ?? null]),
+    );
+  }
+  const withTitles = rows.map((r: any) => ({
+    ...r,
+    display_name:
+      (r.profile_id && profileNameMap.get(r.profile_id)) ||
+      r.name ||
+      "Criação AuraIA",
+  }));
+  return await attachCreators(withTitles);
+}
+
+async function fetchPublicProfiles() {
+  const { data, error } = await supabase
+    .from("character_profiles")
+    .select("id, name, appearance, base_image_url, created_at, user_id")
+    .eq("is_public", true)
+    .eq("is_approved", true)
+    .not("base_image_url", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) throw new Error(error.message);
+  return await attachCreators(dedupeById((data || []) as any[]));
 }
