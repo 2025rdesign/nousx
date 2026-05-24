@@ -39,6 +39,7 @@ import { CreditPurchaseModal } from "@/components/payments/credit-purchase-modal
 import { getCredits } from "@/lib/credits.functions";
 import { POSES, POSE_CATEGORIES } from "@/data/poses";
 import { toast } from "sonner";
+import { StudioSkeleton } from "@/components/route-skeletons";
 
 export const Route = createFileRoute("/_authenticated/studio")({
   head: () => ({
@@ -47,6 +48,9 @@ export const Route = createFileRoute("/_authenticated/studio")({
     ],
   }),
   component: StudioPage,
+  pendingComponent: StudioSkeleton,
+  pendingMs: 0,
+  pendingMinMs: 0,
 });
 
 const CHIPS = [
