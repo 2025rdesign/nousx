@@ -5,7 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const PAGE_SIZE = 20;
 
 const listSchema = z.object({
-  filter: z.enum(["all", "chat", "studio", "audio"]).default("all"),
+  filter: z.enum(["all", "chat", "studio", "audio", "video"]).default("all"),
   page: z.number().int().min(0).default(0),
 });
 
@@ -14,7 +14,7 @@ export type GalleryItem =
       kind: "image";
       id: string;
       image_url: string;
-      source: "chat" | "studio";
+      source: "chat" | "studio" | "chat-video";
       prompt: string | null;
       created_at: string;
     }
@@ -65,6 +65,7 @@ export const listGallery = createServerFn({ method: "POST" })
 
     if (data.filter === "chat") query = query.eq("source", "chat");
     if (data.filter === "studio") query = query.eq("source", "studio");
+    if (data.filter === "video") query = query.eq("source", "chat-video");
 
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
@@ -72,7 +73,12 @@ export const listGallery = createServerFn({ method: "POST" })
       kind: "image" as const,
       id: r.id,
       image_url: r.image_url,
-      source: (r.source === "chat" ? "chat" : "studio") as "chat" | "studio",
+      source:
+        r.source === "chat"
+          ? "chat"
+          : r.source === "chat-video"
+            ? "chat-video"
+            : "studio",
       prompt: r.prompt,
       created_at: r.created_at,
     }));
