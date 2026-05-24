@@ -214,27 +214,6 @@ button, a, [role="button"] {
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }
   }
-  /* AuraIA image-generation loader: pulsing purple glow */
-  @keyframes aura-glow {
-    0%, 100% {
-      box-shadow: 0 0 0 0 rgba(108, 71, 255, 0.45),
-                  inset 0 0 30px rgba(108, 71, 255, 0.18);
-      background-position: 0% 50%;
-    }
-    50% {
-      box-shadow: 0 0 40px 8px rgba(108, 71, 255, 0.55),
-                  inset 0 0 60px rgba(108, 71, 255, 0.32);
-      background-position: 100% 50%;
-    }
-  }
-  .aura-glow {
-    background: linear-gradient(135deg,
-      #1C1C26 0%,
-      color-mix(in oklab, #6C47FF 35%, #1C1C26) 50%,
-      #1C1C26 100%);
-    background-size: 200% 200%;
-    animation: aura-glow 2.2s ease-in-out infinite;
-  }
   /* Determinate progress fill (image generation, ~15s) */
   @keyframes aura-progress-fill {
     0% { width: 0%; }
