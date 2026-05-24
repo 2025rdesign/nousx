@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 interface IncomingMessage {
   role: "user" | "assistant" | "system";
@@ -178,19 +179,32 @@ export const Route = createFileRoute("/api/chat")({
         }
 
         // Look up real plan status — never trust the client for this.
-        const nowIso = new Date().toISOString();
-        const { data: subs } = await supabase
+        // Use the admin client to mirror getMySubscription (sidebar source of
+        // truth) and avoid any RLS/token timing discrepancy between the
+        // sidebar plan badge and this chat-side gate.
+        const nowMs = Date.now();
+        const { data: subs, error: subsErr } = await supabaseAdmin
           .from("user_subscriptions")
           .select("plan_id, status, expires_at, created_at")
           .eq("user_id", userData.user.id)
           .eq("status", "active")
-          .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
           .order("created_at", { ascending: false })
-          .limit(1);
-        const activeSub = subs?.[0] ?? null;
+          .limit(5);
+        const activeSub =
+          (subs ?? []).find(
+            (s) =>
+              !s.expires_at || new Date(s.expires_at).getTime() > nowMs,
+          ) ?? null;
         const planId = activeSub?.plan_id ?? null;
         const canGenerateImageInChat =
           planId === "plus" || planId === "ultra";
+        console.log("[CHAT PLAN CHECK]", {
+          userId: userData.user.id,
+          planId,
+          canGenerateImageInChat,
+          subsCount: subs?.length ?? 0,
+          subsErr: subsErr?.message ?? null,
+        });
 
         const systemPrompt = buildSystemPrompt({
           searchContext,
