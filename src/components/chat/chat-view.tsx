@@ -179,6 +179,26 @@ export function ChatView({ conversationId }: Props) {
       );
   }, []);
 
+  // Listen for "Animar" button clicks on individual chat images.
+  // The button lives in MessageItem; it dispatches the image URL it owns
+  // so we animate THAT image, not the most recent one.
+  useEffect(() => {
+    function onAnimate(e: Event) {
+      const detail = (e as CustomEvent<{ imageUrl?: string }>).detail;
+      const url = detail?.imageUrl;
+      if (!url) return;
+      // Reuse the same flow as the VIDEO_INTENT_RE detection.
+      void handleVideoIntent("Animar essa imagem", url, messages);
+    }
+    window.addEventListener("aura:animate-image", onAnimate as EventListener);
+    return () =>
+      window.removeEventListener(
+        "aura:animate-image",
+        onAnimate as EventListener,
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, conversationId, subscription, planId, hasActive]);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastConversationIdRef = useRef<string | null>(conversationId);
   const pendingNavigationConversationIdRef = useRef<string | null>(null);
@@ -441,6 +461,18 @@ export function ChatView({ conversationId }: Props) {
         return;
       }
 
+      // Show explicit "animating..." message so the chat is never empty
+      // during the (potentially multi-minute) generation.
+      const loadingId = `assistant-video-loading-${Date.now()}`;
+      const loadingMsg: ChatMsg = {
+        id: loadingId,
+        role: "assistant",
+        content:
+          "🎬 Animando sua imagem... isso pode levar alguns minutos. Não feche esta janela.",
+        streaming: false,
+      };
+      setMessages((prev) => [...prev, loadingMsg]);
+
       // Call animate endpoint (server deducts + refunds credits)
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
@@ -464,6 +496,7 @@ export function ChatView({ conversationId }: Props) {
           err.error === "insufficient_credits"
             ? VIDEO_NEED_CREDITS_TEXT(credits)
             : VIDEO_NEED_ULTRA_TEXT;
+        setMessages((prev) => prev.filter((m) => m.id !== loadingId));
         await appendAssistantMessage({
           convId,
           text: msg,
@@ -475,6 +508,7 @@ export function ChatView({ conversationId }: Props) {
         return;
       }
       if (!res.ok) {
+        setMessages((prev) => prev.filter((m) => m.id !== loadingId));
         await appendAssistantMessage({
           convId,
           text: VIDEO_GENERIC_ERROR_TEXT,
@@ -498,7 +532,10 @@ export function ChatView({ conversationId }: Props) {
       setSending(false);
       setAwaitingReply(false);
       setInflightMode("default");
-      setMessages((prev) => [...prev, videoMsg]);
+      setMessages((prev) => [
+        ...prev.filter((m) => m.id !== loadingId),
+        videoMsg,
+      ]);
       await saveMsg({
         data: {
           conversationId: convId,
@@ -510,6 +547,7 @@ export function ChatView({ conversationId }: Props) {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       queryClient.invalidateQueries({ queryKey: ["credits"] });
       queryClient.invalidateQueries({ queryKey: ["gallery-v2"] });
+      queryClient.invalidateQueries({ queryKey: ["messages", convId] });
 
       if (isNew) {
         try {
@@ -528,6 +566,8 @@ export function ChatView({ conversationId }: Props) {
       }
     } catch (e) {
       console.error("[VIDEO] failed", e);
+      // Clear any pending loading bubble so we never leave it dangling.
+      setMessages((prev) => prev.filter((m) => !m.id.startsWith("assistant-video-loading-")));
       if (convId) {
         await appendAssistantMessage({
           convId,

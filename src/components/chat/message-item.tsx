@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
+  Film,
   Loader2,
   PanelRightOpen,
   Volume2,
@@ -19,6 +20,9 @@ import { audioPlayerStore } from "./audio-player-store";
 import { notify } from "@/lib/notify";
 import { downloadAsset } from "@/lib/download";
 import { Link as RouterLink } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getCredits } from "@/lib/credits.functions";
 import {
   Tooltip,
   TooltipContent,
@@ -46,13 +50,75 @@ function isVideoUrl(url: string | null | undefined): boolean {
   return /\.(mp4|webm|mov)(\?|$)/i.test(url);
 }
 
+function AnimateButton({
+  imageUrl: _imageUrl,
+  hasUltra,
+  credits,
+  animating,
+  onClick,
+}: {
+  imageUrl: string;
+  hasUltra: boolean;
+  credits: number;
+  animating: boolean;
+  onClick: () => void;
+}) {
+  const disabled = !hasUltra || credits < 10 || animating;
+  const reason = !hasUltra
+    ? "Disponível apenas no plano Ultra"
+    : credits < 10
+      ? `Você precisa de 10 créditos (tem ${credits})`
+      : "";
+  const button = (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "ml-3 inline-flex items-center gap-1 text-[11px] transition-colors",
+        disabled
+          ? "cursor-not-allowed text-muted-foreground/50"
+          : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {animating ? (
+        <Loader2 className="size-3 animate-spin" />
+      ) : (
+        <Film className="size-3" />
+      )}
+      {animating ? "Animando..." : "Animar — 10 créditos"}
+    </button>
+  );
+  if (!reason) return button;
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex">{button}</span>
+        </TooltipTrigger>
+        <TooltipContent>{reason}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 function MessageItemInner({ msg }: { msg: ChatMsg }) {
   const isUser = msg.role === "user";
   const [copied, setCopied] = useState(false);
   const [loadingAudio, setLoadingAudio] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [animating, setAnimating] = useState(false);
   const { open: openCanvas } = useCodeCanvas();
-  const { hasActive } = useActivePlan();
+  const { hasActive, planId } = useActivePlan();
+  const hasUltra = hasActive && planId === "ultra";
+  const fetchCreditsFn = useServerFn(getCredits);
+  const { data: creditsData } = useQuery({
+    queryKey: ["credits"],
+    queryFn: () => fetchCreditsFn(),
+    enabled: !isUser,
+    staleTime: 30_000,
+  });
+  const credits = creditsData?.balance ?? 0;
   const imageUrl = msg.image_url ?? getInlineImageUrl(msg.content);
   const isVideo = isVideoUrl(imageUrl);
   // Quando a mensagem da IA contém uma imagem, descartamos qualquer texto
@@ -201,6 +267,23 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
               >
                 Baixar imagem
               </button>
+              <AnimateButton
+                imageUrl={imageUrl}
+                hasUltra={hasUltra}
+                credits={credits}
+                animating={animating}
+                onClick={() => {
+                  if (!hasUltra || credits < 10 || animating) return;
+                  setAnimating(true);
+                  window.dispatchEvent(
+                    new CustomEvent("aura:animate-image", {
+                      detail: { imageUrl },
+                    }),
+                  );
+                  // Re-enable after a few seconds so user can retry if dispatch failed silently.
+                  setTimeout(() => setAnimating(false), 8000);
+                }}
+              />
             </div>
           )
         )}
