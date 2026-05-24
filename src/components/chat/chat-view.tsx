@@ -214,6 +214,8 @@ export function ChatView({ conversationId }: Props) {
     "⚡ Algo deu errado na conexão. Tente enviar novamente.";
   const GENERIC_ERROR_TEXT =
     "😕 Algo inesperado aconteceu. Tente novamente.";
+  const GENERIC_IMG_ERROR_TEXT =
+    "⚡ Algo deu errado na geração. Tente novamente.";
 
   const {
     data: dbMessages,
@@ -548,7 +550,7 @@ export function ChatView({ conversationId }: Props) {
             return;
           }
           stickyImageRefRef.current = null;
-          throw new Error(err.error || "Falha ao gerar imagem.");
+          throw new Error("__IMG_GENERIC__");
         }
 
         const data = (await res.json()) as { url: string; caption?: string };
@@ -631,19 +633,35 @@ export function ChatView({ conversationId }: Props) {
       console.log("[CHAT-SEND] enviando mensagem:", text.slice(0, 200));
       console.log("[CHAT-SEND] usuario:", userId);
 
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          messages: history,
-          reasoning,
-          webSearch,
-          hasFile: !!file,
-        }),
+      const chatPayload = JSON.stringify({
+        messages: history,
+        reasoning,
+        webSearch,
+        hasFile: !!file,
       });
+      const doChatFetch = () =>
+        fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: chatPayload,
+        });
+      let res: Response;
+      try {
+        res = await doChatFetch();
+        // Retry once on transient 5xx (excluding 502 moderation/upstream errors with details)
+        if (!res.ok && res.status >= 500) {
+          console.warn("[CHAT-RETRY] status", res.status, "— tentando novamente");
+          await new Promise((r) => setTimeout(r, 500));
+          res = await doChatFetch();
+        }
+      } catch (netErr) {
+        console.warn("[CHAT-RETRY] erro de rede, tentando novamente:", netErr);
+        await new Promise((r) => setTimeout(r, 500));
+        res = await doChatFetch();
+      }
 
       console.log("[CHAT-RECV] response status:", res.status);
       console.log("[CHAT-RECV] content-type:", res.headers.get("content-type"));
@@ -726,7 +744,7 @@ export function ChatView({ conversationId }: Props) {
       const stallController = new AbortController();
       const stallTimer = setTimeout(() => {
         if (!gotFirstChunk) {
-          console.error("[CHAT-ERROR] timeout: nenhum chunk em 15s");
+          console.error("[CHAT-ERROR] timeout: nenhum chunk em 30s");
           stallController.abort();
           try {
             reader.cancel();
@@ -734,7 +752,7 @@ export function ChatView({ conversationId }: Props) {
             /* ignore */
           }
         }
-      }, 15000);
+      }, 30000);
 
       const appendChunk = (chunkText: string, chunkReasoning?: string) => {
         const safeText = chunkText || "";
@@ -806,6 +824,8 @@ export function ChatView({ conversationId }: Props) {
         clearTimeout(stallTimer);
       }
 
+      // Stream may have closed early. If we received nothing at all, treat as failure.
+      // If we got partial content, keep what we have instead of discarding.
       if (!gotFirstChunk && stallController.signal.aborted) {
         throw new Error("A resposta demorou muito. Tente novamente.");
       }
@@ -816,7 +836,7 @@ export function ChatView({ conversationId }: Props) {
         processPayload(buffer.trim().slice(5).trim());
       }
 
-      const finalContent = accum || "Desculpe, não consegui responder agora.";
+      const finalContent = accum || GENERIC_ERROR_TEXT;
 
       // Gemini blocked image/file analysis by safety filters — show the
       // friendly analysis-block message instead of the silent fallback.
@@ -969,7 +989,13 @@ export function ChatView({ conversationId }: Props) {
       console.error(error);
 
       // Never expose technical errors / provider names to the user.
-      const friendlyText = isAbort ? NETWORK_ERROR_TEXT : GENERIC_ERROR_TEXT;
+      const isImgGeneric =
+        error instanceof Error && error.message === "__IMG_GENERIC__";
+      const friendlyText = isAbort
+        ? NETWORK_ERROR_TEXT
+        : isImgGeneric || (wantsImage && !isAbort)
+        ? GENERIC_IMG_ERROR_TEXT
+        : GENERIC_ERROR_TEXT;
       const lastConvId = conversationId ?? lastConversationIdRef.current;
 
       if (wantsImage || wantsEdit) {
