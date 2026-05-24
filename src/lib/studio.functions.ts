@@ -445,6 +445,20 @@ export const generateCharacter = createServerFn({ method: "POST" })
     await ensureCredits(supabase, userId, cost);
 
     const translated = await translateToEnglish(data.appearance);
+    const translatedFace = data.faceDetails?.trim()
+      ? await translateToEnglish(data.faceDetails.trim())
+      : "";
+    const translatedScene = data.scene?.trim()
+      ? await translateToEnglish(data.scene.trim())
+      : "";
+    const combinedAppearance = [
+      translated,
+      translatedFace ? `Face details: ${translatedFace}` : "",
+      translatedScene ? `Scene: ${translatedScene}` : "",
+    ].filter(Boolean).join(". ");
+    const cfgFromLevel = data.cfgLevel
+      ? ({ free: 4, balanced: 7, precise: 10 } as const)[data.cfgLevel]
+      : null;
 
     let promptId: string;
     let endpoint = `${ALIVEAI_BASE}/prompts`;
@@ -459,12 +473,14 @@ export const generateCharacter = createServerFn({ method: "POST" })
       const baseNeg = "deformed, bad anatomy, extra fingers, missing fingers, bad hands, blurry, low quality, watermark, text";
       body = {
         name: data.name,
-        appearance: translated,
+        appearance: combinedAppearance,
+        ...(translatedFace ? { faceDetails: translatedFace } : {}),
+        ...(translatedScene ? { scene: translatedScene } : {}),
         detailLevel: data.detailLevel ?? "MEDIUM",
         model: data.model,
         gender: data.gender,
         aspectRatio: mapAspectRatio(data.aspectRatio),
-        cfg: cfgMap[data.creativity ?? "medium"],
+        cfg: cfgFromLevel ?? cfgMap[data.creativity ?? "medium"],
         faceImproveEnabled: true,
         faceModel: "REALISM",
         faceImproveStrength: 5,
@@ -493,16 +509,18 @@ export const generateCharacter = createServerFn({ method: "POST" })
       }
 
       endpoint = `${ALIVEAI_BASE}/prompts/edit-image`;
-      const variationPrompt = `extract this person keep her appearance, skin color, face and body shape. ${translated}`;
+      const variationPrompt = `extract this person keep her appearance, skin color, face and body shape. ${combinedAppearance}`;
       body = {
         editModel: data.editModel ?? "CREATIVE",
         mediaId: profile.base_media_id,
         prompt: variationPrompt,
+        ...(translatedFace ? { faceDetails: translatedFace } : {}),
+        ...(translatedScene ? { scene: translatedScene } : {}),
         aspectRatio: mapAspectRatio(data.aspectRatio),
         faceImproveEnabled: true,
         faceImproveStrength: 7,
         restoreFace: true,
-        cfg: 5,
+        cfg: cfgFromLevel ?? 7,
       };
       {
         const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength);
