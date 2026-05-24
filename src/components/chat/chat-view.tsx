@@ -533,6 +533,9 @@ export function ChatView({ conversationId }: Props) {
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: "Falha ao gerar imagem." }));
           if (res.status === 422 && (err.code === "moderation" || err.error === "content_moderation")) {
+            // Reset image-intent context completely: a próxima mensagem
+            // do usuário deve ser avaliada do zero, sem herdar nada.
+            stickyImageRefRef.current = null;
             await appendAssistantMessage({
               convId,
               text: MOD_BLOCK_TEXT,
@@ -543,6 +546,7 @@ export function ChatView({ conversationId }: Props) {
             });
             return;
           }
+          stickyImageRefRef.current = null;
           throw new Error(err.error || "Falha ao gerar imagem.");
         }
 
