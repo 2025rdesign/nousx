@@ -225,7 +225,7 @@ function StudioInner() {
   const [name, setName] = useState("");
   const [createProfile, setCreateProfile] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [creativity, setCreativity] = useState<"low" | "medium" | "high">("medium");
+  
   const [negativePrompt, setNegativePrompt] = useState("");
   const [improving, setImproving] = useState(false);
   const improveFn = useServerFn(improvePrompt);
