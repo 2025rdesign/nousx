@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
-import { ArrowLeft, Sparkles, Wand2 } from "lucide-react";
+import { ArrowLeft, Sparkles, Wand2, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -367,14 +367,18 @@ function Card({
 function EmptyExplore() {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="rounded-full bg-secondary p-4 mb-4">
-        <Sparkles className="size-6 text-muted-foreground" />
-      </div>
-      <p className="text-sm text-muted-foreground mb-4">
-        Ainda não há publicações. Seja o primeiro!
+      <Compass size={48} className="text-[#6C47FF] mb-4" />
+      <p className="text-lg font-semibold text-foreground">
+        Nenhuma criação publicada ainda
       </p>
-      <Button asChild>
-        <Link to="/studio">Criar no Estúdio</Link>
+      <p className="text-sm text-muted-foreground mt-2 max-w-md mb-5">
+        Seja o primeiro a compartilhar sua criação com a comunidade.
+      </p>
+      <Button asChild className="bg-[#6C47FF] hover:bg-[#5a39e6] text-white gap-2">
+        <Link to="/studio">
+          <Wand2 className="size-4" />
+          Criar no Estúdio
+        </Link>
       </Button>
     </div>
   );
