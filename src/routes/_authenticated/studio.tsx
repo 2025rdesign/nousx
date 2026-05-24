@@ -214,6 +214,9 @@ function StudioInner() {
   // shared form state
   const [aspect, setAspect] = useState<Ratio>("4:5");
   const [appearance, setAppearance] = useState("");
+  const [faceDetails, setFaceDetails] = useState("");
+  const [scene, setScene] = useState("");
+  const [cfgLevel, setCfgLevel] = useState<"free" | "balanced" | "precise">("balanced");
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   // mode B (new) state
@@ -257,6 +260,9 @@ function StudioInner() {
     setActiveProfileId(null);
     setName("");
     setAppearance("");
+    setFaceDetails("");
+    setScene("");
+    setCfgLevel("balanced");
     setModel("DEFAULT");
     setGender("FEMALE");
     setAspect("4:5");
