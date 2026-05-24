@@ -1433,7 +1433,9 @@ export function ChatView({ conversationId }: Props) {
               ))}
               {awaitingReply &&
               !hasStreamingMessage &&
-              (inflightMode === "image" || inflightMode === "edit") ? (
+              (inflightMode === "image" ||
+                inflightMode === "edit" ||
+                inflightMode === "video") ? (
                 <TypingIndicator mode={inflightMode} />
               ) : null}
             </div>
