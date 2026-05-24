@@ -10,11 +10,13 @@ import { useEffect } from "react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
+      { title: "Aura Chat — Converse com IA Sem Censura" },
       {
         name: "description",
-        content:
-          "Converse com a AuraIA sem cadastro. 10 mensagens grátis. Crie uma conta e ganhe 5 créditos para gerar imagens no Estúdio.",
+        content: "Chat com IA sem filtros, 100% grátis.",
       },
+      { property: "og:title", content: "Aura Chat — Converse com IA Sem Censura" },
+      { property: "og:description", content: "Chat com IA sem filtros, 100% grátis." },
     ],
   }),
   component: HomePage,
