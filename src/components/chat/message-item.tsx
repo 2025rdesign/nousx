@@ -266,6 +266,21 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                 a: ({ node: _n, href, children, ...props }: any) => {
                   const isInternal =
                     typeof href === "string" && href.startsWith("/");
+                  const isPlansCta =
+                    href === "/planos" ||
+                    (Array.isArray(children) &&
+                      typeof children[0] === "string" &&
+                      /ver\s+planos/i.test(children[0]));
+                  if (isInternal && isPlansCta) {
+                    return (
+                      <RouterLink
+                        to="/planos"
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-[#6C47FF] px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#5A38E0] no-underline"
+                      >
+                        {children}
+                      </RouterLink>
+                    );
+                  }
                   if (isInternal) {
                     return (
                       <RouterLink
