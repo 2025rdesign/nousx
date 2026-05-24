@@ -400,13 +400,15 @@ export function AnonChatView() {
                 </div>
               </div>
             ) : (
-              <EmptyState onSuggest={(t) => handleSend(t)} />
+              <EmptyState onSuggest={setFillText} />
             )}
             <ChatInput
               onSend={(t) => handleSend(t)}
               disabled={sending}
               anonMode
               onAnonRestricted={handleInputRestricted}
+              fillText={fillText}
+              onFillTextConsumed={() => setFillText(undefined)}
             />
           </div>
         </main>
