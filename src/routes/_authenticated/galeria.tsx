@@ -44,6 +44,16 @@ import {
 import { GridPageSkeleton } from "@/components/route-skeletons";
 
 export const Route = createFileRoute("/_authenticated/galeria")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    filter:
+      search.filter === "all" ||
+      search.filter === "chat" ||
+      search.filter === "studio" ||
+      search.filter === "audio" ||
+      search.filter === "video"
+        ? search.filter
+        : undefined,
+  }),
   component: Gallery,
   pendingComponent: GridPageSkeleton,
   pendingMs: 0,
@@ -100,10 +110,11 @@ function formatDuration(sec: number | null) {
 
 function Gallery() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const queryClient = useQueryClient();
   const fetchList = useServerFn(listGallery);
   const delFn = useServerFn(deleteGalleryItem);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>((search.filter as Filter | undefined) ?? "all");
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const [actionSheetIdx, setActionSheetIdx] = useState<number | null>(null);
   const isCoarsePointer = useCoarsePointer();
@@ -111,6 +122,12 @@ function Gallery() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
+
+  useEffect(() => {
+    if (search.filter && search.filter !== filter) {
+      setFilter(search.filter as Filter);
+    }
+  }, [filter, search.filter]);
 
   const query = useInfiniteQuery({
     queryKey: ["gallery-v2", filter],
