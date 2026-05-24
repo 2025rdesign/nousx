@@ -52,10 +52,6 @@ function isVideoUrl(url: string | null | undefined): boolean {
 
 function AnimateButton({
   imageUrl,
-  hasUltra,
-  credits,
-  animating,
-  onClick,
 }: {
   imageUrl: string;
   hasUltra: boolean;
@@ -63,41 +59,31 @@ function AnimateButton({
   animating: boolean;
   onClick: () => void;
 }) {
-  const disabled = !hasUltra || credits < 10 || animating;
-  const reason = !hasUltra
-    ? "Disponível apenas no plano Ultra"
-    : credits < 10
-      ? `Você precisa de 10 créditos (tem ${credits})`
-      : "";
+  // Animation temporarily disabled — button shown grayed out (no interaction).
+  void imageUrl;
   const button = (
     <button
       type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label="Animar imagem por 10 créditos"
+      disabled
+      aria-disabled="true"
+      aria-label="Animação em breve"
+      tabIndex={-1}
+      style={{ opacity: 0.4, cursor: "not-allowed", pointerEvents: "none" }}
       className={cn(
-        "mt-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-md border px-3 py-2 text-[14px] font-semibold transition-colors md:mt-0 md:min-h-0 md:w-auto md:px-3 md:py-1 md:text-[13px]",
-        disabled
-          ? "cursor-not-allowed border-border text-muted-foreground/50"
-          : "border-primary/70 text-accent hover:border-accent hover:bg-primary/10",
+        "mt-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-[14px] font-semibold text-muted-foreground md:mt-0 md:min-h-0 md:w-auto md:px-3 md:py-1 md:text-[13px]",
       )}
     >
-      {animating ? (
-        <Loader2 className="size-3.5 animate-spin md:size-3.5" />
-      ) : (
-        <Film className="size-3.5 md:size-3.5" />
-      )}
-      {animating ? "Animando..." : "Animar · 10 créditos"}
+      <Film className="size-3.5 md:size-3.5" />
+      Animar · 10 créditos
     </button>
   );
-  if (!reason) return button;
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>
         <TooltipTrigger asChild>
           <span className="inline-flex">{button}</span>
         </TooltipTrigger>
-        <TooltipContent>{reason}</TooltipContent>
+        <TooltipContent>Em breve</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
