@@ -1103,6 +1103,8 @@ function StudioInner() {
                 "Gerar Imagem"
               )}
             </Button>
+              </>
+            )}
           </div>
         </section>
 
