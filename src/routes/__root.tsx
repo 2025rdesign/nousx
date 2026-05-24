@@ -195,6 +195,20 @@ function RootComponent() {
     installChunkReloadHandler();
   }, []);
 
+  // Capture ?ref=CODE into localStorage so it can be attached on signup
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get("ref");
+      if (ref && /^[A-Za-z0-9]{4,16}$/.test(ref)) {
+        localStorage.setItem("auraia-ref-code", ref.toUpperCase());
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   return (
     <AppErrorBoundary>
       <QueryClientProvider client={queryClient}>

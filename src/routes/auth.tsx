@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { translateAuthError } from "@/lib/i18n-errors";
 import { notify } from "@/lib/notify";
 import { Loader2, Check, X } from "lucide-react";
+import { attachReferral } from "@/lib/referrals.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -217,6 +218,24 @@ function SignupForm() {
       return;
     }
     console.log("[signUp] success:", signUpData);
+
+    // Attach referral code captured from ?ref= on landing
+    try {
+      const code = localStorage.getItem("auraia-ref-code");
+      if (code) {
+        // Wait briefly for the session to be available, then attach
+        await new Promise((r) => setTimeout(r, 400));
+        const res = await attachReferral({ data: { code } });
+        if (res && (res as { ok?: boolean }).ok) {
+          localStorage.removeItem("auraia-ref-code");
+        } else {
+          localStorage.removeItem("auraia-ref-code");
+        }
+      }
+    } catch (err) {
+      console.warn("[signUp] attachReferral failed", err);
+    }
+
     notify.success("Bem-vindo! Você ganhou 5 créditos para usar no Estúdio.");
     router.invalidate();
     navigate({ to: "/" });

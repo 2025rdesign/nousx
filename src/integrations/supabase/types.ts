@@ -406,6 +406,8 @@ export type Database = {
           id: string
           is_blocked: boolean
           name: string | null
+          referral_code: string | null
+          referred_by: string | null
           updated_at: string
         }
         Insert: {
@@ -417,6 +419,8 @@ export type Database = {
           id: string
           is_blocked?: boolean
           name?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
         }
         Update: {
@@ -428,9 +432,67 @@ export type Database = {
           id?: string
           is_blocked?: boolean
           name?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          created_at: string
+          credits_awarded: number
+          first_purchase_rewarded: boolean
+          id: string
+          referral_code: string
+          referred_id: string
+          referrer_id: string
+          rewarded_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          credits_awarded?: number
+          first_purchase_rewarded?: boolean
+          id?: string
+          referral_code: string
+          referred_id: string
+          referrer_id: string
+          rewarded_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          credits_awarded?: number
+          first_purchase_rewarded?: boolean
+          id?: string
+          referral_code?: string
+          referred_id?: string
+          referrer_id?: string
+          rewarded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referred_id_fkey"
+            columns: ["referred_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_subscriptions: {
         Row: {
@@ -470,7 +532,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_referral_code: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never

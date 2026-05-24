@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { fetchMpPayment } from "./mercadopago.server";
 import { creditUserOnce, revokeAllCredits } from "./credits.server";
+import { rewardReferrerOnFirstPurchase } from "./referrals.server";
 import {
   CREDIT_PACKS,
   PLANS,
@@ -106,6 +107,7 @@ export async function processMpPayment(paymentId: string) {
       const pack = CREDIT_PACKS[targetId as CreditPackId];
       if (pack && userId) {
         await creditUserOnce(mpId, userId, pack.credits, targetId);
+        await rewardReferrerOnFirstPurchase(userId, "credit", targetId);
       } else {
         console.error("[MP-WEBHOOK] unknown credit pack", targetId);
       }
@@ -114,6 +116,7 @@ export async function processMpPayment(paymentId: string) {
       if (plan && userId) {
         await activateSubscription(userId, targetId as PlanId, mpId);
         await creditUserOnce(mpId, userId, plan.credits, targetId);
+        await rewardReferrerOnFirstPurchase(userId, "subscription", targetId);
       } else {
         console.error("[MP-WEBHOOK] unknown subscription plan", targetId);
       }
