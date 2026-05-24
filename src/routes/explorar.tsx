@@ -17,11 +17,15 @@ import { UserAvatar } from "@/components/user-avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { listPublicCharacters, listPublicProfiles } from "@/lib/studio.functions";
+import { GridPageSkeleton } from "@/components/route-skeletons";
 
 const AGE_KEY = "nousx-age-confirmed";
 
 export const Route = createFileRoute("/explorar")({
   component: Explore,
+  pendingComponent: GridPageSkeleton,
+  pendingMs: 0,
+  pendingMinMs: 0,
 });
 
 function Explore() {
@@ -65,14 +69,14 @@ function Explore() {
     queryKey: ["public-characters"],
     queryFn: () => fetchImages(),
     enabled: confirmed,
-    staleTime: 15_000,
+    staleTime: 60_000,
     gcTime: 5 * 60_000,
   });
   const { data: characters = [], isLoading: liChars } = useQuery({
     queryKey: ["public-profiles"],
     queryFn: () => fetchProfiles(),
     enabled: confirmed,
-    staleTime: 15_000,
+    staleTime: 60_000,
     gcTime: 5 * 60_000,
   });
 

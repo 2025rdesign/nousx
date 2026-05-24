@@ -28,6 +28,7 @@ import { notify } from "@/lib/notify";
 import { translateAuthError } from "@/lib/i18n-errors";
 import { useEffect, useState } from "react";
 import { UserAvatar } from "@/components/user-avatar";
+import { SettingsSkeleton } from "@/components/route-skeletons";
 import { SubscriptionTab } from "@/components/payments/subscription-tab";
 import { useActivePlan } from "@/hooks/use-active-plan";
 import { getCredits } from "@/lib/credits.functions";
@@ -42,6 +43,9 @@ import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: SettingsPage,
+  pendingComponent: SettingsSkeleton,
+  pendingMs: 0,
+  pendingMinMs: 0,
 });
 
 function SettingsPage() {

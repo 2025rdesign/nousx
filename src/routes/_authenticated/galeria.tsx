@@ -41,9 +41,13 @@ import {
   deleteGalleryItem,
   type GalleryItem,
 } from "@/lib/gallery.functions";
+import { GridPageSkeleton } from "@/components/route-skeletons";
 
 export const Route = createFileRoute("/_authenticated/galeria")({
   component: Gallery,
+  pendingComponent: GridPageSkeleton,
+  pendingMs: 0,
+  pendingMinMs: 0,
 });
 
 type Filter = "all" | "chat" | "studio" | "audio";
@@ -108,7 +112,7 @@ function Gallery() {
     getNextPageParam: (last, all) =>
       last.hasMore ? all.length : undefined,
     initialPageParam: 0,
-    staleTime: 30_000,
+    staleTime: 60_000,
   });
 
   const items = useMemo<GalleryItem[]>(

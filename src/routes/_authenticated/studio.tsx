@@ -39,6 +39,7 @@ import { CreditPurchaseModal } from "@/components/payments/credit-purchase-modal
 import { getCredits } from "@/lib/credits.functions";
 import { POSES, POSE_CATEGORIES } from "@/data/poses";
 import { toast } from "sonner";
+import { StudioSkeleton } from "@/components/route-skeletons";
 
 export const Route = createFileRoute("/_authenticated/studio")({
   head: () => ({
@@ -47,6 +48,9 @@ export const Route = createFileRoute("/_authenticated/studio")({
     ],
   }),
   component: StudioPage,
+  pendingComponent: StudioSkeleton,
+  pendingMs: 0,
+  pendingMinMs: 0,
 });
 
 const CHIPS = [
@@ -189,7 +193,7 @@ function StudioInner() {
   const { data: creditsData, isLoading: creditsLoading } = useQuery({
     queryKey: ["credits"],
     queryFn: () => fetchCredits(),
-    staleTime: 30_000,
+    staleTime: 60_000,
   });
   const balance = creditsData?.balance ?? 0;
   const [creditsOpen, setCreditsOpen] = useState(false);
@@ -197,6 +201,7 @@ function StudioInner() {
   const { data: profiles = [] } = useQuery({
     queryKey: ["my-profiles"],
     queryFn: () => fetchProfiles(),
+    staleTime: 60_000,
   });
 
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
@@ -208,6 +213,7 @@ function StudioInner() {
   const { data: history = [] } = useQuery({
     queryKey: ["my-characters", activeProfileId],
     queryFn: () => fetchChars({ data: { profileId: activeProfileId } }),
+    staleTime: 60_000,
   });
 
   // shared form state
