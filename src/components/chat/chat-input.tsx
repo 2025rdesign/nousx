@@ -55,6 +55,16 @@ export function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+    if (fillText) {
+      setText(fillText);
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+      });
+      onFillTextConsumed?.();
+    }
+  }, [fillText, onFillTextConsumed]);
+
+  useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
       if (!items) return;
