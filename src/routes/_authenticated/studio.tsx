@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { notify } from "@/lib/notify";
 import { downloadAsset } from "@/lib/download";
-import { AlertTriangle, ArrowLeft, Download, Globe, Lock, Loader2, Maximize2, Plus, Sparkles as SparklesIcon, Trash2, Wand2, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Download, Globe, Lock, Loader2, Maximize2, Plus, Sparkles as SparklesIcon, Trash2, Wand2, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -151,30 +151,32 @@ function CreditsPill({
   const danger = balance < 5;
   const empty = balance === 0;
   return (
-    <div className={cn("inline-flex items-center gap-2", danger && !compact && "flex-row")}>
+    <div className={cn("inline-flex items-center gap-2", (danger || empty) && !compact && "flex-row")}>
     <button
       type="button"
       onClick={onClick}
       title={empty ? "Sem créditos" : `${balance} créditos`}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-        danger
+        empty
+          ? "border-destructive bg-destructive/10 text-destructive hover:bg-destructive/20 animate-pulse"
+          : danger
           ? "border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20"
           : "border-border bg-card hover:border-accent hover:text-accent",
-        empty && "animate-pulse",
       )}
     >
-      {danger ? (
+      {danger || empty ? (
         <AlertTriangle className="size-3.5" />
       ) : (
         <SparklesIcon className="size-3.5 text-accent" />
       )}
       <span>
-        {balance}
-        {!compact && " créditos"}
+        {empty
+          ? "Sem créditos — Recarregar"
+          : `${balance}${!compact ? " créditos" : ""}`}
       </span>
     </button>
-    {danger && !compact && (
+    {danger && !empty && !compact && (
       <span className="text-[11px] text-destructive">Poucos créditos restantes</span>
     )}
     </div>
@@ -549,12 +551,20 @@ function StudioInner() {
                 Personagens
               </Button>
             </div>
-            <div className="hidden md:flex items-center justify-end">
+            <div className="hidden md:flex flex-col items-end gap-2">
               <CreditsPill
                 balance={balance}
                 onClick={() => setCreditsOpen(true)}
                 loading={creditsLoading}
               />
+              <button
+                type="button"
+                onClick={() => setCreditsOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-transparent px-2.5 py-1 text-[11px] font-medium text-foreground/80 transition-colors hover:border-accent hover:text-accent"
+              >
+                <Zap className="size-3 text-accent" />
+                Comprar créditos
+              </button>
             </div>
 
             {editingImage ? (
@@ -1040,6 +1050,16 @@ function StudioInner() {
             <div className="text-center text-xs text-muted-foreground">
               Esta geração custará <span className="font-semibold text-foreground">{cost} crédito{cost > 1 ? "s" : ""}</span>.
             </div>
+            {balance === 0 && (
+              <button
+                type="button"
+                onClick={() => setCreditsOpen(true)}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 animate-pulse"
+              >
+                <Zap className="size-4" />
+                Sem créditos — Recarregar
+              </button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -1087,6 +1107,14 @@ function StudioInner() {
                 </>
               )}
             </Button>
+            <button
+              type="button"
+              onClick={() => setCreditsOpen(true)}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-border bg-transparent px-4 py-2 text-xs font-medium text-foreground/70 transition-colors hover:border-accent hover:text-accent"
+            >
+              <Zap className="size-3.5 text-accent" />
+              Comprar créditos
+            </button>
             <Button
               className="w-full"
               disabled={!appearance.trim() || isLoading}
