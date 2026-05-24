@@ -4,8 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useActivePlan } from "@/hooks/use-active-plan";
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Check, Sparkles, Crown, Zap, Package } from "lucide-react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   PLANS as PLAN_PRICING,
@@ -45,9 +44,7 @@ const fmtBRL = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
 type CardId = "free" | "plus" | "ultra" | "credits";
 type CardSpec = {
   id: CardId;
-  badge: string;
-  badgeStyle: string;
-  icon: React.ElementType;
+  label: string;
   name: string;
   features: string[];
   highlighted?: boolean;
@@ -72,35 +69,29 @@ function PlanosPage() {
   const cards: CardSpec[] = [
     {
       id: "free",
-      badge: "Grátis",
-      badgeStyle: "bg-muted text-muted-foreground",
-      icon: Sparkles,
-      name: "Gratuito",
+      label: "GRATUITO",
+      name: "Grátis",
       features: [
         "Chat ilimitado",
         "Busca na web",
         "Análise de arquivos e imagens",
-        "5 créditos de boas-vindas no Estúdio",
+        "5 créditos no Estúdio",
       ],
     },
     {
       id: "plus",
-      badge: "Plus",
-      badgeStyle: "bg-primary text-primary-foreground",
-      icon: Crown,
+      label: "PLUS",
       name: "Plus",
       features: [
         "Tudo do Gratuito",
         "Geração de imagem no chat",
         "30 créditos por mês no Estúdio",
-        "Respostas em áudio (TTS)",
+        "Respostas em áudio",
       ],
     },
     {
       id: "ultra",
-      badge: "Ultra",
-      badgeStyle: "bg-[#6C47FF] text-white",
-      icon: Zap,
+      label: "ULTRA",
       name: "Ultra",
       features: [
         "Tudo do Plus",
@@ -112,14 +103,12 @@ function PlanosPage() {
     },
     {
       id: "credits",
-      badge: "Sem assinatura",
-      badgeStyle: "bg-secondary text-secondary-foreground",
-      icon: Package,
-      name: "Créditos avulsos",
+      label: "AVULSOS",
+      name: "Créditos",
       features: [
-        "Starter: 20 créditos por R$ 14,90",
-        "Popular: 60 créditos por R$ 34,90",
-        "Pro: 150 créditos por R$ 79,90",
+        "Starter · 20 créditos · R$ 14,90",
+        "Popular · 60 créditos · R$ 34,90",
+        "Pro · 150 créditos · R$ 79,90",
       ],
     },
   ];
@@ -142,46 +131,46 @@ function PlanosPage() {
   function renderPriceBlock(id: CardId) {
     if (id === "free") {
       return (
-        <p className="mt-1 flex items-baseline justify-center gap-1">
-          <span className="text-3xl font-bold">R$ 0</span>
-          <span className="text-sm text-muted-foreground">/sempre</span>
-        </p>
+        <div className="mt-2">
+          <p className="text-4xl font-bold tracking-tight text-foreground">R$ 0</p>
+          <p className="mt-1 text-xs text-muted-foreground">para sempre</p>
+        </div>
       );
     }
     if (id === "credits") {
       return (
-        <p className="mt-1 text-sm text-muted-foreground">
-          A partir de{" "}
-          <span className="font-semibold text-foreground">R$ 14,90</span>
-        </p>
+        <div className="mt-2">
+          <p className="text-xs text-muted-foreground">A partir de</p>
+          <p className="mt-1 text-4xl font-bold tracking-tight text-foreground">
+            R$ 14,90
+          </p>
+        </div>
       );
     }
     const p = id === "plus" ? plus : ultra;
     const monthly = isAnnual ? p.annualMonthlyPrice : p.price;
     return (
-      <div className="mt-1 space-y-1">
-        <p className="flex items-baseline justify-center gap-1 transition-all duration-300">
-          <span className="text-3xl font-bold tabular-nums">
+      <div className="mt-2">
+        <p
+          key={`${id}-${period}`}
+          className="flex items-baseline gap-1 animate-fade-in"
+        >
+          <span className="text-4xl font-bold tracking-tight tabular-nums text-foreground">
             {fmtBRL(monthly)}
           </span>
           <span className="text-sm text-muted-foreground">/mês</span>
         </p>
         {isAnnual ? (
-          <div className="space-y-1">
-            <p className="text-[11px] text-muted-foreground line-through">
-              {fmtBRL(p.price)}/mês
+          <div className="mt-1 space-y-0.5">
+            <p className="text-xs text-muted-foreground">
+              cobrado anualmente · {fmtBRL(p.annualTotalPrice)}
             </p>
-            <p className="text-[11px] text-muted-foreground">
-              cobrado como {fmtBRL(p.annualTotalPrice)}/ano
+            <p className="text-xs" style={{ color: "#6b7280" }}>
+              vs {fmtBRL(p.price)}/mês
             </p>
-            <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
-              Economize {p.annualSavingsPercent}%
-            </span>
           </div>
         ) : (
-          <p className="text-[11px] text-muted-foreground">
-            cobrado mensalmente
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground">&nbsp;</p>
         )}
       </div>
     );
@@ -192,7 +181,8 @@ function PlanosPage() {
       return (
         <Button
           disabled
-          className="w-full bg-emerald-600/90 hover:bg-emerald-600/90 text-white disabled:opacity-100"
+          variant="outline"
+          className="w-full disabled:opacity-100"
         >
           Plano atual
         </Button>
@@ -209,7 +199,7 @@ function PlanosPage() {
               : navigate({ to: "/auth", search: { tab: "signup" } as any })
           }
         >
-          {user ? "Plano atual" : "Criar conta grátis"}
+          {user ? "Plano atual" : "Começar grátis"}
         </Button>
       );
     }
@@ -249,15 +239,16 @@ function PlanosPage() {
     >
       {/* Header */}
       <header
-        className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur"
+        className="sticky top-0 z-20 border-b border-[#1a1a2e] bg-background/80 backdrop-blur"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
-        <div className="max-w-6xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between gap-3">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-3">
           <Link to="/" className="flex items-center shrink-0">
             <img
               src={logoSrc}
-              alt="AuraIA"
-              className="h-8 w-auto object-contain"
+              alt="Aura Chat"
+              className="w-auto object-contain"
+              style={{ height: "36px" }}
             />
           </Link>
           <nav className="flex items-center gap-2">
@@ -290,19 +281,19 @@ function PlanosPage() {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-14">
-        <header className="text-center mb-8 md:mb-10">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-14 md:py-20">
+        <header className="text-center mb-12 md:mb-14">
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-foreground">
             Escolha seu plano
           </h1>
-          <p className="mt-3 text-sm text-muted-foreground">
+          <p className="mt-4 text-sm text-muted-foreground">
             Comece grátis. Sem cartão de crédito.
           </p>
         </header>
 
         {/* Monthly / Annual toggle */}
-        <div className="flex justify-center mb-10">
-          <div className="inline-flex items-center rounded-full border border-border bg-card p-1">
+        <div className="flex flex-col items-center mb-14">
+          <div className="inline-flex items-center rounded-full border border-[#1a1a2e] p-1">
             {(["monthly", "annual"] as BillingPeriod[]).map((p) => {
               const active = period === p;
               return (
@@ -311,25 +302,29 @@ function PlanosPage() {
                   type="button"
                   onClick={() => setPeriod(p)}
                   className={cn(
-                    "relative rounded-full px-4 py-1.5 text-sm font-medium transition-all",
+                    "rounded-full px-5 py-1.5 text-sm font-medium transition-colors",
                     active
-                      ? "bg-[#6C47FF] text-white shadow"
+                      ? "text-white"
                       : "text-muted-foreground hover:text-foreground",
                   )}
+                  style={active ? { backgroundColor: "#6C47FF" } : undefined}
                 >
                   {p === "monthly" ? "Mensal" : "Anual"}
-                  {p === "annual" && (
-                    <span className="ml-2 inline-flex items-center rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-300">
-                      Mais popular
-                    </span>
-                  )}
                 </button>
               );
             })}
           </div>
+          <p
+            className={cn(
+              "mt-3 text-xs text-muted-foreground transition-opacity duration-200",
+              isAnnual ? "opacity-100" : "opacity-0",
+            )}
+          >
+            Economize até 33% com cobrança anual
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+        <div className="mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 justify-center max-w-[1180px]">
           {visibleCards.map((card) => {
             const isCurrent =
               !!user &&
@@ -347,75 +342,79 @@ function PlanosPage() {
               (PLAN_RANK[card.id] ?? -1) < activeRank;
 
             return (
-              <Card
+              <div
                 key={card.id}
                 className={cn(
-                  "relative flex flex-col rounded-2xl border-border bg-card transition-all",
-                  card.highlighted &&
-                    !isCurrent &&
-                    "border-[#6C47FF] ring-1 ring-[#6C47FF]/40 shadow-[0_0_40px_-8px_rgba(108,71,255,0.35)]",
-                  isCurrent &&
-                    "border-emerald-500/60 ring-1 ring-emerald-500/30",
+                  "relative flex flex-col rounded-2xl bg-transparent p-7 transition-all",
+                  "border w-full max-w-[280px] mx-auto",
                   isDowngrade && "opacity-50",
                 )}
+                style={{
+                  borderColor: card.highlighted
+                    ? "rgba(108, 71, 255, 0.5)"
+                    : "#1a1a2e",
+                  boxShadow: card.highlighted
+                    ? "0 0 40px rgba(108,71,255,0.08)"
+                    : undefined,
+                }}
               >
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold leading-none",
-                      isCurrent
-                        ? "bg-emerald-500 text-white"
-                        : card.badgeStyle,
-                    )}
-                  >
-                    {isCurrent ? "Plano atual" : card.badge}
-                  </span>
-                  {card.highlighted && !isCurrent && (
-                    <span className="inline-flex items-center rounded-full bg-gradient-to-r from-[#6C47FF] to-[#9B7BFF] px-3 py-1 text-[10px] font-bold leading-none text-white shadow">
-                      Mais popular
-                    </span>
-                  )}
-                </div>
+                <p
+                  className="text-[11px] font-medium uppercase"
+                  style={{ color: "#6b7280", letterSpacing: "0.1em" }}
+                >
+                  {card.label}
+                </p>
+                <h2 className="mt-2 text-2xl font-bold text-foreground">
+                  {card.name}
+                </h2>
 
-                <CardHeader className="pt-7 pb-2 text-center">
-                  <div
-                    className={cn(
-                      "mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full",
-                      card.highlighted ? "bg-[#6C47FF]/15" : "bg-primary/10",
-                    )}
-                  >
-                    <card.icon
+                {card.highlighted && (
+                  <p className="mt-3 text-xs italic text-muted-foreground">
+                    Mais escolhido
+                  </p>
+                )}
+
+                {renderPriceBlock(card.id)}
+
+                <div
+                  className="my-6 h-px w-full"
+                  style={{ backgroundColor: "#1a1a2e" }}
+                />
+
+                <ul
+                  className="flex-1 space-y-0 text-sm"
+                  style={{ lineHeight: "1.8" }}
+                >
+                  {card.features.map((f, i) => (
+                    <li
+                      key={i}
                       className={cn(
-                        "h-5 w-5",
-                        card.highlighted ? "text-[#9B7BFF]" : "text-primary",
+                        "flex items-start gap-2.5",
+                        card.id === "credits" && "gap-0",
                       )}
-                    />
-                  </div>
-                  <h2 className="text-lg font-semibold">{card.name}</h2>
-                  {renderPriceBlock(card.id)}
-                </CardHeader>
+                    >
+                      {card.id !== "credits" && (
+                        <Check
+                          className="mt-2 shrink-0"
+                          size={14}
+                          style={{ color: "#6C47FF" }}
+                        />
+                      )}
+                      <span style={{ color: "#e5e7eb" }}>{f}</span>
+                    </li>
+                  ))}
+                </ul>
 
-                <CardContent className="flex-1 flex flex-col gap-4 pb-6">
-                  <ul className="space-y-2.5 text-sm">
-                    {card.features.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                        <span className="text-muted-foreground">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-auto pt-3">
-                    {renderCta(card, isCurrent, isUpgrade)}
-                  </div>
-                </CardContent>
-              </Card>
+                <div className="mt-8">
+                  {renderCta(card, isCurrent, isUpgrade)}
+                </div>
+              </div>
             );
           })}
         </div>
 
-        <p className="mt-10 text-center text-sm text-muted-foreground">
-          Todos os planos incluem acesso ao Estúdio de Criação sem censura e sem
-          filtros.
+        <p className="mt-14 text-center text-xs text-muted-foreground">
+          Todos os planos incluem o Estúdio de Criação sem censura e sem filtros.
         </p>
       </div>
 
