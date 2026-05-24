@@ -79,6 +79,7 @@ export function AnonChatView() {
   const [collapsed, setCollapsed] = useState(false);
   const [limitOpen, setLimitOpen] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
+  const [fillText, setFillText] = useState<string | undefined>();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const messages = state.messages;
