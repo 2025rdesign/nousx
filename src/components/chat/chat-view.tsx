@@ -1402,7 +1402,8 @@ export function ChatView({ conversationId }: Props) {
               !hasStreamingMessage &&
               (inflightMode === "image" ||
                 inflightMode === "edit" ||
-                inflightMode === "video") ? (
+                inflightMode === "video" ||
+                inflightMode === "plan") ? (
                 <TypingIndicator mode={inflightMode} />
               ) : null}
             </div>
@@ -1413,12 +1414,13 @@ export function ChatView({ conversationId }: Props) {
 
         <ChatInput
           onSend={handleSend}
-          disabled={sending}
+          disabled={sending || planLoading}
           hasUltra={hasUltra}
           onOpenVoiceMode={() => setVoiceOpen(true)}
           voiceModeActive={voiceOpen}
           fillText={fillText}
           onFillTextConsumed={() => setFillText(undefined)}
+          sendButtonLabel={planLoading ? "Plano..." : undefined}
         />
         <VoiceModeModal open={voiceOpen} onClose={() => setVoiceOpen(false)} />
         {checkoutPlan && (
