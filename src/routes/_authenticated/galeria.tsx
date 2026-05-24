@@ -475,6 +475,21 @@ function Gallery() {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
+                        void togglePublic(img);
+                      }}
+                      className={cn(
+                        "pointer-events-auto inline-flex items-center justify-center size-9 rounded-full bg-background/90 hover:bg-background",
+                        img.is_public ? "text-emerald-500" : "text-foreground",
+                      )}
+                      title={img.is_public ? "Remover do Explorar" : "Tornar pública"}
+                      aria-label={img.is_public ? "Remover do Explorar" : "Tornar pública"}
+                    >
+                      {img.is_public ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
                         if (confirm("Excluir esta imagem?"))
                           del.mutate({ kind: "image", id: img.id });
                       }}
