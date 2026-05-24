@@ -306,6 +306,20 @@ function StudioInner() {
   const gen = useMutation({
     mutationFn: async () => {
       const ratio = aspect;
+      if (editingImage) {
+        return genFn({
+          data: {
+            mode: "edit",
+            appearance,
+            aspectRatio: ratio,
+            editModel,
+            sourceMediaId: editingImage.mediaId,
+            sourcePromptId: editingImage.promptId ?? undefined,
+            profileId: editingImage.profileId ?? undefined,
+            detailLevel: "MEDIUM",
+          },
+        });
+      }
       if (activeProfile) {
         return genFn({
           data: {
