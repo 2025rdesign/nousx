@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { checkAndIncrementImageUsage } from "@/lib/image-usage.server";
 
 const XAI_ENDPOINT = "https://api.x.ai/v1/images/generations";
 const XAI_IMAGE_MODEL = "grok-imagine-image-quality";
@@ -260,6 +261,30 @@ export const Route = createFileRoute("/api/generate-image")({
                 "Geração de imagem no chat é exclusiva do plano Plus ou Ultra.",
             },
             402,
+          );
+        }
+
+        // Monthly image-usage gate (silent — never disclosed in marketing).
+        const planKey = (sub?.plan_id === "ultra" ? "ultra" : "plus") as
+          | "plus"
+          | "ultra";
+        const usage = await checkAndIncrementImageUsage(userId, planKey);
+        if (!usage.ok) {
+          console.log("[GENERATE-IMAGE] monthly limit reached", {
+            userId,
+            plan: planKey,
+            count: usage.count,
+            limit: usage.limit,
+            resetAt: usage.resetAt,
+          });
+          return json(
+            {
+              error: "limit_reached",
+              code: "limit_reached",
+              plan: planKey,
+              resetAt: usage.resetAt,
+            },
+            429,
           );
         }
 

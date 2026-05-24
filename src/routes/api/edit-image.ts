@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { checkAndIncrementImageUsage } from "@/lib/image-usage.server";
 
 const XAI_ENDPOINT = "https://api.x.ai/v1/images/edits";
 const XAI_IMAGE_MODEL = "grok-imagine-image-quality";
@@ -154,6 +155,26 @@ export const Route = createFileRoute("/api/edit-image")({
               message: "Edição de imagem é exclusiva do plano Ultra.",
             },
             402,
+          );
+        }
+
+        // Monthly image-usage gate (shared with generation; silent).
+        const usage = await checkAndIncrementImageUsage(userId, "ultra");
+        if (!usage.ok) {
+          console.log("[EDIT-IMAGE] monthly limit reached", {
+            userId,
+            count: usage.count,
+            limit: usage.limit,
+            resetAt: usage.resetAt,
+          });
+          return json(
+            {
+              error: "limit_reached",
+              code: "limit_reached",
+              plan: "ultra",
+              resetAt: usage.resetAt,
+            },
+            429,
           );
         }
 
