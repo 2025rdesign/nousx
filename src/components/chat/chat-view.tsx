@@ -461,18 +461,8 @@ export function ChatView({ conversationId }: Props) {
         return;
       }
 
-      // Show explicit "animating..." message so the chat is never empty
-      // during the (potentially multi-minute) generation.
-      const loadingId = `assistant-video-loading-${Date.now()}`;
-      const loadingMsg: ChatMsg = {
-        id: loadingId,
-        role: "assistant",
-        content:
-          "🎬 Animando sua imagem... isso pode levar alguns minutos. Não feche esta janela.",
-        streaming: false,
-      };
-      setMessages((prev) => [...prev, loadingMsg]);
-
+      // The TypingIndicator (mode="video") shows the pulsing placeholder,
+      // "🎬 Gerando animação..." text and looping progress bar while we wait.
       // Call animate endpoint (server deducts + refunds credits)
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
