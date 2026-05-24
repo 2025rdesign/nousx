@@ -92,7 +92,6 @@ function GeneralTab() {
 
   return (
     <div className="space-y-6">
-      <PlanSection />
       <Card className="border-border bg-card shadow-sm">
         <CardContent className="pt-8 pb-8 space-y-6">
           <div className="flex flex-col items-center gap-4">
