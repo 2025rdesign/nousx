@@ -225,7 +225,7 @@ function StudioInner() {
   const [name, setName] = useState("");
   const [createProfile, setCreateProfile] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [creativity, setCreativity] = useState<"low" | "medium" | "high">("medium");
+  
   const [negativePrompt, setNegativePrompt] = useState("");
   const [improving, setImproving] = useState(false);
   const improveFn = useServerFn(improvePrompt);
@@ -324,7 +324,6 @@ function StudioInner() {
           cfgLevel,
           aspectRatio: ratio,
           createProfile,
-          creativity,
           negativePrompt: negativePrompt.trim() || undefined,
           detailLevel: highQuality ? "HIGH" : "MEDIUM",
           poseId: poseEnabled ? poseId ?? undefined : undefined,
@@ -882,31 +881,6 @@ function StudioInner() {
                       </div>
                     </label>
                   )}
-
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Nível de criatividade</Label>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {([
-                        ["low", "Conservador"],
-                        ["medium", "Equilibrado"],
-                        ["high", "Criativo"],
-                      ] as const).map(([v, l]) => (
-                        <button
-                          key={v}
-                          type="button"
-                          onClick={() => setCreativity(v)}
-                          className={cn(
-                            "h-8 px-2 text-[12px] rounded-md border transition-colors",
-                            creativity === v
-                              ? "border-primary text-primary bg-primary/10"
-                              : "border-border text-muted-foreground hover:text-foreground",
-                          )}
-                        >
-                          {l}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
                   <div className="space-y-1.5">
                     <Label htmlFor="negative" className="text-xs text-muted-foreground">
