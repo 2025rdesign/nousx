@@ -1076,7 +1076,8 @@ function StudioInner() {
             </div>
 
             {result && (
-              <div className="flex gap-2">
+              <div className="space-y-2">
+                <div className="flex gap-2">
                 <Button
                   variant="outline"
                   className="flex-1"
@@ -1095,6 +1096,34 @@ function StudioInner() {
                   <Maximize2 className="size-4" />
                   Tela cheia
                 </Button>
+                </div>
+                {resultId && (() => {
+                  const item = history.find((h) => h.id === resultId);
+                  if (!item || !item.media_id || !item.image_url) return null;
+                  return (
+                    <Button
+                      variant="outline"
+                      className="w-full border-primary text-primary hover:bg-primary/10 hover:text-primary"
+                      onClick={() => {
+                        setEditingImage({
+                          id: item.id,
+                          url: item.image_url!,
+                          mediaId: item.media_id!,
+                          promptId: (item as any).prompt_id ?? null,
+                          profileId: item.profile_id ?? null,
+                        });
+                        setAppearance("");
+                        setMobileTab("criar");
+                        requestAnimationFrame(() => {
+                          formScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+                        });
+                      }}
+                    >
+                      <Wand2 className="size-4" />
+                      Editar esta imagem
+                    </Button>
+                  );
+                })()}
               </div>
             )}
 
