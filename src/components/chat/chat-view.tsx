@@ -603,10 +603,16 @@ export function ChatView({ conversationId }: Props) {
     // essa imagem" type requests.
     // ============================================================
     if (!file && VIDEO_INTENT_RE.test(text)) {
+      // Ignore status questions like "terminou?" — the chat AI will answer them
+      // instead of firing a new animation.
+      if (ANIMATION_STATUS_QUESTION_RE.test(text)) {
+        // fall through to normal chat handling
+      } else {
       const sourceImageForVideo =
         image ?? stickyImageRefRef.current ?? latestAssistantImageUrl ?? null;
       await handleVideoIntent(text, sourceImageForVideo, baseMessages);
       return;
+      }
     }
 
     // Follow-up fires for ANY recent image in the conversation
