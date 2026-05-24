@@ -205,8 +205,9 @@ export function ChatView({ conversationId }: Props) {
     "🔍 Não consegui analisar essa imagem pelos filtros de conteúdo. " +
     "Descreva o que quer saber e tento ajudar de outra forma.";
   const PLAN_PLUS_REQUIRED_TEXT =
-    "A geração de imagens no chat é exclusiva para assinantes **Plus** e **Ultra**. " +
-    "Assine um plano para desbloquear essa função e muito mais!\n\n[Ver planos](/planos)";
+    "A geração de imagens no chat é exclusiva para assinantes **Plus** e **Ultra**.\n\n" +
+    "Com o plano **Plus (R$29,90/mês)** você gera imagens diretamente aqui no chat, sem sair da conversa. Quer assinar agora?\n\n" +
+    "[Ver planos](/planos) [Assinar Plus](aura://checkout/plus)";
   const PLAN_ULTRA_REQUIRED_TEXT =
     "A edição de imagens no chat é exclusiva para assinantes **Ultra**. " +
     "Faça upgrade para desbloquear essa função!\n\n[Ver planos](/planos)";
