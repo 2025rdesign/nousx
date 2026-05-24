@@ -558,12 +558,18 @@ function Gallery() {
                   <span
                     className={cn(
                       "px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider",
-                      lightboxItem.source === "chat"
-                        ? "bg-primary/80 text-primary-foreground"
-                        : "bg-accent/80 text-accent-foreground",
+                      lightboxItem.source === "chat-video"
+                        ? "bg-[#6C47FF]/85 text-white"
+                        : lightboxItem.source === "chat"
+                          ? "bg-primary/80 text-primary-foreground"
+                          : "bg-accent/80 text-accent-foreground",
                     )}
                   >
-                    {lightboxItem.source === "chat" ? "Chat" : "Estúdio"}
+                    {lightboxItem.source === "chat-video"
+                      ? "Vídeo"
+                      : lightboxItem.source === "chat"
+                        ? "Chat"
+                        : "Estúdio"}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {formatDate(lightboxItem.created_at)}
