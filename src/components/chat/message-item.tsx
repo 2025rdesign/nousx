@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCodeCanvas } from "./code-canvas";
+import { ImageLightbox } from "./image-lightbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivePlan } from "@/hooks/use-active-plan";
 import { audioPlayerStore } from "./audio-player-store";
@@ -44,6 +45,7 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
   const isUser = msg.role === "user";
   const [copied, setCopied] = useState(false);
   const [loadingAudio, setLoadingAudio] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const { open: openCanvas } = useCodeCanvas();
   const { hasActive } = useActivePlan();
   const imageUrl = msg.image_url ?? getInlineImageUrl(msg.content);
@@ -124,7 +126,8 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
             <img
               src={imageUrl}
               alt=""
-              className="mb-2 h-auto w-full max-w-[500px] rounded-xl object-contain"
+              onClick={() => setLightboxOpen(true)}
+              className="mb-2 h-auto w-full max-w-[500px] rounded-xl object-contain cursor-zoom-in transition-opacity hover:opacity-90"
               loading="lazy"
               decoding="async"
               onError={(e) => {
@@ -136,7 +139,8 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
               <img
                 src={imageUrl}
                 alt={textContent || "Imagem gerada no chat"}
-                className="h-auto w-full max-w-[500px] rounded-xl object-contain"
+                onClick={() => setLightboxOpen(true)}
+                className="h-auto w-full max-w-[500px] rounded-xl object-contain cursor-zoom-in transition-opacity hover:opacity-90"
                 loading="lazy"
                 decoding="async"
                 onError={(e) => {
@@ -154,6 +158,14 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
               </button>
             </div>
           )
+        )}
+        {imageUrl && (
+          <ImageLightbox
+            src={imageUrl}
+            alt={textContent || "Imagem"}
+            open={lightboxOpen}
+            onClose={() => setLightboxOpen(false)}
+          />
         )}
         {isUser ? (
           <p className="whitespace-pre-wrap leading-relaxed">{textContent}</p>

@@ -569,10 +569,12 @@ function buildPosePayload(
   poseId: string | null | undefined,
   posePromptInput: string | null | undefined,
   poseStrengthInput: number | null | undefined,
+  model?: "DEFAULT" | "REALISM" | "ANIME",
 ): Record<string, unknown> | null {
-  const poseStrength = Number.isFinite(Number(poseStrengthInput))
+  const defaultStrength = model === "REALISM" ? 35 : 50;
+  const poseStrength: number = Number.isFinite(Number(poseStrengthInput))
     ? Math.round(Number(poseStrengthInput))
-    : 50;
+    : defaultStrength;
   const userPrompt = (posePromptInput ?? "").trim();
   if (poseId) {
     const type = resolvePoseType(poseId);
@@ -650,11 +652,14 @@ export const generateCharacter = createServerFn({ method: "POST" })
         negativeDetails: `${baseNeg}${userNeg ? ", " + userNeg : ""}`,
       };
       {
-        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength);
+        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength, data.model);
         if (pose) {
           console.log("[POSE PAYLOAD]", JSON.stringify(pose));
           (body as Record<string, unknown>).pose = pose;
         }
+      }
+      if (data.model === "REALISM") {
+        console.log("[REALISM PAYLOAD]", JSON.stringify(body));
       }
     } else if (data.mode === "edit") {
       if (!data.sourceMediaId) throw new Error("Imagem de origem ausente.");
@@ -674,7 +679,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         cfg: cfgFromLevel ?? 7,
       };
       {
-        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength);
+        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength, data.model);
         if (pose) (body as Record<string, unknown>).pose = pose;
       }
       console.log("[EDIT IMAGE]", JSON.stringify(body));
@@ -706,7 +711,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         cfg: cfgFromLevel ?? 7,
       };
       {
-        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength);
+        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength, data.model);
         if (pose) {
           console.log("[POSE PAYLOAD]", JSON.stringify(pose));
           (body as Record<string, unknown>).pose = pose;
