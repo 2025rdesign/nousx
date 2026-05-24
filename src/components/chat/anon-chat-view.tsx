@@ -11,6 +11,7 @@ import {
   PanelLeft,
   LogIn,
   ArrowRight,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -241,6 +242,7 @@ export function AnonChatView() {
       { label: "Estúdio", icon: Wand2 },
       { label: "Galeria", icon: ImageIcon },
       { label: "Explorar", icon: Compass },
+      { label: "Planos", icon: CreditCard },
     ],
     [],
   );
@@ -265,7 +267,14 @@ export function AnonChatView() {
       </div>
 
       <nav className="px-2 pb-2 space-y-0.5">
-        {navItems.map((it) => (
+        <Link
+          to="/planos"
+          className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground/80 hover:bg-secondary/60 hover:text-foreground transition-colors"
+        >
+          <CreditCard className="size-4" />
+          Planos
+        </Link>
+        {navItems.slice(0, 3).map((it) => (
           <button
             key={it.label}
             type="button"

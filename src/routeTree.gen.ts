@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as PlanosRouteImport } from './routes/planos'
 import { Route as ExplorarRouteImport } from './routes/explorar'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
@@ -41,6 +42,11 @@ const TermosRoute = TermosRouteImport.update({
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
   id: '/privacidade',
   path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanosRoute = PlanosRouteImport.update({
+  id: '/planos',
+  path: '/planos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExplorarRoute = ExplorarRouteImport.update({
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/explorar': typeof ExplorarRoute
+  '/planos': typeof PlanosRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -178,6 +185,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/explorar': typeof ExplorarRoute
+  '/planos': typeof PlanosRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
   '/explorar': typeof ExplorarRoute
+  '/planos': typeof PlanosRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -230,6 +239,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/explorar'
+    | '/planos'
     | '/privacidade'
     | '/termos'
     | '/configuracoes'
@@ -254,6 +264,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/explorar'
+    | '/planos'
     | '/privacidade'
     | '/termos'
     | '/configuracoes'
@@ -279,6 +290,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/explorar'
+    | '/planos'
     | '/privacidade'
     | '/termos'
     | '/_authenticated/configuracoes'
@@ -305,6 +317,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   ExplorarRoute: typeof ExplorarRoute
+  PlanosRoute: typeof PlanosRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   TermosRoute: typeof TermosRoute
   ApiCaktoWebhookRoute: typeof ApiCaktoWebhookRoute
@@ -335,6 +348,13 @@ declare module '@tanstack/react-router' {
       path: '/privacidade'
       fullPath: '/privacidade'
       preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/planos': {
+      id: '/planos'
+      path: '/planos'
+      fullPath: '/planos'
+      preLoaderRoute: typeof PlanosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/explorar': {
@@ -512,6 +532,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   ExplorarRoute: ExplorarRoute,
+  PlanosRoute: PlanosRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   TermosRoute: TermosRoute,
   ApiCaktoWebhookRoute: ApiCaktoWebhookRoute,
@@ -530,13 +551,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

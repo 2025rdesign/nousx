@@ -14,6 +14,7 @@ import {
   Check,
   X,
   MoreHorizontal,
+  CreditCard,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -186,7 +187,7 @@ export function ConversationSidebar({
   const groups = groupByDate(unpinned);
 
   const navItems: Array<{
-    to: "/studio" | "/galeria" | "/explorar";
+    to: "/studio" | "/galeria" | "/explorar" | "/planos";
     label: string;
     icon: any;
     prefetch: () => Promise<unknown>;
@@ -209,6 +210,12 @@ export function ConversationSidebar({
       icon: Compass,
       prefetch: () => import("@/routes/explorar"),
     },
+    {
+      to: "/planos",
+      label: "Planos",
+      icon: CreditCard,
+      prefetch: () => import("@/routes/planos"),
+    },
   ];
 
   // Eager prefetch of primary routes (code chunks + loaders) shortly after
@@ -225,6 +232,7 @@ export function ConversationSidebar({
         { to: "/studio" },
         { to: "/galeria" },
         { to: "/explorar" },
+        { to: "/planos" },
         { to: "/configuracoes" },
       ];
       targets.forEach((t) => {
