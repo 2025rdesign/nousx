@@ -617,7 +617,12 @@ export const generateCharacter = createServerFn({ method: "POST" })
     console.log("[DEBUG] Poll completed", { mediaId, mediaUrl });
     await logPromptPoseEcho(promptId);
 
-    let profileId: string | null = data.mode === "variation" ? data.profileId! : null;
+    let profileId: string | null =
+      data.mode === "variation"
+        ? data.profileId!
+        : data.mode === "edit"
+          ? data.profileId ?? null
+          : null;
 
     // Persistência: não deve falhar a geração se houver erro.
     try {
