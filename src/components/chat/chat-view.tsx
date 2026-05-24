@@ -73,6 +73,9 @@ function detectImageIntent(text: string): boolean {
   // 2) Não dispara em perguntas sobre o serviço
   if (SERVICE_QUESTION_RE.test(trimmed)) return false;
 
+  // 3) Não dispara em perguntas sobre status de animação em andamento
+  if (ANIMATION_STATUS_QUESTION_RE.test(trimmed)) return false;
+
   const match = IMAGE_INTENT_RE.exec(trimmed);
   if (!match) {
     // Fallback: descrição visual rica sem verbo (ex.: brief de thumbnail).
