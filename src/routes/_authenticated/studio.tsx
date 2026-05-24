@@ -551,12 +551,20 @@ function StudioInner() {
                 Personagens
               </Button>
             </div>
-            <div className="hidden md:flex items-center justify-end">
+            <div className="hidden md:flex flex-col items-end gap-2">
               <CreditsPill
                 balance={balance}
                 onClick={() => setCreditsOpen(true)}
                 loading={creditsLoading}
               />
+              <button
+                type="button"
+                onClick={() => setCreditsOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-transparent px-2.5 py-1 text-[11px] font-medium text-foreground/80 transition-colors hover:border-accent hover:text-accent"
+              >
+                <Zap className="size-3 text-accent" />
+                Comprar créditos
+              </button>
             </div>
 
             {editingImage ? (
