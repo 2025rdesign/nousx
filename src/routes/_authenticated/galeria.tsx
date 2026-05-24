@@ -487,11 +487,21 @@ function Gallery() {
           <DialogTitle className="sr-only">Imagem</DialogTitle>
           {lightboxItem && (
             <div className="relative">
-              <img
-                src={lightboxItem.image_url}
-                alt={lightboxItem.prompt || "Imagem"}
-                className="w-full max-h-[80vh] object-contain bg-black"
-              />
+              {isVideoItem(lightboxItem) ? (
+                <video
+                  src={lightboxItem.image_url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full max-h-[80vh] object-contain bg-black"
+                />
+              ) : (
+                <img
+                  src={lightboxItem.image_url}
+                  alt={lightboxItem.prompt || "Imagem"}
+                  className="w-full max-h-[80vh] object-contain bg-black"
+                />
+              )}
               <div className="absolute top-2 right-2 flex gap-2">
                 <Button
                   size="icon"
@@ -499,7 +509,7 @@ function Gallery() {
                   onClick={() =>
                     downloadAsset(
                       lightboxItem.image_url,
-                      `auraia-${lightboxItem.source === "chat" ? "chat" : "studio"}-${Date.now()}.jpg`,
+                      `auraia-${lightboxItem.source === "chat-video" ? "video" : lightboxItem.source === "chat" ? "chat" : "studio"}-${Date.now()}.${isVideoItem(lightboxItem) ? "mp4" : "jpg"}`,
                     )
                   }
                   aria-label="Baixar"
