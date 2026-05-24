@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CharacterCard } from "@/components/studio/character-card";
 import {
   listMyProfiles,
@@ -213,6 +214,9 @@ function StudioInner() {
   // shared form state
   const [aspect, setAspect] = useState<Ratio>("4:5");
   const [appearance, setAppearance] = useState("");
+  const [faceDetails, setFaceDetails] = useState("");
+  const [scene, setScene] = useState("");
+  const [cfgLevel, setCfgLevel] = useState<"free" | "balanced" | "precise">("balanced");
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   // mode B (new) state
@@ -256,6 +260,9 @@ function StudioInner() {
     setActiveProfileId(null);
     setName("");
     setAppearance("");
+    setFaceDetails("");
+    setScene("");
+    setCfgLevel("balanced");
     setModel("DEFAULT");
     setGender("FEMALE");
     setAspect("4:5");
@@ -291,6 +298,9 @@ function StudioInner() {
             mode: "variation",
             profileId: activeProfile.id,
             appearance,
+            faceDetails: faceDetails.trim() || undefined,
+            scene: scene.trim() || undefined,
+            cfgLevel,
             aspectRatio: ratio,
             poseId: poseEnabled ? poseId ?? undefined : undefined,
             poseType: poseEnabled ? poseType ?? undefined : undefined,
@@ -309,6 +319,9 @@ function StudioInner() {
           model,
           gender,
           appearance,
+          faceDetails: faceDetails.trim() || undefined,
+          scene: scene.trim() || undefined,
+          cfgLevel,
           aspectRatio: ratio,
           createProfile,
           creativity,
@@ -660,6 +673,36 @@ function StudioInner() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="face-details" className="text-xs text-muted-foreground">
+                Detalhes do rosto (opcional)
+              </Label>
+              <Textarea
+                id="face-details"
+                value={faceDetails}
+                onChange={(e) => setFaceDetails(e.target.value)}
+                rows={3}
+                maxLength={1000}
+                placeholder="Ex: olhos verdes amendoados, lábios carnudos, expressão séria, sobrancelhas grossas..."
+                className="resize-none text-[13px] leading-relaxed"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="scene-field" className="text-xs text-muted-foreground">
+                Cena e ambiente (opcional)
+              </Label>
+              <Textarea
+                id="scene-field"
+                value={scene}
+                onChange={(e) => setScene(e.target.value)}
+                rows={3}
+                maxLength={1000}
+                placeholder="Ex: quarto iluminado, praia ao pôr do sol, estúdio fotográfico com luz suave..."
+                className="resize-none text-[13px] leading-relaxed"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label>Proporção</Label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {RATIOS.map((r) => (
@@ -674,6 +717,43 @@ function StudioInner() {
                     <span>{r.label}</span>
                     <span className="text-[10px] opacity-70">{r.value}</span>
                   </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* CFG / Fidelidade ao prompt */}
+            <div className="space-y-2">
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Label className="text-xs text-muted-foreground cursor-help">
+                      Fidelidade ao prompt
+                    </Label>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[260px] text-xs">
+                    Valores mais altos seguem o prompt com mais precisão, mas podem reduzir a criatividade.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <div className="grid grid-cols-3 gap-1.5">
+                {([
+                  ["free", "Livre"],
+                  ["balanced", "Equilibrado"],
+                  ["precise", "Preciso"],
+                ] as const).map(([v, l]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setCfgLevel(v)}
+                    className={cn(
+                      "h-9 px-2 text-[12px] rounded-md border transition-colors",
+                      cfgLevel === v
+                        ? "border-primary text-primary bg-primary/10"
+                        : "border-border text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {l}
+                  </button>
                 ))}
               </div>
             </div>
