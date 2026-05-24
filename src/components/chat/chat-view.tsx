@@ -633,19 +633,35 @@ export function ChatView({ conversationId }: Props) {
       console.log("[CHAT-SEND] enviando mensagem:", text.slice(0, 200));
       console.log("[CHAT-SEND] usuario:", userId);
 
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          messages: history,
-          reasoning,
-          webSearch,
-          hasFile: !!file,
-        }),
+      const chatPayload = JSON.stringify({
+        messages: history,
+        reasoning,
+        webSearch,
+        hasFile: !!file,
       });
+      const doChatFetch = () =>
+        fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: chatPayload,
+        });
+      let res: Response;
+      try {
+        res = await doChatFetch();
+        // Retry once on transient 5xx (excluding 502 moderation/upstream errors with details)
+        if (!res.ok && res.status >= 500) {
+          console.warn("[CHAT-RETRY] status", res.status, "— tentando novamente");
+          await new Promise((r) => setTimeout(r, 500));
+          res = await doChatFetch();
+        }
+      } catch (netErr) {
+        console.warn("[CHAT-RETRY] erro de rede, tentando novamente:", netErr);
+        await new Promise((r) => setTimeout(r, 500));
+        res = await doChatFetch();
+      }
 
       console.log("[CHAT-RECV] response status:", res.status);
       console.log("[CHAT-RECV] content-type:", res.headers.get("content-type"));
@@ -728,7 +744,7 @@ export function ChatView({ conversationId }: Props) {
       const stallController = new AbortController();
       const stallTimer = setTimeout(() => {
         if (!gotFirstChunk) {
-          console.error("[CHAT-ERROR] timeout: nenhum chunk em 15s");
+          console.error("[CHAT-ERROR] timeout: nenhum chunk em 30s");
           stallController.abort();
           try {
             reader.cancel();
@@ -736,7 +752,7 @@ export function ChatView({ conversationId }: Props) {
             /* ignore */
           }
         }
-      }, 15000);
+      }, 30000);
 
       const appendChunk = (chunkText: string, chunkReasoning?: string) => {
         const safeText = chunkText || "";
