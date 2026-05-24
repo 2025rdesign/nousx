@@ -41,6 +41,8 @@ export function ChatInput({
   hasUltra,
   onOpenVoiceMode,
   voiceModeActive,
+  fillText,
+  onFillTextConsumed,
 }: Props) {
   const [text, setText] = useState("");
   const [image, setImage] = useState<string | null>(null);
@@ -50,6 +52,7 @@ export function ChatInput({
   const [webSearch, setWebSearch] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
