@@ -3,14 +3,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/privacidade")({
   head: () => ({
     meta: [
+      { title: "Política de Privacidade — Aura Chat" },
       {
         name: "description",
-        content:
-          "Como a AuraIA coleta, usa e protege seus dados pessoais conforme a LGPD.",
+        content: "Como protegemos seus dados na plataforma Aura Chat.",
       },
+      { property: "og:title", content: "Política de Privacidade — Aura Chat" },
       {
         property: "og:description",
-        content: "Política de privacidade da plataforma AuraIA.",
+        content: "Como protegemos seus dados na plataforma Aura Chat.",
       },
     ],
     links: [{ rel: "canonical", href: "https://chataura.com.br/privacidade" }],
