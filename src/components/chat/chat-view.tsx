@@ -360,6 +360,20 @@ export function ChatView({ conversationId }: Props) {
     const baseMessages = messages;
     const latestImageCtx = getLatestImageContext(baseMessages);
     const latestAssistantImageUrl = getLatestAssistantImageUrl(baseMessages);
+
+    // ============================================================
+    // VIDEO ANIMATION GATE (Ultra-only, 10 credits, image required)
+    // Runs before any other intent detection. Hard-returns on each
+    // branch so DeepSeek / image generation never fires for "anime
+    // essa imagem" type requests.
+    // ============================================================
+    if (!file && VIDEO_INTENT_RE.test(text)) {
+      const sourceImageForVideo =
+        image ?? stickyImageRefRef.current ?? latestAssistantImageUrl ?? null;
+      await handleVideoIntent(text, sourceImageForVideo, baseMessages);
+      return;
+    }
+
     // Follow-up fires for ANY recent image in the conversation
     // (assistant-generated OR user-uploaded that the AI just analyzed).
     const isImageFollowUp =
