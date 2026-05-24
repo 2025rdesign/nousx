@@ -233,52 +233,6 @@ function RootComponent() {
 }
 
 function VideoJobsWatcher() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const queryClient = Route.useRouteContext().queryClient;
-  const fetchVideoJobs = useServerFn(getMyVideoJobs);
-  const notifiedRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (!user) {
-      notifiedRef.current.clear();
-      return;
-    }
-
-    let cancelled = false;
-    const tick = async () => {
-      try {
-        const jobs = await fetchVideoJobs({ data: { statuses: ["pending", "processing", "completed"] } });
-        if (cancelled) return;
-        for (const job of jobs) {
-          if (job.status !== "completed" || !job.final_video_url || notifiedRef.current.has(job.id)) continue;
-          notifiedRef.current.add(job.id);
-          queryClient.invalidateQueries({ queryKey: ["gallery-v2"] });
-          if (job.conversation_id) {
-            queryClient.invalidateQueries({ queryKey: ["messages", job.conversation_id] });
-          }
-          router.invalidate();
-          toast.success("🎬 Sua animação está pronta! Ver na Galeria →", {
-            action: {
-              label: "Abrir",
-              onClick: () => {
-                window.location.assign("/galeria?filter=video");
-              },
-            },
-          });
-        }
-      } catch {
-        // silent background polling
-      }
-    };
-
-    void tick();
-    const id = window.setInterval(() => void tick(), 15000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, [fetchVideoJobs, queryClient, router, user]);
-
+  // Animation feature temporarily disabled — no polling, no toasts.
   return null;
 }
