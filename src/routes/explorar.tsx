@@ -26,6 +26,21 @@ const LOGO_LIGHT =
   "https://central.daev.ca/wp-content/uploads/2026/05/AURA-IA-IMAGEM-DASH-VARIANTE-MODO-CLARO.png";
 
 export const Route = createFileRoute("/explorar")({
+  head: () => ({
+    meta: [
+      { title: "Explorar Criações — Aura Chat" },
+      {
+        name: "description",
+        content: "Veja o que a comunidade está criando com IA sem censura.",
+      },
+      { property: "og:title", content: "Explorar Criações — Aura Chat" },
+      {
+        property: "og:description",
+        content: "Veja o que a comunidade está criando com IA sem censura.",
+      },
+    ],
+    links: [{ rel: "canonical", href: "https://chataura.com.br/explorar" }],
+  }),
   component: Explore,
   pendingComponent: GridPageSkeleton,
   pendingMs: 0,
