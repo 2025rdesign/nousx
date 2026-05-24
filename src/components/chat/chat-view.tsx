@@ -16,6 +16,8 @@ import { CodeCanvasProvider } from "./code-canvas";
 import { notify } from "@/lib/notify";
 import type { ExtractedFile } from "@/lib/file-extract";
 import { useActivePlan } from "@/hooks/use-active-plan";
+import { useAuth } from "@/hooks/use-auth";
+import { getMySubscription } from "@/lib/payments.functions";
 import { VoiceModeModal } from "./voice-mode-modal";
 import { PlanCheckoutDialog } from "@/components/payments/subscription-tab";
 import type { PlanId } from "@/lib/payments-config";
