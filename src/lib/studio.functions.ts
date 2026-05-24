@@ -362,6 +362,9 @@ const generateSchema = z.object({
   mode: z.enum(["new", "variation"]),
   // shared
   appearance: z.string().min(1).max(2000),
+  faceDetails: z.string().max(1000).optional(),
+  scene: z.string().max(1000).optional(),
+  cfgLevel: z.enum(["free", "balanced", "precise"]).optional(),
   aspectRatio: z.enum(["9:16", "16:9", "1:1", "4:5"]),
   poseId: z.string().optional().nullable(),
   poseType: z.string().optional().nullable(),
