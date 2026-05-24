@@ -50,12 +50,13 @@ export const Route = createFileRoute("/_authenticated/galeria")({
   pendingMinMs: 0,
 });
 
-type Filter = "all" | "chat" | "studio" | "audio";
+type Filter = "all" | "chat" | "studio" | "audio" | "video";
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: "all", label: "Todas" },
   { value: "chat", label: "Chat" },
   { value: "studio", label: "Estúdio" },
+  { value: "video", label: "Vídeos" },
   { value: "audio", label: "Áudios" },
 ];
 
