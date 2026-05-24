@@ -18,6 +18,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -86,6 +96,10 @@ function Gallery() {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const [actionSheetIdx, setActionSheetIdx] = useState<number | null>(null);
   const isCoarsePointer = useCoarsePointer();
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const query = useInfiniteQuery({
     queryKey: ["gallery-v2", filter],
@@ -121,6 +135,62 @@ function Gallery() {
   });
 
   const showAudios = filter === "audio";
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+  const toggleSelectMode = () => {
+    if (selectMode) exitSelectMode();
+    else setSelectMode(true);
+  };
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const selectedImages = useMemo(
+    () => images.filter((i) => selectedIds.has(i.id)),
+    [images, selectedIds],
+  );
+  const handleBulkDownload = async () => {
+    if (selectedImages.length === 0) return;
+    setBulkBusy(true);
+    try {
+      for (const img of selectedImages) {
+        downloadAsset(
+          img.image_url,
+          `auraia-${img.source === "chat" ? "chat" : "studio"}-${img.id}.jpg`,
+        );
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      notify.success(`${selectedImages.length} download(s) iniciado(s).`);
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+  const handleBulkDelete = async () => {
+    if (selectedImages.length === 0) return;
+    setBulkBusy(true);
+    try {
+      await Promise.all(
+        selectedImages.map((img) =>
+          delFn({ data: { kind: "image", id: img.id } }).catch(() => null),
+        ),
+      );
+      notify.success(`${selectedImages.length} imagem(ns) removida(s).`);
+      queryClient.invalidateQueries({ queryKey: ["gallery-v2"] });
+      exitSelectMode();
+    } catch {
+      notify.error("Falha ao apagar algumas imagens.");
+    } finally {
+      setBulkBusy(false);
+      setBulkDeleteOpen(false);
+    }
+  };
+
   const lightboxItem =
     lightboxIdx !== null ? images[lightboxIdx] ?? null : null;
   const actionSheetItem =
@@ -134,7 +204,7 @@ function Gallery() {
         </div>
 
         {/* Filter pills */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
           {FILTERS.map((f) => {
             const active = filter === f.value;
             return (
@@ -153,7 +223,59 @@ function Gallery() {
               </button>
             );
           })}
+          {!showAudios && images.length > 0 && (
+            <button
+              type="button"
+              onClick={toggleSelectMode}
+              className={cn(
+                "ml-auto px-4 py-1.5 rounded-full text-sm font-medium transition-colors border",
+                selectMode
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-transparent text-foreground/80 border-primary/40 hover:bg-primary/10",
+              )}
+            >
+              {selectMode ? "Concluído" : "Selecionar"}
+            </button>
+          )}
         </div>
+
+        {/* Selection action bar */}
+        {selectMode && (
+          <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card/95 backdrop-blur px-3 py-2 shadow">
+            <span className="text-sm font-medium">
+              {selectedIds.size} selecionada(s)
+            </span>
+            <div className="ml-auto flex gap-2">
+              <Button
+                size="sm"
+                onClick={handleBulkDownload}
+                disabled={selectedIds.size === 0 || bulkBusy}
+                className="gap-2"
+              >
+                <Download className="size-4" />
+                Baixar
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => setBulkDeleteOpen(true)}
+                disabled={selectedIds.size === 0 || bulkBusy}
+                className="gap-2"
+              >
+                <Trash2 className="size-4" />
+                Apagar
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={exitSelectMode}
+                aria-label="Cancelar seleção"
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Loading skeleton */}
         {query.isLoading && (
@@ -202,10 +324,20 @@ function Gallery() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {images.map((img, idx) => (
               <div key={img.id} className="space-y-1.5">
-                <div className="group relative aspect-square rounded-lg overflow-hidden bg-muted">
+                <div
+                  className={cn(
+                    "group relative aspect-square rounded-lg overflow-hidden bg-muted",
+                    selectMode && selectedIds.has(img.id) &&
+                      "ring-2 ring-primary ring-offset-2 ring-offset-background",
+                  )}
+                >
                   <button
                     type="button"
                     onClick={() => {
+                      if (selectMode) {
+                        toggleSelect(img.id);
+                        return;
+                      }
                       if (isCoarsePointer) {
                         setActionSheetIdx(idx);
                       } else {
@@ -221,6 +353,25 @@ function Gallery() {
                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
                     />
                   </button>
+                  {selectMode && (
+                    <div className="absolute top-2 left-2 z-10 pointer-events-none">
+                      <div
+                        className={cn(
+                          "size-6 rounded-md border-2 flex items-center justify-center transition-colors",
+                          selectedIds.has(img.id)
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "bg-background/80 border-white/80",
+                        )}
+                      >
+                        {selectedIds.has(img.id) && (
+                          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {!selectMode && (
                   <div className="absolute top-2 left-2">
                     <span
                       className={cn(
@@ -233,7 +384,9 @@ function Gallery() {
                       {img.source === "chat" ? "Chat" : "Estúdio"}
                     </span>
                   </div>
+                  )}
                   {/* Desktop hover actions only — mobile uses the bottom sheet */}
+                  {!selectMode && (
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none hidden md:flex items-center justify-center gap-2">
                     <button
                       type="button"
@@ -262,6 +415,7 @@ function Gallery() {
                       <Trash2 className="size-4" />
                     </button>
                   </div>
+                  )}
                 </div>
                 <p className="text-[11px] text-muted-foreground px-1">
                   {formatDate(img.created_at)}
@@ -451,6 +605,30 @@ function Gallery() {
           )}
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar {selectedIds.size} imagens?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkBusy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleBulkDelete();
+              }}
+              disabled={bulkBusy}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkBusy ? "Apagando…" : "Apagar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
