@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
+  Film,
   Loader2,
   PanelRightOpen,
   Volume2,
@@ -19,6 +20,9 @@ import { audioPlayerStore } from "./audio-player-store";
 import { notify } from "@/lib/notify";
 import { downloadAsset } from "@/lib/download";
 import { Link as RouterLink } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getCredits } from "@/lib/credits.functions";
 import {
   Tooltip,
   TooltipContent,
@@ -51,8 +55,18 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
   const [copied, setCopied] = useState(false);
   const [loadingAudio, setLoadingAudio] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [animating, setAnimating] = useState(false);
   const { open: openCanvas } = useCodeCanvas();
-  const { hasActive } = useActivePlan();
+  const { hasActive, planId } = useActivePlan();
+  const hasUltra = hasActive && planId === "ultra";
+  const fetchCreditsFn = useServerFn(getCredits);
+  const { data: creditsData } = useQuery({
+    queryKey: ["credits"],
+    queryFn: () => fetchCreditsFn(),
+    enabled: !isUser,
+    staleTime: 30_000,
+  });
+  const credits = creditsData?.balance ?? 0;
   const imageUrl = msg.image_url ?? getInlineImageUrl(msg.content);
   const isVideo = isVideoUrl(imageUrl);
   // Quando a mensagem da IA contém uma imagem, descartamos qualquer texto
@@ -201,6 +215,23 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
               >
                 Baixar imagem
               </button>
+              <AnimateButton
+                imageUrl={imageUrl}
+                hasUltra={hasUltra}
+                credits={credits}
+                animating={animating}
+                onClick={() => {
+                  if (!hasUltra || credits < 10 || animating) return;
+                  setAnimating(true);
+                  window.dispatchEvent(
+                    new CustomEvent("aura:animate-image", {
+                      detail: { imageUrl },
+                    }),
+                  );
+                  // Re-enable after a few seconds so user can retry if dispatch failed silently.
+                  setTimeout(() => setAnimating(false), 8000);
+                }}
+              />
             </div>
           )
         )}
