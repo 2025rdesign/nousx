@@ -16,6 +16,7 @@ export type GalleryItem =
       image_url: string;
       source: "chat" | "studio" | "chat-video";
       prompt: string | null;
+      is_public: boolean;
       created_at: string;
     }
   | {
@@ -58,7 +59,7 @@ export const listGallery = createServerFn({ method: "POST" })
 
     let query = supabase
       .from("gallery")
-      .select("id, image_url, source, prompt, created_at")
+      .select("id, image_url, source, prompt, is_public, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .range(from, to);
@@ -80,6 +81,7 @@ export const listGallery = createServerFn({ method: "POST" })
             ? "chat-video"
             : "studio",
       prompt: r.prompt,
+      is_public: !!r.is_public,
       created_at: r.created_at,
     }));
     return { items, hasMore: items.length === PAGE_SIZE };
