@@ -417,6 +417,27 @@ export function ChatView({ conversationId }: Props) {
   const VIDEO_GENERIC_ERROR_TEXT =
     "🎬 Não consegui animar a imagem. Seus créditos foram devolvidos. Tente novamente.";
 
+  function formatResetDate(iso: string): string {
+    try {
+      return new Date(iso).toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "long",
+      });
+    } catch {
+      return "início do próximo mês";
+    }
+  }
+
+  const LIMIT_REACHED_PLUS_TEXT = (resetIso: string) =>
+    `Você atingiu o limite de imagens do plano **Plus** este mês. Seu limite renova em **${formatResetDate(resetIso)}**.\n\n` +
+    "Para gerar mais imagens agora, você pode fazer upgrade para o **Ultra** — que inclui mais imagens por mês no chat.\n\n" +
+    "[Fazer upgrade para Ultra](/planos)";
+
+  const LIMIT_REACHED_ULTRA_TEXT = (resetIso: string) =>
+    `Você atingiu o limite de imagens do plano **Ultra** este mês. Seu limite renova em **${formatResetDate(resetIso)}**.\n\n` +
+    "Enquanto isso, você ainda pode gerar imagens ilimitadas no **Estúdio de Criação** usando seus créditos.\n\n" +
+    "[Ir para o Estúdio](/studio)";
+
   const {
     data: dbMessages,
     isLoading: messagesLoading,
