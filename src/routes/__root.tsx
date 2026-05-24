@@ -15,6 +15,9 @@ import { FaviconTheme } from "@/components/theme-favicon";
 import { AuthProvider } from "@/hooks/use-auth";
 import { FloatingAudioPlayer } from "@/components/chat/audio-player";
 import { SwRegister } from "@/components/sw-register";
+import { AppErrorBoundary } from "@/components/error-boundary";
+import { installChunkReloadHandler } from "@/lib/chunk-reload";
+import { useEffect } from "react";
 
 function NotFoundComponent() {
   return (
@@ -188,17 +191,23 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    installChunkReloadHandler();
+  }, []);
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <FaviconTheme />
-        <AuthProvider>
-          <Outlet />
-          <Toaster position="top-center" richColors />
-          <FloatingAudioPlayer />
-          <SwRegister />
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <FaviconTheme />
+          <AuthProvider>
+            <Outlet />
+            <Toaster position="top-center" richColors />
+            <FloatingAudioPlayer />
+            <SwRegister />
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </AppErrorBoundary>
   );
 }

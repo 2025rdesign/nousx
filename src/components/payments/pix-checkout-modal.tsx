@@ -44,6 +44,8 @@ export function PixCheckoutModal({
     refetchInterval: (q) =>
       q.state.data?.status === "paid" || q.state.data?.status === "failed"
         ? false
+        : typeof document !== "undefined" && document.hidden
+        ? false
         : 4000,
   });
 

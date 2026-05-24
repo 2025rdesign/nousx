@@ -126,6 +126,7 @@ export function MpPixModal(props: PixModalProps) {
     refetchInterval: (q) => {
       const s = q.state.data?.status;
       if (s === "approved" || s === "rejected" || s === "cancelled" || s === "refunded") return false;
+      if (typeof document !== "undefined" && document.hidden) return false;
       return 5000;
     },
   });
