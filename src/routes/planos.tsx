@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
+import { useActivePlan } from "@/hooks/use-active-plan";
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -107,6 +108,7 @@ const PLANS: PlanItem[] = [
 
 function PlanosPage() {
   const { user } = useAuth();
+  const { hasActive, planId } = useActivePlan();
   const navigate = useNavigate();
   const { theme } = useTheme();
   const logoSrc = theme === "dark" ? LOGO_DARK : LOGO_LIGHT;
@@ -122,6 +124,18 @@ function PlanosPage() {
       navigate({ to: "/auth", search: { tab: "login" } as any });
     }
   };
+
+  const PLAN_RANK: Record<string, number> = { free: 0, plus: 1, ultra: 2 };
+  const activeRank = hasActive && planId ? PLAN_RANK[planId] ?? -1 : -1;
+
+  const visiblePlans = PLANS.filter((p) => {
+    if (p.id === "credits") return true;
+    if (!user) return true;
+    if (!hasActive) return true;
+    const rank = PLAN_RANK[p.id] ?? -1;
+    // Hide plans inferior to the active plan
+    return rank >= activeRank;
+  });
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -177,13 +191,29 @@ function PlanosPage() {
         </header>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
-          {PLANS.map((plan) => (
+          {visiblePlans.map((plan) => {
+            const isCurrent =
+              user &&
+              ((plan.id === "free" && !hasActive) ||
+                (hasActive && plan.id === planId));
+            const isUpgrade =
+              user &&
+              hasActive &&
+              plan.id !== "credits" &&
+              (PLAN_RANK[plan.id] ?? -1) > activeRank;
+            const showCreateAccountFree =
+              !user && plan.id === "free";
+
+            return (
             <Card
               key={plan.id}
               className={cn(
                 "relative flex flex-col border-border bg-card",
                 plan.highlighted &&
-                  "border-primary/60 ring-1 ring-primary/40 shadow-[0_0_30px_-8px_rgba(108,71,255,0.3)]"
+                  !isCurrent &&
+                  "border-primary/60 ring-1 ring-primary/40 shadow-[0_0_30px_-8px_rgba(108,71,255,0.3)]",
+                isCurrent &&
+                  "border-success/70 ring-1 ring-success/40 shadow-[0_0_30px_-8px_hsl(var(--success)/0.35)]"
               )}
             >
               {/* Badge */}
@@ -191,10 +221,12 @@ function PlanosPage() {
                 <span
                   className={cn(
                     "inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold leading-none",
-                    plan.badgeStyle
+                    isCurrent
+                      ? "bg-success text-success-foreground"
+                      : plan.badgeStyle
                   )}
                 >
-                  {plan.badge}
+                  {isCurrent ? "Seu plano atual" : plan.badge}
                 </span>
               </div>
 
@@ -224,21 +256,41 @@ function PlanosPage() {
                 </ul>
 
                 <div className="mt-auto pt-3">
-                  <Button
-                    variant={plan.ctaVariant}
-                    className={cn(
-                      "w-full",
-                      plan.ctaVariant === "default" &&
-                        "bg-primary hover:bg-primary/90 text-primary-foreground"
-                    )}
-                    onClick={() => handleCta(plan.id)}
-                  >
-                    {plan.cta}
-                  </Button>
+                  {isCurrent ? (
+                    <Button
+                      disabled
+                      variant={hasActive && plan.id !== "free" ? "default" : "outline"}
+                      className={cn(
+                        "w-full",
+                        hasActive && plan.id !== "free"
+                          ? "bg-success hover:bg-success text-success-foreground opacity-100 disabled:opacity-100"
+                          : "border-primary/60 text-primary disabled:opacity-100"
+                      )}
+                    >
+                      {hasActive && plan.id !== "free" ? "Plano ativo" : "Plano atual"}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant={plan.ctaVariant}
+                      className={cn(
+                        "w-full",
+                        plan.ctaVariant === "default" &&
+                          "bg-primary hover:bg-primary/90 text-primary-foreground"
+                      )}
+                      onClick={() => handleCta(plan.id)}
+                    >
+                      {isUpgrade
+                        ? "Fazer upgrade"
+                        : user && plan.id === "free" && !showCreateAccountFree
+                          ? "Plano atual"
+                          : plan.cta}
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
 
         {/* Footer note */}
