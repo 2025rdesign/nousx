@@ -49,6 +49,31 @@ export function ChatInput({
   const [isRecording, setIsRecording] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith("image/")) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (!file) continue;
+          if (file.size > 4 * 1024 * 1024) {
+            notify.error("Imagem muito grande (máx 4MB).");
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = () => setImage(reader.result as string);
+          reader.readAsDataURL(file);
+          setFile(null);
+          break;
+        }
+      }
+    };
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, []);
+
   function blockAnon(e: MouseEvent | Event) {
     e.preventDefault();
     e.stopPropagation();
