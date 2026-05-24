@@ -341,6 +341,210 @@ export function ChatView({ conversationId }: Props) {
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, awaitingReply]);
 
+  async function handleVideoIntent(
+    text: string,
+    sourceImageUrl: string | null,
+    baseMessages: ChatMsg[],
+  ) {
+    setSending(true);
+    setAwaitingReply(true);
+    setInflightMode("image");
+
+    const timestamp = Date.now();
+    const userMsg: ChatMsg = {
+      id: `user-${timestamp}`,
+      role: "user",
+      content: text,
+      streaming: false,
+    };
+    setMessages((prev) => [...prev, userMsg]);
+
+    let convId = conversationId;
+    let isNew = false;
+    try {
+      if (!convId) {
+        const conv = await createConv({ data: { title: text.slice(0, 30) } });
+        convId = conv.id;
+        isNew = true;
+        pendingNavigationConversationIdRef.current = convId;
+      }
+
+      await saveMsg({
+        data: { conversationId: convId, role: "user", content: text },
+      }).catch(() => undefined);
+
+      // Re-check plan freshly to avoid stale cache races.
+      let effectiveSub = subscription;
+      let effectiveHasActive = hasActive;
+      let effectivePlanId = planId;
+      if (planLoading || !effectiveSub) {
+        try {
+          const fresh = await queryClient.fetchQuery({
+            queryKey: ["my-subscription"],
+            queryFn: () => fetchSubServerFn(),
+            staleTime: 0,
+          });
+          effectiveSub = fresh ?? null;
+          effectiveHasActive =
+            !!fresh &&
+            fresh.status === "active" &&
+            (!fresh.expires_at || new Date(fresh.expires_at).getTime() > Date.now());
+          effectivePlanId = fresh?.plan_id ?? null;
+        } catch {
+          /* fallthrough */
+        }
+      }
+      const hasUltraPlan =
+        effectiveHasActive && effectivePlanId === "ultra";
+
+      if (!hasUltraPlan) {
+        await appendAssistantMessage({
+          convId,
+          text: VIDEO_NEED_ULTRA_TEXT,
+          isNew,
+          titleSeed: text,
+          baseMessages,
+          userMsg,
+        });
+        return;
+      }
+
+      // Credits check (fresh fetch)
+      let credits = 0;
+      try {
+        const c = await fetchCreditsFn();
+        credits = c?.balance ?? 0;
+      } catch {
+        credits = 0;
+      }
+      if (credits < 10) {
+        await appendAssistantMessage({
+          convId,
+          text: VIDEO_NEED_CREDITS_TEXT(credits),
+          isNew,
+          titleSeed: text,
+          baseMessages,
+          userMsg,
+        });
+        return;
+      }
+
+      if (!sourceImageUrl) {
+        await appendAssistantMessage({
+          convId,
+          text: VIDEO_NEED_IMAGE_TEXT,
+          isNew,
+          titleSeed: text,
+          baseMessages,
+          userMsg,
+        });
+        return;
+      }
+
+      // Call animate endpoint (server deducts + refunds credits)
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Sessão expirada.");
+
+      const res = await fetch("/api/animate-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          imageUrl: sourceImageUrl,
+          conversationId: convId,
+        }),
+      });
+
+      if (res.status === 402) {
+        const err = await res.json().catch(() => ({} as { error?: string }));
+        const msg =
+          err.error === "insufficient_credits"
+            ? VIDEO_NEED_CREDITS_TEXT(credits)
+            : VIDEO_NEED_ULTRA_TEXT;
+        await appendAssistantMessage({
+          convId,
+          text: msg,
+          isNew,
+          titleSeed: text,
+          baseMessages,
+          userMsg,
+        });
+        return;
+      }
+      if (!res.ok) {
+        await appendAssistantMessage({
+          convId,
+          text: VIDEO_GENERIC_ERROR_TEXT,
+          isNew,
+          titleSeed: text,
+          baseMessages,
+          userMsg,
+        });
+        return;
+      }
+
+      const data = (await res.json()) as { videoUrl: string };
+      const caption = "Aqui está sua animação! 🎬";
+      const videoMsg: ChatMsg = {
+        id: `assistant-video-${Date.now()}`,
+        role: "assistant",
+        content: caption,
+        image_url: data.videoUrl, // reused field — MessageItem detects .mp4
+        streaming: false,
+      };
+      setSending(false);
+      setAwaitingReply(false);
+      setInflightMode("default");
+      setMessages((prev) => [...prev, videoMsg]);
+      await saveMsg({
+        data: {
+          conversationId: convId,
+          role: "assistant",
+          content: caption,
+          imageUrl: data.videoUrl,
+        },
+      }).catch(() => undefined);
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["credits"] });
+      queryClient.invalidateQueries({ queryKey: ["gallery-v2"] });
+
+      if (isNew) {
+        try {
+          await rename({ data: { id: convId, title: text.slice(0, 30) } });
+        } catch {
+          /* ignore */
+        }
+        queryClient.setQueryData<ChatMsg[]>(
+          ["messages", convId],
+          [...baseMessages, userMsg, videoMsg].map((m) => ({
+            ...m,
+            streaming: false,
+          })),
+        );
+        navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
+      }
+    } catch (e) {
+      console.error("[VIDEO] failed", e);
+      if (convId) {
+        await appendAssistantMessage({
+          convId,
+          text: VIDEO_GENERIC_ERROR_TEXT,
+          isNew,
+          titleSeed: text,
+          baseMessages,
+          userMsg,
+        });
+      }
+    } finally {
+      setSending(false);
+      setAwaitingReply(false);
+      setInflightMode("default");
+    }
+  }
+
   async function handleSend(
     text: string,
     image: string | null,
