@@ -1,7 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { advancePendingVideoJobsForUser } from "@/lib/video-jobs.server";
+import {
+  advancePendingVideoJobsForUser,
+  cleanupStalePendingJobsForUser,
+} from "@/lib/video-jobs.server";
 
 const listSchema = z.object({
   statuses: z.array(z.enum(["pending", "processing", "completed", "failed"])).optional(),
@@ -32,4 +35,14 @@ export const getMyVideoJobs = createServerFn({ method: "POST" })
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
     return rows ?? [];
+  });
+
+// Marks the calling user's pending/processing video jobs older than 10 minutes
+// as failed and refunds the credits. Safe to call once on app startup.
+export const cleanupStalePendingVideoJobs = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+    const count = await cleanupStalePendingJobsForUser(userId, 10);
+    return { cleaned: count };
   });
