@@ -402,15 +402,16 @@ export function ChatView({ conversationId }: Props) {
     baseMessages: ChatMsg[],
     resetButton?: () => void,
   ) {
-    // Animation feature temporarily disabled — short-circuit to coming-soon msg.
+    // ============================================================
+    // Animation feature TEMPORARILY DISABLED.
+    // Replies with a "coming soon" assistant message — no API call,
+    // no credit deduction, no video_jobs row.
+    // ============================================================
     void sourceImageUrl;
     resetButton?.();
-    await handleAnimationComingSoon(text, baseMessages);
-    return;
-    // eslint-disable-next-line no-unreachable
     setSending(true);
     setAwaitingReply(true);
-    setInflightMode("video");
+    setInflightMode("default");
 
     const timestamp = Date.now();
     const userMsg: ChatMsg = {
@@ -430,180 +431,22 @@ export function ChatView({ conversationId }: Props) {
         isNew = true;
         pendingNavigationConversationIdRef.current = convId;
       }
-
       await saveMsg({
         data: { conversationId: convId, role: "user", content: text },
       }).catch(() => undefined);
 
-      // Re-check plan freshly to avoid stale cache races.
-      let effectiveSub = subscription;
-      let effectiveHasActive = hasActive;
-      let effectivePlanId = planId;
-      if (planLoading || !effectiveSub) {
-        try {
-          const fresh = await queryClient.fetchQuery({
-            queryKey: ["my-subscription"],
-            queryFn: () => fetchSubServerFn(),
-            staleTime: 0,
-          });
-          effectiveSub = fresh ?? null;
-          effectiveHasActive =
-            !!fresh &&
-            fresh.status === "active" &&
-            (!fresh.expires_at || new Date(fresh.expires_at).getTime() > Date.now());
-          effectivePlanId = fresh?.plan_id ?? null;
-        } catch {
-          /* fallthrough */
-        }
-      }
-      const hasUltraPlan =
-        effectiveHasActive && effectivePlanId === "ultra";
-
-      if (!hasUltraPlan) {
-        await appendAssistantMessage({
-          convId,
-          text: VIDEO_NEED_ULTRA_TEXT,
-          isNew,
-          titleSeed: text,
-          baseMessages,
-          userMsg,
-        });
-        return;
-      }
-
-      // Credits check (fresh fetch)
-      let credits = 0;
-      try {
-        const c = await fetchCreditsFn();
-        credits = c?.balance ?? 0;
-      } catch {
-        credits = 0;
-      }
-      if (credits < 10) {
-        await appendAssistantMessage({
-          convId,
-          text: VIDEO_NEED_CREDITS_TEXT(credits),
-          isNew,
-          titleSeed: text,
-          baseMessages,
-          userMsg,
-        });
-        return;
-      }
-
-      if (!sourceImageUrl) {
-        await appendAssistantMessage({
-          convId,
-          text: VIDEO_NEED_IMAGE_TEXT,
-          isNew,
-          titleSeed: text,
-          baseMessages,
-          userMsg,
-        });
-        return;
-      }
-
-      // The background poller will complete the job and append the video later.
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error("Sessão expirada.");
-
-      const res = await fetch("/api/animate-image", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          imageUrl: sourceImageUrl,
-          conversationId: convId,
-        }),
+      await appendAssistantMessage({
+        convId,
+        text:
+          "A animação de imagens está chegando em breve! Em breve você poderá animar qualquer imagem gerada no chat. Fique ligado nas novidades. 🎬",
+        isNew,
+        titleSeed: text,
+        baseMessages,
+        userMsg,
       });
-
-      if (res.status === 402) {
-        const err = await res.json().catch(() => ({} as { error?: string }));
-        const msg =
-          err.error === "insufficient_credits"
-            ? VIDEO_NEED_CREDITS_TEXT(credits)
-            : VIDEO_NEED_ULTRA_TEXT;
-        await appendAssistantMessage({
-          convId,
-          text: msg,
-          isNew,
-          titleSeed: text,
-          baseMessages,
-          userMsg,
-        });
-        return;
-      }
-      if (!res.ok) {
-        await appendAssistantMessage({
-          convId,
-          text: VIDEO_GENERIC_ERROR_TEXT,
-          isNew,
-          titleSeed: text,
-          baseMessages,
-          userMsg,
-        });
-        return;
-      }
-
-      await res.json().catch(() => null);
-      const queuedText =
-        "🎬 Sua animação está sendo gerada. Pode levar alguns minutos. Você será notificado quando estiver pronta na sua Galeria.";
-      const queuedMsg: ChatMsg = {
-        id: `assistant-video-job-${Date.now()}`,
-        role: "assistant",
-        content: queuedText,
-        streaming: false,
-      };
-      setSending(false);
-      setAwaitingReply(false);
-      setInflightMode("default");
-      setMessages((prev) => [...prev, queuedMsg]);
-      await saveMsg({
-        data: {
-          conversationId: convId,
-          role: "assistant",
-          content: queuedText,
-        },
-      }).catch(() => undefined);
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["credits"] });
-      queryClient.invalidateQueries({ queryKey: ["gallery-v2"] });
-      queryClient.invalidateQueries({ queryKey: ["messages", convId] });
-      queryClient.invalidateQueries({ queryKey: ["video-jobs"] });
-      void fetchVideoJobs({ data: { statuses: ["processing", "pending"] } }).catch(() => undefined);
-
-      if (isNew) {
-        try {
-          await rename({ data: { id: convId, title: text.slice(0, 30) } });
-        } catch {
-          /* ignore */
-        }
-        queryClient.setQueryData<ChatMsg[]>(
-          ["messages", convId],
-          [...baseMessages, userMsg, queuedMsg].map((m) => ({
-            ...m,
-            streaming: false,
-          })),
-        );
-        navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
-      }
     } catch (e) {
-      console.error("[VIDEO] failed", e);
-      if (convId) {
-        await appendAssistantMessage({
-          convId,
-          text: VIDEO_GENERIC_ERROR_TEXT,
-          isNew,
-          titleSeed: text,
-          baseMessages,
-          userMsg,
-        });
-      }
+      console.error("[VIDEO disabled] failed", e);
     } finally {
-      resetButton?.();
       setSending(false);
       setAwaitingReply(false);
       setInflightMode("default");
