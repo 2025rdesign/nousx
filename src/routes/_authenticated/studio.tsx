@@ -324,6 +324,10 @@ function StudioInner() {
             sourcePromptId: editingImage.promptId ?? undefined,
             profileId: editingImage.profileId ?? undefined,
             detailLevel: "MEDIUM",
+            poseId: poseEnabled ? poseId ?? undefined : undefined,
+            poseType: poseEnabled ? poseType ?? undefined : undefined,
+            poseStrength: poseEnabled ? poseStrength : undefined,
+            posePrompt: poseEnabled ? posePrompt.trim() || undefined : undefined,
           },
         });
       }
