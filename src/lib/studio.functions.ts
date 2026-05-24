@@ -359,7 +359,7 @@ Retorne APENAS o prompt melhorado, sem explicacoes nem aspas.`;
 /* --------------------------- Generate (main) -------------------------- */
 
 const generateSchema = z.object({
-  mode: z.enum(["new", "variation"]),
+  mode: z.enum(["new", "variation", "edit"]),
   // shared
   appearance: z.string().min(1).max(2000),
   faceDetails: z.string().max(1000).optional(),
@@ -380,6 +380,9 @@ const generateSchema = z.object({
   // variation
   profileId: z.string().uuid().optional(),
   editModel: z.enum(["CREATIVE", "REALISM", "QWEN_PRO"]).optional(),
+  // edit (variation from a specific historic image)
+  sourceMediaId: z.string().optional(),
+  sourcePromptId: z.string().optional(),
 });
 
 const REMOVE_BOTTOM = /calcinha|biqu[íi]ni de baixo|tire tudo|completamente nua|totalmente nua|panties|fully nude|completely naked/i;
