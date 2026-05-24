@@ -1050,6 +1050,16 @@ function StudioInner() {
             <div className="text-center text-xs text-muted-foreground">
               Esta geração custará <span className="font-semibold text-foreground">{cost} crédito{cost > 1 ? "s" : ""}</span>.
             </div>
+            {balance === 0 && (
+              <button
+                type="button"
+                onClick={() => setCreditsOpen(true)}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 animate-pulse"
+              >
+                <Zap className="size-4" />
+                Sem créditos — Recarregar
+              </button>
+            )}
             <Button
               type="button"
               variant="outline"
