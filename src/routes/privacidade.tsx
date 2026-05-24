@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { SupportContact } from "@/components/support-contact";
 
 export const Route = createFileRoute("/privacidade")({
   head: () => ({
@@ -106,6 +107,7 @@ function PrivacidadePage() {
             </a>
           </p>
         </section>
+        <SupportContact />
       </article>
     </main>
   );
