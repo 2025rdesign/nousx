@@ -652,11 +652,14 @@ export const generateCharacter = createServerFn({ method: "POST" })
         negativeDetails: `${baseNeg}${userNeg ? ", " + userNeg : ""}`,
       };
       {
-        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength);
+        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength, data.model);
         if (pose) {
           console.log("[POSE PAYLOAD]", JSON.stringify(pose));
           (body as Record<string, unknown>).pose = pose;
         }
+      }
+      if (data.model === "REALISM") {
+        console.log("[REALISM PAYLOAD]", JSON.stringify(body));
       }
     } else if (data.mode === "edit") {
       if (!data.sourceMediaId) throw new Error("Imagem de origem ausente.");
@@ -676,7 +679,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         cfg: cfgFromLevel ?? 7,
       };
       {
-        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength);
+        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength, data.model);
         if (pose) (body as Record<string, unknown>).pose = pose;
       }
       console.log("[EDIT IMAGE]", JSON.stringify(body));
@@ -708,7 +711,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         cfg: cfgFromLevel ?? 7,
       };
       {
-        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength);
+        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength, data.model);
         if (pose) {
           console.log("[POSE PAYLOAD]", JSON.stringify(pose));
           (body as Record<string, unknown>).pose = pose;
