@@ -41,6 +41,11 @@ function getInlineImageUrl(content: string): string | null {
   return m ? m[0] : null;
 }
 
+function isVideoUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  return /\.(mp4|webm|mov)(\?|$)/i.test(url);
+}
+
 function MessageItemInner({ msg }: { msg: ChatMsg }) {
   const isUser = msg.role === "user";
   const [copied, setCopied] = useState(false);
@@ -49,13 +54,16 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
   const { open: openCanvas } = useCodeCanvas();
   const { hasActive } = useActivePlan();
   const imageUrl = msg.image_url ?? getInlineImageUrl(msg.content);
+  const isVideo = isVideoUrl(imageUrl);
   // Quando a mensagem da IA contém uma imagem, descartamos qualquer texto
   // residual gerado pela API (ex.: "Aqui está a imagem de..."). O botão
   // "Baixar imagem" já é exibido abaixo, então a bolha não precisa de legenda.
   const textContent = imageUrl
     ? isUser
       ? msg.content.replace(imageUrl, "").replace(/!\[[^\]]*\]\([^)]*\)/g, "").trim()
-      : ""
+      : isVideo
+        ? msg.content
+        : ""
     : msg.content;
 
   if (imageUrl && !isUser) {
@@ -122,7 +130,44 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
         )}
       >
         {imageUrl && (
-          isUser ? (
+          isVideo ? (
+            <div className="mb-2">
+              <video
+                src={imageUrl}
+                controls
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="h-auto w-full max-w-[500px] rounded-xl bg-black"
+              />
+              <div className="mt-2 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    downloadAsset(imageUrl, `auraia-video-${Date.now()}.mp4`)
+                  }
+                  className="inline-flex text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Baixar vídeo
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(imageUrl);
+                      notify.success("Link copiado.");
+                    } catch {
+                      notify.error("Não foi possível copiar o link.");
+                    }
+                  }}
+                  className="inline-flex text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Copiar link
+                </button>
+              </div>
+            </div>
+          ) : isUser ? (
             <img
               src={imageUrl}
               alt=""
@@ -159,7 +204,7 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
             </div>
           )
         )}
-        {imageUrl && (
+        {imageUrl && !isVideo && (
           <ImageLightbox
             src={imageUrl}
             alt={textContent || "Imagem"}
