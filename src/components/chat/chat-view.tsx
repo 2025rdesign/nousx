@@ -137,6 +137,7 @@ export function ChatView({ conversationId }: Props) {
     "default" | "web" | "reasoning" | "image" | "edit"
   >("default");
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [fillText, setFillText] = useState<string | undefined>();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastConversationIdRef = useRef<string | null>(conversationId);
