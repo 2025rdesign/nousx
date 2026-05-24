@@ -603,26 +603,25 @@ export function TypingIndicator({
       <div className="flex justify-start w-full">
         <div className="px-4 w-full max-w-sm">
           <div
-            className="aura-glow rounded-2xl border border-border"
+            className="relative rounded-2xl border border-border bg-zinc-900 flex items-center justify-center"
             style={{
               aspectRatio: "1 / 1",
               borderColor: "color-mix(in oklab, #6C47FF 30%, transparent)",
             }}
-          />
-          <div className="mt-3 text-xs animate-pulse" style={{ color: "#6C47FF" }}>
-            {label}
-          </div>
-          <div
-            className="mt-2 h-1 w-full overflow-hidden rounded-full"
-            style={{ background: "color-mix(in oklab, #6C47FF 15%, transparent)" }}
           >
+            <Loader2 className="size-8 animate-spin" style={{ color: "#6C47FF" }} />
             <div
-              className="aura-progress-fill h-full rounded-full"
-              style={{
-                background:
-                  "linear-gradient(90deg, #6C47FF 0%, #9B7EFF 50%, #6C47FF 100%)",
-              }}
-            />
+              className="absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden rounded-b-2xl"
+              style={{ background: "color-mix(in oklab, #6C47FF 15%, transparent)" }}
+            >
+              <div
+                className="aura-progress-fill h-full"
+                style={{ background: "#6C47FF" }}
+              />
+            </div>
+          </div>
+          <div className="mt-3 text-xs" style={{ color: "#6C47FF" }}>
+            {label}
           </div>
         </div>
       </div>
@@ -633,27 +632,26 @@ export function TypingIndicator({
       <div className="flex justify-start w-full">
         <div className="px-4 w-full max-w-sm">
           <div
-            className="aura-glow rounded-2xl border border-border"
+            className="relative rounded-2xl border border-border bg-zinc-900 flex items-center justify-center"
             style={{
               aspectRatio: "9 / 16",
               maxHeight: "320px",
               borderColor: "color-mix(in oklab, #6C47FF 30%, transparent)",
             }}
-          />
-          <div className="mt-3 text-xs animate-pulse" style={{ color: "#6C47FF" }}>
-            🎬 Gerando animação... (~2 minutos)
-          </div>
-          <div
-            className="mt-2 h-1 w-full overflow-hidden rounded-full"
-            style={{ background: "color-mix(in oklab, #6C47FF 15%, transparent)" }}
           >
+            <Loader2 className="size-8 animate-spin" style={{ color: "#6C47FF" }} />
             <div
-              className="aura-progress-loop h-full rounded-full"
-              style={{
-                background:
-                  "linear-gradient(90deg, transparent 0%, #6C47FF 50%, transparent 100%)",
-              }}
-            />
+              className="absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden rounded-b-2xl"
+              style={{ background: "color-mix(in oklab, #6C47FF 15%, transparent)" }}
+            >
+              <div
+                className="aura-progress-loop h-full"
+                style={{ background: "#6C47FF" }}
+              />
+            </div>
+          </div>
+          <div className="mt-3 text-xs" style={{ color: "#6C47FF" }}>
+            🎬 Gerando animação... (~2 minutos)
           </div>
           <div className="mt-2 text-[11px] text-muted-foreground">
             Não feche esta janela.
