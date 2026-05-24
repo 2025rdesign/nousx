@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,16 +30,8 @@ import { useEffect, useState } from "react";
 import { UserAvatar } from "@/components/user-avatar";
 import { SettingsSkeleton } from "@/components/route-skeletons";
 import { SubscriptionTab } from "@/components/payments/subscription-tab";
-import { useActivePlan } from "@/hooks/use-active-plan";
 import { getCredits } from "@/lib/credits.functions";
-import {
-  cancelMySubscription,
-  getMySubscription,
-  listMyPaymentHistory,
-} from "@/lib/payments.functions";
-import { PLANS, type PlanId } from "@/lib/payments-config";
-import { PlanBadge, getPlanKey } from "@/components/plan-badge";
-import { Link } from "@tanstack/react-router";
+import { listMyPaymentHistory } from "@/lib/payments.functions";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: SettingsPage,
