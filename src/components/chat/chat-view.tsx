@@ -214,6 +214,8 @@ export function ChatView({ conversationId }: Props) {
     "⚡ Algo deu errado na conexão. Tente enviar novamente.";
   const GENERIC_ERROR_TEXT =
     "😕 Algo inesperado aconteceu. Tente novamente.";
+  const GENERIC_IMG_ERROR_TEXT =
+    "⚡ Algo deu errado na geração. Tente novamente.";
 
   const {
     data: dbMessages,
