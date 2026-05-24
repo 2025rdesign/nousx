@@ -178,42 +178,12 @@ export function ChatView({ conversationId }: Props) {
     },
     refetchOnWindowFocus: true,
     staleTime: 0,
+    enabled: false,
   });
 
-  useEffect(() => {
-    const jobs = videoJobsQuery.data ?? [];
-    for (const job of jobs) {
-      const j = job as {
-        id: string;
-        status: string;
-        conversation_id: string | null;
-        final_video_url: string | null;
-      };
-      if (seenCompletedJobsRef.current.has(j.id)) continue;
-      if (j.status === "completed" && j.final_video_url) {
-        seenCompletedJobsRef.current.add(j.id);
-        toast.success("🎬 Animação pronta! Veja na Galeria.", {
-          action: {
-            label: "Ver na Galeria",
-            onClick: () => navigate({ to: "/galeria", search: { filter: "video" } as never }),
-          },
-        });
-        queryClient.invalidateQueries({ queryKey: ["gallery-v2"] });
-        if (j.conversation_id) {
-          queryClient.invalidateQueries({ queryKey: ["messages", j.conversation_id] });
-          if (j.conversation_id === conversationId) {
-            // reload current chat messages so the video bubble appears
-            void refetchMessages();
-          }
-        }
-      } else if (j.status === "failed") {
-        seenCompletedJobsRef.current.add(j.id);
-        toast.error("🎬 A animação falhou. Seus créditos foram devolvidos.");
-        queryClient.invalidateQueries({ queryKey: ["credits"] });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoJobsQuery.data, conversationId]);
+  // Animation feature temporarily disabled — no toasts, no polling.
+  void videoJobsQuery;
+  void seenCompletedJobsRef;
 
   const [messages, setMessages] = useState<ChatMsg[]>(() => {
     if (!conversationId) return [];
