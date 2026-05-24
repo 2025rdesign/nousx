@@ -151,30 +151,32 @@ function CreditsPill({
   const danger = balance < 5;
   const empty = balance === 0;
   return (
-    <div className={cn("inline-flex items-center gap-2", danger && !compact && "flex-row")}>
+    <div className={cn("inline-flex items-center gap-2", (danger || empty) && !compact && "flex-row")}>
     <button
       type="button"
       onClick={onClick}
       title={empty ? "Sem créditos" : `${balance} créditos`}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-        danger
+        empty
+          ? "border-destructive bg-destructive/10 text-destructive hover:bg-destructive/20 animate-pulse"
+          : danger
           ? "border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20"
           : "border-border bg-card hover:border-accent hover:text-accent",
-        empty && "animate-pulse",
       )}
     >
-      {danger ? (
+      {danger || empty ? (
         <AlertTriangle className="size-3.5" />
       ) : (
         <SparklesIcon className="size-3.5 text-accent" />
       )}
       <span>
-        {balance}
-        {!compact && " créditos"}
+        {empty
+          ? "Sem créditos — Recarregar"
+          : `${balance}${!compact ? " créditos" : ""}`}
       </span>
     </button>
-    {danger && !compact && (
+    {danger && !empty && !compact && (
       <span className="text-[11px] text-destructive">Poucos créditos restantes</span>
     )}
     </div>
