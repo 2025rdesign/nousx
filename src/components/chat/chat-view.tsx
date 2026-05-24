@@ -137,6 +137,7 @@ export function ChatView({ conversationId }: Props) {
     "default" | "web" | "reasoning" | "image" | "edit"
   >("default");
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [fillText, setFillText] = useState<string | undefined>();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastConversationIdRef = useRef<string | null>(conversationId);
@@ -1075,7 +1076,7 @@ export function ChatView({ conversationId }: Props) {
             </div>
           </div>
         ) : (
-          <EmptyState onSuggest={(t) => handleSend(t, null, null, false, false)} />
+          <EmptyState onSuggest={setFillText} />
         )}
 
         <ChatInput
@@ -1084,6 +1085,8 @@ export function ChatView({ conversationId }: Props) {
           hasUltra={hasUltra}
           onOpenVoiceMode={() => setVoiceOpen(true)}
           voiceModeActive={voiceOpen}
+          fillText={fillText}
+          onFillTextConsumed={() => setFillText(undefined)}
         />
         <VoiceModeModal open={voiceOpen} onClose={() => setVoiceOpen(false)} />
       </div>

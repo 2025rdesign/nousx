@@ -79,6 +79,7 @@ export function AnonChatView() {
   const [collapsed, setCollapsed] = useState(false);
   const [limitOpen, setLimitOpen] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
+  const [fillText, setFillText] = useState<string | undefined>();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const messages = state.messages;
@@ -399,13 +400,15 @@ export function AnonChatView() {
                 </div>
               </div>
             ) : (
-              <EmptyState onSuggest={(t) => handleSend(t)} />
+              <EmptyState onSuggest={setFillText} />
             )}
             <ChatInput
               onSend={(t) => handleSend(t)}
               disabled={sending}
               anonMode
               onAnonRestricted={handleInputRestricted}
+              fillText={fillText}
+              onFillTextConsumed={() => setFillText(undefined)}
             />
           </div>
         </main>

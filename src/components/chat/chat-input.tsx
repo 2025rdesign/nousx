@@ -29,6 +29,8 @@ interface Props {
   hasUltra?: boolean;
   onOpenVoiceMode?: () => void;
   voiceModeActive?: boolean;
+  fillText?: string;
+  onFillTextConsumed?: () => void;
 }
 
 export function ChatInput({
@@ -39,6 +41,8 @@ export function ChatInput({
   hasUltra,
   onOpenVoiceMode,
   voiceModeActive,
+  fillText,
+  onFillTextConsumed,
 }: Props) {
   const [text, setText] = useState("");
   const [image, setImage] = useState<string | null>(null);
@@ -48,6 +52,17 @@ export function ChatInput({
   const [webSearch, setWebSearch] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (fillText) {
+      setText(fillText);
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+      });
+      onFillTextConsumed?.();
+    }
+  }, [fillText, onFillTextConsumed]);
 
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
@@ -186,6 +201,7 @@ export function ChatInput({
           </div>
         )}
         <TextareaAutosize
+          ref={textareaRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={onKey}
