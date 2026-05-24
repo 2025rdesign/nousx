@@ -19,13 +19,20 @@ import { useActivePlan } from "@/hooks/use-active-plan";
 import { VoiceModeModal } from "./voice-mode-modal";
 
 const IMAGE_INTENT_RE =
-  /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|mostr(?:a|e|ar)|transform(?:a|e|ar)|convert(?:a|e|er)|me\s+(?:d[áa]|d[êe]|manda|mostra|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?)\b[^\n]{0,30}\b(image(?:m|ns)|fotos?|ilustra[cç](?:[ãa]o|[õo]es)|desenhos?|figuras?|artes?|pinturas?|wallpapers?|retratos?|p[ôo]ster(?:es)?|banners?|capas?|vetor(?:es|ial|iais)?|logos?|logotipos?|[íi]cones?|stickers?|emojis?|avatares?|personagens?|cenas?|gifs?)\b([^\n]*)/i;
+  /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|me\s+(?:d[áa]|d[êe]|manda|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?)\b[^\n]{0,30}\b(image(?:m|ns)|fotos?|ilustra[cç](?:[ãa]o|[õo]es)|desenhos?|figuras?|artes?|pinturas?|wallpapers?|retratos?|p[ôo]ster(?:es)?|banners?|capas?|vetor(?:es|ial|iais)?|logos?|logotipos?|[íi]cones?|stickers?|emojis?|avatares?|personagens?|cenas?|gifs?)\b([^\n]*)/i;
 
 // Intenção de EDITAR uma imagem existente (não apenas analisar).
 const IMAGE_EDIT_INTENT_RE =
   /\b(mude|muda|troque|troca|retire|retira|remova|remove|coloque|coloca|adicione|adiciona|altere|altera|edite|edita|tire|tira|bote|bota|ponha|p[oõ]e|deixe|deixa|torne|torna|transform(?:e|a|ar)|transport(?:e|a|ar)|substitua|substitui|inclua|inclui|apague|apaga|melhore|melhora|ajuste|ajusta|refa[cç]a|regenere|aumente|aumenta|diminua|diminui|deixa\s+mais|deixe\s+mais|sem\s+|com\s+|pinte|pinta|colorize)\b/i;
 
-const MIN_DESCRIPTION_CHARS = 10;
+const MIN_DESCRIPTION_CHARS = 15;
+
+// Padrões de PERGUNTA sobre o serviço — nunca devem disparar geração.
+const SERVICE_QUESTION_RE =
+  /(voc[êe]\s+(gera|cria|faz|consegue|pode|sabe|tem|[ée])|tem\s+(gera[cç][aã]o|gerador)|como\s+(gera|funciona|cria|crio|fa[cç]o)|[ée]\s+(poss[ií]vel|gr[áa]tis|gratuito|pago|pra|para)|qual.*(plano|pre[cç]o|custo|valor)|quanto.*(custa|sai|fica)|o\s+que\s+voc[êe]\s+(faz|[ée]|consegue|pode)|me\s+(conta|explica|fala|diz)\s+(sobre|mais|como)|funciona\s+(como|assim))/i;
+
+const QUESTION_STARTERS_RE =
+  /^(voc[êe]|como|o\s+que|qual|quais|quando|onde|por\s+que|porque|consegue|pode|d[áa]\s+pra|tem\s+como|[ée]\s+poss[ií]vel|funciona)\b/i;
 
 const IMAGE_FOLLOW_UP_RE =
   /\b(a\s+mesma|mesm[ao]s?|igual|parecid[ao]s?|fa[cçz](?:a|er|endo)?|faz|deixe|coloque|troque|mude|ajuste|edite|refa[cç]a|regenere|varia[cç][aã]o|vers[aã]o|mais|menos|sem|com|agora|tamb[eé]m|t[áa]|ela|ele|tirando|usando|vestindo|sentad[ao]|deitad[ao]|em\s+p[eé])\b/i;
@@ -38,6 +45,13 @@ function detectImageIntent(text: string): boolean {
   if (text.length > 800) return false;
   const trimmed = text.trim();
   if (!trimmed) return false;
+
+  // 1) Não dispara em perguntas (terminam com "?" ou começam interrogativo)
+  if (trimmed.endsWith("?")) return false;
+  if (QUESTION_STARTERS_RE.test(trimmed)) return false;
+
+  // 2) Não dispara em perguntas sobre o serviço
+  if (SERVICE_QUESTION_RE.test(trimmed)) return false;
 
   const match = IMAGE_INTENT_RE.exec(trimmed);
   if (!match) return false;
