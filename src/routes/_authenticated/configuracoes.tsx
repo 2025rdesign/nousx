@@ -55,7 +55,7 @@ function SettingsPage() {
           <TabsContent value="geral"><GeneralTab /></TabsContent>
           <TabsContent value="aparencia"><AppearanceTab /></TabsContent>
           <TabsContent value="seguranca"><SecurityTab /></TabsContent>
-          <TabsContent value="assinatura"><SubscriptionTab /></TabsContent>
+          <TabsContent value="assinatura"><AssinaturaTab /></TabsContent>
         </Tabs>
       </div>
     </div>
