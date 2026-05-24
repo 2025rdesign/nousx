@@ -26,7 +26,10 @@ import { getMyVideoJobs } from "@/lib/video-jobs.functions";
 import { toast } from "sonner";
 
 const IMAGE_INTENT_RE =
-  /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|me\s+(?:d[áa]|d[êe]|manda|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?|generate|create|make|draw|render|produce|design|build|illustrate)\b[^\n]{0,30}\b(image(?:m|ns|s)?|fotos?|photos?|pictures?|ilustra[cç](?:[ãa]o|[õo]es)|illustrations?|desenhos?|figuras?|artes?|artworks?|pinturas?|wallpapers?|retratos?|portraits?|p[ôo]ster(?:es)?|posters?|banners?|capas?|covers?|vetor(?:es|ial|iais)?|logos?|logotipos?|[íi]cones?|icons?|stickers?|emojis?|avatares?|avatars?|personagens?|characters?|cenas?|scenes?|gifs?|thumbnails?|miniaturas?)\b([^\n]*)/i;
+  /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|quero\s+ver|me\s+mostr(?:a|e)|mostr(?:a|e)|fa(?:z|ze)|coloca|bota|p[õo]e|desenh(?:a|e|ar)|pint(?:a|e|ar)|me\s+(?:d[áa]|d[êe]|manda|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?|generate|create|make|draw|render|produce|design|build|illustrate)\b/i;
+
+const IMAGE_TARGET_RE =
+  /\b(image(?:m|ns|s)?|fotos?|photos?|pictures?|ilustra[cç](?:[ãa]o|[õo]es)|illustrations?|desenhos?|figuras?|artes?|artworks?|pinturas?|wallpapers?|retratos?|portraits?|p[ôo]ster(?:es)?|posters?|banners?|capas?|covers?|vetor(?:es|ial|iais)?|logos?|logotipos?|[íi]cones?|icons?|stickers?|emojis?|avatares?|avatars?|personagens?|characters?|cenas?|scenes?|gifs?|thumbnails?|miniaturas?|mulheres?|homens?|pessoas?|modelos?|rostos?|selfies?)\b/i;
 
 // Detecta descrições visuais explícitas mesmo sem verbo de geração
 // (ex.: "YouTube thumbnail, 1280x720px, minimalist design...").
@@ -87,14 +90,17 @@ function detectImageIntent(text: string): boolean {
     return false;
   }
 
-  const after = (match[3] ?? "")
+  const after = trimmed
+    .slice(match.index + match[0].length)
     .replace(/[.!?,;:]+/g, " ")
     .replace(/\b(pra|para)\s+mim\b/gi, " ")
     .replace(/\bpor\s+favor\b/gi, " ")
-    .replace(/\b(agora|aqui|r[áa]pido|nova|legal|bonita|top|massa|incr[íi]vel)\b/gi, " ")
+    .replace(/\b(agora|aqui|r[áa]pido|nova|novo|legal|bonita|bonito|top|massa|incr[íi]vel|essa|esse|isto|isso|uma|um|a|o)\b/gi, " ")
     .trim();
 
-  return after.length >= MIN_DESCRIPTION_CHARS;
+  if (IMAGE_TARGET_RE.test(after)) return true;
+
+  return after.length >= MIN_DESCRIPTION_CHARS && VISUAL_DESC_RE.test(after);
 }
 
 function getLatestImageContext(messages: ChatMsg[]) {
@@ -549,6 +555,11 @@ export function ChatView({ conversationId }: Props) {
     webSearch: boolean = false,
   ) {
     console.log("[IMG 1] iniciando geracao");
+    const userMessage = text.trim();
+    const imageIntentMatch = IMAGE_INTENT_RE.test(userMessage);
+    const videoIntentMatch = VIDEO_INTENT_RE.test(userMessage);
+    const wantsVideo =
+      !file && videoIntentMatch && !ANIMATION_STATUS_QUESTION_RE.test(userMessage);
 
     // If the user just uploaded a new image, that becomes the sticky reference
     // immediately — so later messages (edits, follow-ups) can find it even if
@@ -567,12 +578,10 @@ export function ChatView({ conversationId }: Props) {
     // branch so DeepSeek / image generation never fires for "anime
     // essa imagem" type requests.
     // ============================================================
-    if (!file && VIDEO_INTENT_RE.test(text)) {
+    if (!file && videoIntentMatch) {
       // Ignore status questions like "terminou?" — the chat AI will answer them
       // instead of firing a new animation.
-      if (ANIMATION_STATUS_QUESTION_RE.test(text)) {
-        // fall through to normal chat handling
-      } else {
+      if (wantsVideo) {
       await handleVideoIntent(text, null, baseMessages);
       return;
       }
@@ -594,7 +603,7 @@ export function ChatView({ conversationId }: Props) {
     // GERAÇÃO: permite imagem anexada (usada como referência visual no prompt,
     // NÃO como âncora de edição pixel-a-pixel).
     const wantsImage =
-      !wantsEdit && !file && (detectImageIntent(text) || isImageFollowUp);
+      !wantsEdit && !file && (detectImageIntent(userMessage) || isImageFollowUp);
 
     const visualContextHint = image
       ? "\n\n[O usuário anexou uma imagem como referência visual — use estilo, composição, paleta e tema dela como inspiração para uma NOVA imagem.]"
@@ -606,6 +615,14 @@ export function ChatView({ conversationId }: Props) {
 
     console.log("[CHAT] gerar imagem:", wantsImage, "| text:", text.slice(0, 120));
     console.log("[CHAT] follow-up de imagem:", isImageFollowUp);
+    console.log("[INTENT]", {
+      userMessage,
+      imageIntentMatch,
+      videoIntentMatch,
+      wantsImage,
+      wantsEdit,
+      wantsVideo,
+    });
 
     const displayText = file ? `📎 ${file.name}\n\n${text}` : text;
     const timestamp = Date.now();
