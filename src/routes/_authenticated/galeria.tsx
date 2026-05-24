@@ -133,6 +133,7 @@ function Gallery() {
       delFn({ data: v }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gallery-v2"] });
+      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
       notify.success("Item removido.");
     },
     onError: () => notify.error("Não foi possível excluir."),
@@ -186,6 +187,7 @@ function Gallery() {
       );
       notify.success(`${selectedImages.length} imagem(ns) removida(s).`);
       queryClient.invalidateQueries({ queryKey: ["gallery-v2"] });
+      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
       exitSelectMode();
     } catch {
       notify.error("Falha ao apagar algumas imagens.");

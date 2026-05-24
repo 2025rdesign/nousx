@@ -87,11 +87,36 @@ export const deleteGalleryItem = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const table = data.kind === "image" ? "gallery" : "audio_library";
+    // Capture image_url BEFORE deleting so we can cascade the cleanup
+    // into the studio history (`characters` table).
+    let imageUrl: string | null = null;
+    if (data.kind === "image") {
+      const { data: row } = await supabase
+        .from("gallery")
+        .select("image_url")
+        .eq("id", data.id)
+        .eq("user_id", userId)
+        .maybeSingle();
+      imageUrl = (row as { image_url?: string } | null)?.image_url ?? null;
+    }
     const { error } = await supabase
       .from(table)
       .delete()
       .eq("id", data.id)
       .eq("user_id", userId);
     if (error) throw new Error(error.message);
+    // Mirror the deletion into the studio history so the same image no
+    // longer shows up in the Estúdio grid (it reads from `characters`).
+    if (data.kind === "image" && imageUrl) {
+      try {
+        await supabase
+          .from("characters")
+          .delete()
+          .eq("user_id", userId)
+          .eq("image_url", imageUrl);
+      } catch (e) {
+        console.warn("[gallery] characters cleanup failed (ignored)", e);
+      }
+    }
     return { ok: true };
   });
