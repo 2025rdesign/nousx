@@ -5,7 +5,6 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   ensureVideoCreditsCharged,
   failVideoJob,
-  finalizeVideoJob,
 } from "@/lib/video-jobs.server";
 
 const XAI_VIDEO_ENDPOINT = "https://api.x.ai/v1/videos/generations";
