@@ -19,7 +19,6 @@ import { SwRegister } from "@/components/sw-register";
 import { AppErrorBoundary } from "@/components/error-boundary";
 import { installChunkReloadHandler } from "@/lib/chunk-reload";
 import { useEffect } from "react";
-import { useAuth } from "@/hooks/use-auth";
 
 function NotFoundComponent() {
   return (
