@@ -486,7 +486,6 @@ export function ChatView({ conversationId }: Props) {
           err.error === "insufficient_credits"
             ? VIDEO_NEED_CREDITS_TEXT(credits)
             : VIDEO_NEED_ULTRA_TEXT;
-        setMessages((prev) => prev.filter((m) => m.id !== loadingId));
         await appendAssistantMessage({
           convId,
           text: msg,
@@ -498,7 +497,6 @@ export function ChatView({ conversationId }: Props) {
         return;
       }
       if (!res.ok) {
-        setMessages((prev) => prev.filter((m) => m.id !== loadingId));
         await appendAssistantMessage({
           convId,
           text: VIDEO_GENERIC_ERROR_TEXT,
@@ -522,10 +520,7 @@ export function ChatView({ conversationId }: Props) {
       setSending(false);
       setAwaitingReply(false);
       setInflightMode("default");
-      setMessages((prev) => [
-        ...prev.filter((m) => m.id !== loadingId),
-        videoMsg,
-      ]);
+      setMessages((prev) => [...prev, videoMsg]);
       await saveMsg({
         data: {
           conversationId: convId,
