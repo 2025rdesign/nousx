@@ -133,6 +133,37 @@ export function AnonChatView() {
       return;
     }
 
+    // Pre-gate image-generation intent for anonymous users — never
+    // call DeepSeek with image asks; show plan-required bubble instead.
+    const trimmed = text.trim();
+    const isImageAsk =
+      trimmed.length <= 800 &&
+      !trimmed.endsWith("?") &&
+      IMAGE_INTENT_RE.test(trimmed);
+    if (isImageAsk) {
+      const userMsg: ChatMsg = {
+        id: `u-${Date.now()}`,
+        role: "user",
+        content: text,
+      };
+      const planMsg: ChatMsg = {
+        id: `a-${Date.now()}`,
+        role: "assistant",
+        content: ANON_IMAGE_PLAN_REQUIRED,
+      };
+      const nextMessages = [...messages, userMsg, planMsg];
+      const nextCount = state.userMessageCount + 1;
+      const finalState: AnonState = {
+        messages: nextMessages,
+        userMessageCount: nextCount,
+        title: state.title ?? text.slice(0, 40),
+        updatedAt: Date.now(),
+      };
+      setState(finalState);
+      saveState(finalState);
+      return;
+    }
+
     setSending(true);
     setAwaitingReply(true);
 
