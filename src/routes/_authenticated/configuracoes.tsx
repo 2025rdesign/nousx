@@ -38,14 +38,16 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
   pendingComponent: SettingsSkeleton,
   pendingMs: 0,
   pendingMinMs: 0,
-  validateSearch: (s: Record<string, unknown>) => ({
-    tab:
+  validateSearch: (s: Record<string, unknown>) => {
+    const tab =
       s.tab === "aparencia" ||
       s.tab === "seguranca" ||
-      s.tab === "assinatura"
-        ? (s.tab as "aparencia" | "seguranca" | "assinatura")
-        : ("geral" as const),
-  }),
+      s.tab === "assinatura" ||
+      s.tab === "geral"
+        ? (s.tab as "geral" | "aparencia" | "seguranca" | "assinatura")
+        : undefined;
+    return tab ? { tab } : {};
+  },
 });
 
 function SettingsPage() {
@@ -54,7 +56,7 @@ function SettingsPage() {
     <div className="h-full overflow-y-auto">
       <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
         <h1 className="text-2xl font-bold mb-6">Configurações</h1>
-        <Tabs defaultValue={tab}>
+        <Tabs defaultValue={tab ?? "geral"}>
           <TabsList className="grid grid-cols-4 w-full mb-6">
             <TabsTrigger value="geral">Geral</TabsTrigger>
             <TabsTrigger value="aparencia">Aparência</TabsTrigger>
