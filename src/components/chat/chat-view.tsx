@@ -231,6 +231,7 @@ export function ChatView({ conversationId }: Props) {
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [fillText, setFillText] = useState<string | undefined>();
   const [checkoutPlan, setCheckoutPlan] = useState<PlanId | null>(null);
+  const [planRefreshPending, setPlanRefreshPending] = useState(false);
   const latestPlanRef = useRef<ActivePlanSnapshot>(
     buildActivePlanSnapshot(subscription, planLoading),
   );
@@ -250,6 +251,7 @@ export function ChatView({ conversationId }: Props) {
       true,
     );
     latestPlanRef.current = pendingSnapshot;
+    setPlanRefreshPending(true);
 
     const refreshPromise = queryClient
       .fetchQuery({
@@ -269,6 +271,7 @@ export function ChatView({ conversationId }: Props) {
         return fallbackSnapshot;
       })
       .finally(() => {
+        setPlanRefreshPending(false);
         planRefreshPromiseRef.current = null;
       });
 
