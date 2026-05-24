@@ -485,7 +485,7 @@ export function ChatView({ conversationId }: Props) {
       if (ANIMATION_STATUS_QUESTION_RE.test(text)) {
         // fall through to normal chat handling
       } else {
-      await handleAnimationComingSoon(text, baseMessages);
+      await handleVideoIntent(text, null, baseMessages);
       return;
       }
     }
