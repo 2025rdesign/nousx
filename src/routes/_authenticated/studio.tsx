@@ -1264,6 +1264,30 @@ function StudioInner() {
                           e.stopPropagation();
                           await toggleFn({ data: { id: c.id, isPublic: !c.is_public } });
                           qc.invalidateQueries({ queryKey: ["my-characters"] });
+                          // Optimistic insert/remove into Explorar cache so the new
+                          // public image appears (or disappears) immediately.
+                          qc.setQueryData<any[]>(["public-characters"], (old) => {
+                            const list = old ?? [];
+                            if (!c.is_public) {
+                              if (list.some((x) => x?.id === c.id)) return list;
+                              return [
+                                {
+                                  id: c.id,
+                                  image_url: c.image_url,
+                                  name: c.name,
+                                  display_name: c.name || "Criação AuraIA",
+                                  created_at: new Date().toISOString(),
+                                  user_id: null,
+                                  profile_id: c.profile_id ?? null,
+                                  creator_name: null,
+                                },
+                                ...list,
+                              ];
+                            }
+                            return list.filter((x) => x?.id !== c.id);
+                          });
+                          qc.invalidateQueries({ queryKey: ["public-characters"] });
+                          qc.invalidateQueries({ queryKey: ["public-profiles"] });
                           notify.success(c.is_public ? "Tornada privada." : "Publicada.");
                         }}
                       >
