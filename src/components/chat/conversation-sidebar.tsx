@@ -207,7 +207,7 @@ export function ConversationSidebar({
       to: "/explorar",
       label: "Explorar",
       icon: Compass,
-      prefetch: () => import("@/routes/_authenticated/explorar"),
+      prefetch: () => import("@/routes/explorar"),
     },
   ];
 

@@ -158,13 +158,35 @@ export const listPublicCharacters = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("characters")
-      .select("id, name, image_url, created_at, user_id")
+      .select("id, name, image_url, created_at, user_id, profile_id")
       .eq("is_public", true)
+      .eq("is_approved", true)
       .not("image_url", "is", null)
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
-    return await attachCreator(supabaseAdmin, dedupeById(data || []));
+    const rows = dedupeById(data || []);
+    const profileIds = Array.from(
+      new Set(rows.map((r: any) => r.profile_id).filter(Boolean)),
+    ) as string[];
+    let profileNameMap = new Map<string, string | null>();
+    if (profileIds.length > 0) {
+      const { data: profs } = await supabaseAdmin
+        .from("character_profiles")
+        .select("id, name")
+        .in("id", profileIds);
+      profileNameMap = new Map(
+        (profs || []).map((p: any) => [p.id, p.name ?? null]),
+      );
+    }
+    const withTitles = rows.map((r: any) => ({
+      ...r,
+      display_name:
+        (r.profile_id && profileNameMap.get(r.profile_id)) ||
+        r.name ||
+        "Criação AuraIA",
+    }));
+    return await attachCreator(supabaseAdmin, withTitles);
   });
 
 export const listPublicProfiles = createServerFn({ method: "GET" })
@@ -174,6 +196,7 @@ export const listPublicProfiles = createServerFn({ method: "GET" })
       .from("character_profiles")
       .select("id, name, appearance, base_image_url, created_at, user_id")
       .eq("is_public", true)
+      .eq("is_approved", true)
       .not("base_image_url", "is", null)
       .order("created_at", { ascending: false })
       .limit(200);

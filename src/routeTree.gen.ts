@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as ExplorarRouteImport } from './routes/explorar'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
@@ -25,7 +26,6 @@ import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiCaktoWebhookRouteImport } from './routes/api/cakto-webhook'
 import { Route as AuthenticatedStudioRouteImport } from './routes/_authenticated/studio'
 import { Route as AuthenticatedGaleriaRouteImport } from './routes/_authenticated/galeria'
-import { Route as AuthenticatedExplorarRouteImport } from './routes/_authenticated/explorar'
 import { Route as AuthenticatedCreditosRouteImport } from './routes/_authenticated/creditos'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as ApiPublicChatAnonRouteImport } from './routes/api/public/chat-anon'
@@ -41,6 +41,11 @@ const TermosRoute = TermosRouteImport.update({
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
   id: '/privacidade',
   path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExplorarRoute = ExplorarRouteImport.update({
+  id: '/explorar',
+  path: '/explorar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -112,11 +117,6 @@ const AuthenticatedGaleriaRoute = AuthenticatedGaleriaRouteImport.update({
   path: '/galeria',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedExplorarRoute = AuthenticatedExplorarRouteImport.update({
-  id: '/explorar',
-  path: '/explorar',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedCreditosRoute = AuthenticatedCreditosRouteImport.update({
   id: '/creditos',
   path: '/creditos',
@@ -153,11 +153,11 @@ const AuthenticatedCConversationIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/explorar': typeof ExplorarRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/creditos': typeof AuthenticatedCreditosRoute
-  '/explorar': typeof AuthenticatedExplorarRoute
   '/galeria': typeof AuthenticatedGaleriaRoute
   '/studio': typeof AuthenticatedStudioRoute
   '/api/cakto-webhook': typeof ApiCaktoWebhookRoute
@@ -177,11 +177,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/explorar': typeof ExplorarRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/creditos': typeof AuthenticatedCreditosRoute
-  '/explorar': typeof AuthenticatedExplorarRoute
   '/galeria': typeof AuthenticatedGaleriaRoute
   '/studio': typeof AuthenticatedStudioRoute
   '/api/cakto-webhook': typeof ApiCaktoWebhookRoute
@@ -203,11 +203,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
+  '/explorar': typeof ExplorarRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/creditos': typeof AuthenticatedCreditosRoute
-  '/_authenticated/explorar': typeof AuthenticatedExplorarRoute
   '/_authenticated/galeria': typeof AuthenticatedGaleriaRoute
   '/_authenticated/studio': typeof AuthenticatedStudioRoute
   '/api/cakto-webhook': typeof ApiCaktoWebhookRoute
@@ -229,11 +229,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/explorar'
     | '/privacidade'
     | '/termos'
     | '/configuracoes'
     | '/creditos'
-    | '/explorar'
     | '/galeria'
     | '/studio'
     | '/api/cakto-webhook'
@@ -253,11 +253,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/explorar'
     | '/privacidade'
     | '/termos'
     | '/configuracoes'
     | '/creditos'
-    | '/explorar'
     | '/galeria'
     | '/studio'
     | '/api/cakto-webhook'
@@ -278,11 +278,11 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/explorar'
     | '/privacidade'
     | '/termos'
     | '/_authenticated/configuracoes'
     | '/_authenticated/creditos'
-    | '/_authenticated/explorar'
     | '/_authenticated/galeria'
     | '/_authenticated/studio'
     | '/api/cakto-webhook'
@@ -304,6 +304,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ExplorarRoute: typeof ExplorarRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   TermosRoute: typeof TermosRoute
   ApiCaktoWebhookRoute: typeof ApiCaktoWebhookRoute
@@ -334,6 +335,13 @@ declare module '@tanstack/react-router' {
       path: '/privacidade'
       fullPath: '/privacidade'
       preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explorar': {
+      id: '/explorar'
+      path: '/explorar'
+      fullPath: '/explorar'
+      preLoaderRoute: typeof ExplorarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -434,13 +442,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGaleriaRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/explorar': {
-      id: '/_authenticated/explorar'
-      path: '/explorar'
-      fullPath: '/explorar'
-      preLoaderRoute: typeof AuthenticatedExplorarRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/creditos': {
       id: '/_authenticated/creditos'
       path: '/creditos'
@@ -489,7 +490,6 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedCreditosRoute: typeof AuthenticatedCreditosRoute
-  AuthenticatedExplorarRoute: typeof AuthenticatedExplorarRoute
   AuthenticatedGaleriaRoute: typeof AuthenticatedGaleriaRoute
   AuthenticatedStudioRoute: typeof AuthenticatedStudioRoute
   AuthenticatedCConversationIdRoute: typeof AuthenticatedCConversationIdRoute
@@ -498,7 +498,6 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedCreditosRoute: AuthenticatedCreditosRoute,
-  AuthenticatedExplorarRoute: AuthenticatedExplorarRoute,
   AuthenticatedGaleriaRoute: AuthenticatedGaleriaRoute,
   AuthenticatedStudioRoute: AuthenticatedStudioRoute,
   AuthenticatedCConversationIdRoute: AuthenticatedCConversationIdRoute,
@@ -512,6 +511,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
+  ExplorarRoute: ExplorarRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   TermosRoute: TermosRoute,
   ApiCaktoWebhookRoute: ApiCaktoWebhookRoute,
