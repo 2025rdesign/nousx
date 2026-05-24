@@ -18,11 +18,8 @@ import { FloatingAudioPlayer } from "@/components/chat/audio-player";
 import { SwRegister } from "@/components/sw-register";
 import { AppErrorBoundary } from "@/components/error-boundary";
 import { installChunkReloadHandler } from "@/lib/chunk-reload";
-import { getMyVideoJobs } from "@/lib/video-jobs.functions";
 import { useEffect } from "react";
-import { useRef } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
 
 function NotFoundComponent() {
   return (
