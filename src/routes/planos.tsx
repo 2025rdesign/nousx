@@ -132,7 +132,7 @@ function PlanosPage() {
     if (id === "free") {
       return (
         <div className="mt-2">
-          <p className="text-4xl font-bold tracking-tight" style={{ color: "#ffffff" }}>R$ 0</p>
+          <p className="text-4xl font-bold tracking-tight" style={{ color: "#4ade80" }}>R$ 0</p>
           <p className="mt-1 text-xs" style={{ color: "#9ca3af" }}>para sempre</p>
         </div>
       );
@@ -141,7 +141,7 @@ function PlanosPage() {
       return (
         <div className="mt-2">
           <p className="text-xs" style={{ color: "#9ca3af" }}>A partir de</p>
-          <p className="mt-1 text-4xl font-bold tracking-tight" style={{ color: "#ffffff" }}>
+          <p className="mt-1 text-4xl font-bold tracking-tight" style={{ color: "#4ade80" }}>
             R$ 14,90
           </p>
         </div>
@@ -155,7 +155,7 @@ function PlanosPage() {
           key={`${id}-${period}`}
           className="flex items-baseline gap-1 animate-fade-in"
         >
-          <span className="text-4xl font-bold tracking-tight tabular-nums" style={{ color: "#ffffff" }}>
+          <span className="text-4xl font-bold tracking-tight tabular-nums" style={{ color: "#4ade80" }}>
             {fmtBRL(monthly)}
           </span>
           <span className="text-sm" style={{ color: "#9ca3af" }}>/mês</span>
@@ -367,12 +367,15 @@ function PlanosPage() {
                 >
                   {card.label}
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold" style={{ color: "#ffffff" }}>
+                <h2 className="mt-2 text-2xl font-semibold" style={{ color: "#8B6FFF" }}>
                   {card.name}
                 </h2>
 
                 {card.highlighted && (
-                  <p className="mt-3 text-xs italic" style={{ color: "#8B6FFF" }}>
+                  <p
+                    className="mt-3 uppercase"
+                    style={{ color: "#8B6FFF", fontSize: "11px", fontWeight: 500, letterSpacing: "0.05em" }}
+                  >
                     Mais escolhido
                   </p>
                 )}
