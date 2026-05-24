@@ -214,6 +214,52 @@ button, a, [role="button"] {
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }
   }
+  /* AuraIA image-generation loader: pulsing purple glow */
+  @keyframes aura-glow {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(108, 71, 255, 0.45),
+                  inset 0 0 30px rgba(108, 71, 255, 0.18);
+      background-position: 0% 50%;
+    }
+    50% {
+      box-shadow: 0 0 40px 8px rgba(108, 71, 255, 0.55),
+                  inset 0 0 60px rgba(108, 71, 255, 0.32);
+      background-position: 100% 50%;
+    }
+  }
+  .aura-glow {
+    background: linear-gradient(135deg,
+      #1C1C26 0%,
+      color-mix(in oklab, #6C47FF 35%, #1C1C26) 50%,
+      #1C1C26 100%);
+    background-size: 200% 200%;
+    animation: aura-glow 2.2s ease-in-out infinite;
+  }
+  /* Determinate progress fill (image generation, ~15s) */
+  @keyframes aura-progress-fill {
+    0% { width: 0%; }
+    100% { width: 96%; }
+  }
+  .aura-progress-fill {
+    animation: aura-progress-fill 15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  /* Indeterminate progress slide (video animation, unknown duration) */
+  @keyframes aura-progress-loop {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+  }
+  .aura-progress-loop {
+    width: 30%;
+    animation: aura-progress-loop 1.8s ease-in-out infinite;
+  }
+  /* Smooth fade-in for arrived images */
+  @keyframes aura-image-in {
+    from { opacity: 0; transform: scale(0.98); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .aura-image-in {
+    animation: aura-image-in 0.3s ease-out;
+  }
 }
 
 /* Studio center column custom scrollbar */
