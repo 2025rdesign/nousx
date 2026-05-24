@@ -186,8 +186,10 @@ export const Route = createFileRoute("/api/animate-image")({
 
           if (!finalUrl && requestId) {
             const started = Date.now();
+            let attempt = 0;
             while (Date.now() - started < POLL_TIMEOUT_MS) {
               await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+              attempt += 1;
               const pollRes = await fetch(`${XAI_VIDEO_STATUS}/${requestId}`, {
                 headers: { Authorization: `Bearer ${apiKey}` },
               });
@@ -207,6 +209,7 @@ export const Route = createFileRoute("/api/animate-image")({
                 url?: string;
               };
               const status = pollData.status ?? "";
+              console.log("[VIDEO] status:", status, "attempt:", attempt);
               if (
                 status === "done" ||
                 status === "completed" ||
