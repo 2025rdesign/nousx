@@ -642,9 +642,157 @@ function StudioInner() {
                   </ScrollArea>
                 </div>
 
+                {/* Pose selector (mesmo da criação) */}
+                <div className="space-y-2 rounded-lg border border-border p-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <Switch
+                      checked={poseEnabled}
+                      onCheckedChange={(v) => {
+                        setPoseEnabled(v);
+                        if (!v) {
+                          setPoseId(null);
+                          setPoseType(null);
+                        }
+                      }}
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">Pose</div>
+                      <p className="text-xs text-muted-foreground">
+                        Escolha uma pose específica ou deixe a IA decidir.
+                      </p>
+                    </div>
+                  </label>
+                  {poseEnabled && (
+                    <div className="space-y-3 pt-1">
+                      <div className="flex flex-wrap gap-1.5">
+                        {POSE_CATEGORIES.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => setPoseCategory(c.id)}
+                            className={cn(
+                              "h-7 px-3 rounded-full text-[11px] border transition-colors",
+                              poseCategory === c.id
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-transparent border-border text-muted-foreground hover:text-foreground hover:border-foreground/40",
+                            )}
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {filteredPoses.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              setPoseId(p.id);
+                              setPoseType(p.category.toUpperCase());
+                            }}
+                            className={cn(
+                              "group size-20 rounded-lg overflow-hidden bg-muted transition-all",
+                              poseId === p.id
+                                ? "ring-2 ring-primary"
+                                : "ring-1 ring-border hover:ring-foreground/40",
+                            )}
+                            title={p.label}
+                          >
+                            <img
+                              src={p.preview}
+                              alt={p.label}
+                              loading="lazy"
+                              className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.05]"
+                            />
+                          </button>
+                        ))}
+                      </div>
+                      {poseId && (
+                        <div className="space-y-1.5 pt-1">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs text-muted-foreground">
+                              Forca da pose
+                            </Label>
+                            <span className="text-xs tabular-nums text-foreground">
+                              {poseStrength}
+                            </span>
+                          </div>
+                          <Slider
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={[poseStrength]}
+                            onValueChange={(v) => setPoseStrength(v[0] ?? 80)}
+                          />
+                        </div>
+                      )}
+                      <div className="space-y-1.5 pt-1">
+                        <Label
+                          htmlFor="edit-pose-prompt"
+                          className="text-xs text-muted-foreground"
+                        >
+                          Descrever pose (opcional)
+                        </Label>
+                        <Textarea
+                          id="edit-pose-prompt"
+                          value={posePrompt}
+                          onChange={(e) => setPosePrompt(e.target.value)}
+                          rows={2}
+                          placeholder="Ex: sentada com as pernas cruzadas, bracos levantados, olhando para o lado..."
+                          className="resize-none text-[13px] leading-relaxed"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="text-center text-xs text-muted-foreground">
                   Esta edição custará <span className="font-semibold text-foreground">1 crédito</span>.
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-primary text-primary hover:bg-primary/10 hover:text-primary"
+                  disabled={!appearance.trim() || improving || isLoading}
+                  onClick={async () => {
+                    try {
+                      setImproving(true);
+                      const r = await improveFn({
+                        data: {
+                          prompt: appearance.trim(),
+                          model,
+                          gender,
+                          aspectRatio: aspect,
+                          editModel,
+                          highQuality,
+                          poseLabel: poseId
+                            ? (POSES.find((p) => p.id === poseId)?.posePrompt
+                                || POSES.find((p) => p.id === poseId)?.label
+                                || undefined)
+                            : (posePrompt.trim() || undefined),
+                        },
+                      });
+                      setAppearance(r.prompt);
+                      notify.success("Prompt melhorado!");
+                    } catch (e) {
+                      notify.error(e instanceof Error ? e.message : "Erro ao melhorar.");
+                    } finally {
+                      setImproving(false);
+                    }
+                  }}
+                >
+                  {improving ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Melhorando...
+                    </>
+                  ) : (
+                    <>
+                      <SparklesIcon className="size-4" />
+                      Melhorar prompt com IA
+                    </>
+                  )}
+                </Button>
                 <Button
                   className="w-full"
                   disabled={!appearance.trim() || isLoading}
