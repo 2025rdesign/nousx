@@ -225,7 +225,6 @@ export function ConversationSidebar({
         { to: "/studio" },
         { to: "/galeria" },
         { to: "/explorar" },
-        { to: "/planos" },
         { to: "/configuracoes" },
       ];
       targets.forEach((t) => {
