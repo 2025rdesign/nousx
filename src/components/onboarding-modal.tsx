@@ -30,18 +30,24 @@ const STEPS: OnboardingStep[] = [
 
 const STORAGE_KEY = "auraia-onboarding-done";
 
+function readOnboardingDone(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    return localStorage.getItem(STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
 export function OnboardingModal() {
   const [step, setStep] = useState(0);
-  const [visible, setVisible] = useState(false);
+  // Bail out IMMEDIATELY if the flag exists — never render the modal again.
+  const [visible, setVisible] = useState<boolean>(() => !readOnboardingDone());
 
   useEffect(() => {
-    try {
-      const done = localStorage.getItem(STORAGE_KEY);
-      if (!done) {
-        setVisible(true);
-      }
-    } catch {
-      /* ignore */
+    // Defensive re-check in case the first render happened during SSR.
+    if (readOnboardingDone()) {
+      setVisible(false);
     }
   }, []);
 
