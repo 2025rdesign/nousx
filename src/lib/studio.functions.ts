@@ -144,7 +144,7 @@ export const listMyCharacters = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     let q = supabase
       .from("characters")
-      .select("id, name, image_url, media_id, profile_id, is_public, status, created_at")
+      .select("id, name, image_url, media_id, prompt_id, profile_id, is_public, status, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (data?.profileId) q = q.eq("profile_id", data.profileId);
