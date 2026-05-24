@@ -496,6 +496,28 @@ export const generateCharacter = createServerFn({ method: "POST" })
           (body as Record<string, unknown>).pose = pose;
         }
       }
+    } else if (data.mode === "edit") {
+      if (!data.sourceMediaId) throw new Error("Imagem de origem ausente.");
+      endpoint = `${ALIVEAI_BASE}/prompts/edit-image`;
+      const variationPrompt = `extract this person keep her appearance, skin color, face and body shape. ${combinedAppearance}`;
+      body = {
+        editModel: data.editModel ?? "QWEN_PRO",
+        mediaId: data.sourceMediaId,
+        prompt: variationPrompt,
+        ...(translatedFace ? { faceDetails: translatedFace } : {}),
+        ...(translatedScene ? { scene: translatedScene } : {}),
+        ...(data.sourcePromptId ? { createdFromPromptId: data.sourcePromptId } : {}),
+        aspectRatio: mapAspectRatio(data.aspectRatio),
+        faceImproveEnabled: true,
+        faceImproveStrength: 7,
+        restoreFace: true,
+        cfg: cfgFromLevel ?? 7,
+      };
+      {
+        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength);
+        if (pose) (body as Record<string, unknown>).pose = pose;
+      }
+      console.log("[EDIT IMAGE]", JSON.stringify(body));
     } else {
       if (!data.profileId) throw new Error("Personagem não encontrado.");
       const { data: profile, error: pErr } = await supabase
