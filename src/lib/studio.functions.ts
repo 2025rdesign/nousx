@@ -377,7 +377,6 @@ const generateSchema = z.object({
   gender: z.enum(["FEMALE", "MALE", "TRANS"]).optional(),
   createProfile: z.boolean().optional(),
   negativePrompt: z.string().max(500).optional(),
-  creativity: z.enum(["low", "medium", "high"]).optional(),
   // variation
   profileId: z.string().uuid().optional(),
   editModel: z.enum(["CREATIVE", "REALISM", "QWEN_PRO"]).optional(),
@@ -468,7 +467,6 @@ export const generateCharacter = createServerFn({ method: "POST" })
       if (!data.name || !data.model || !data.gender) {
         throw new Error("Preencha nome, estilo e gênero.");
       }
-      const cfgMap = { low: 4, medium: 7, high: 10 } as const;
       const userNeg = (data.negativePrompt ?? "").trim();
       const baseNeg = "deformed, bad anatomy, extra fingers, missing fingers, bad hands, blurry, low quality, watermark, text";
       body = {
@@ -480,7 +478,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         model: data.model,
         gender: data.gender,
         aspectRatio: mapAspectRatio(data.aspectRatio),
-        cfg: cfgFromLevel ?? cfgMap[data.creativity ?? "medium"],
+        cfg: cfgFromLevel ?? 7,
         faceImproveEnabled: true,
         faceModel: "REALISM",
         faceImproveStrength: 5,
