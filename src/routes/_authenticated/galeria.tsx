@@ -663,11 +663,11 @@ function Gallery() {
                 variant="outline"
                 className="w-full justify-start gap-3 min-h-[52px] text-base"
                 onClick={() => {
-                  notify.info("Publicação em breve.");
+                  void togglePublic(actionSheetItem);
                   setActionSheetIdx(null);
                 }}
               >
-                🌐 Publicar
+                {actionSheetItem.is_public ? "🙈 Remover do Explorar" : "🌐 Tornar pública"}
               </Button>
               <Button
                 variant="outline"
