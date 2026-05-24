@@ -29,7 +29,7 @@ const IMAGE_INTENT_RE =
   /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|quero\s+ver|me\s+mostr(?:a|e)|mostr(?:a|e)|fa(?:z|ze)|coloca|bota|p[õo]e|desenh(?:a|e|ar)|pint(?:a|e|ar)|me\s+(?:d[áa]|d[êe]|manda|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?|generate|create|make|draw|render|produce|design|build|illustrate)\b/i;
 
 const IMAGE_TARGET_RE =
-  /\b(image(?:m|ns|s)?|fotos?|photos?|pictures?|ilustra[cç](?:[ãa]o|[õo]es)|illustrations?|desenhos?|figuras?|artes?|artworks?|pinturas?|wallpapers?|retratos?|portraits?|p[ôo]ster(?:es)?|posters?|banners?|capas?|covers?|vetor(?:es|ial|iais)?|logos?|logotipos?|[íi]cones?|icons?|stickers?|emojis?|avatares?|avatars?|personagens?|characters?|cenas?|scenes?|gifs?|thumbnails?|miniaturas?|mulheres?|homens?|pessoas?|modelos?|rostos?|selfies?)\b/i;
+  /\b(image(?:m|ns|s)?|fotos?|photos?|pictures?|ilustra[cç](?:[ãa]o|[õo]es)|illustrations?|desenhos?|figuras?|artes?|artworks?|pinturas?|wallpapers?|retratos?|portraits?|p[ôo]ster(?:es)?|posters?|banners?|capas?|covers?|vetor(?:es|ial|iais)?|logos?|logotipos?|[íi]cones?|icons?|stickers?|emojis?|avatares?|avatars?|personagens?|characters?|cenas?|scenes?|gifs?|thumbnails?|miniaturas?|mulher(?:es)?|homem(?:ens)?|pessoa(?:s)?|modelo(?:s)?|rosto(?:s)?|selfies?)\b/i;
 
 // Detecta descrições visuais explícitas mesmo sem verbo de geração
 // (ex.: "YouTube thumbnail, 1280x720px, minimalist design...").
@@ -582,8 +582,8 @@ export function ChatView({ conversationId }: Props) {
       // Ignore status questions like "terminou?" — the chat AI will answer them
       // instead of firing a new animation.
       if (wantsVideo) {
-      await handleVideoIntent(text, null, baseMessages);
-      return;
+        await handleVideoIntent(text, null, baseMessages);
+        return;
       }
     }
 
