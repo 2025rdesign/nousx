@@ -504,6 +504,21 @@ export function ChatView({ conversationId }: Props) {
         console.log("[IMG 2] chamando API");
         console.log("[CHAT] chamando /api/generate-image (DeepSeek bypassado)");
 
+        // Pre-gate by plan: never call DeepSeek nor /api/generate-image
+        // when the user is not on Plus/Ultra — show the plan-required
+        // bubble and stop.
+        if (!hasActive || (planId !== "plus" && planId !== "ultra")) {
+          await appendAssistantMessage({
+            convId,
+            text: PLAN_PLUS_REQUIRED_TEXT,
+            isNew,
+            titleSeed: text,
+            baseMessages,
+            userMsg,
+          });
+          return;
+        }
+
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData.session?.access_token;
         if (!token) throw new Error("Sessão expirada.");
