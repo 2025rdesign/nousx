@@ -108,7 +108,7 @@ function Gallery() {
     getNextPageParam: (last, all) =>
       last.hasMore ? all.length : undefined,
     initialPageParam: 0,
-    staleTime: 30_000,
+    staleTime: 60_000,
   });
 
   const items = useMemo<GalleryItem[]>(
