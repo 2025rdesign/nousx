@@ -186,7 +186,7 @@ export function ConversationSidebar({
   const groups = groupByDate(unpinned);
 
   const navItems: Array<{
-    to: "/studio" | "/galeria" | "/explorar" | "/planos";
+    to: "/studio" | "/galeria" | "/explorar";
     label: string;
     icon: any;
     prefetch: () => Promise<unknown>;
@@ -208,12 +208,6 @@ export function ConversationSidebar({
       label: "Explorar",
       icon: Compass,
       prefetch: () => import("@/routes/explorar"),
-    },
-    {
-      to: "/planos",
-      label: "Planos",
-      icon: CreditCard,
-      prefetch: () => import("@/routes/planos"),
     },
   ];
 
