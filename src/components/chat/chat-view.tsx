@@ -22,6 +22,7 @@ import { VoiceModeModal } from "./voice-mode-modal";
 import { PlanCheckoutDialog } from "@/components/payments/subscription-tab";
 import { getCredits } from "@/lib/credits.functions";
 import type { PlanId } from "@/lib/payments-config";
+import { getMyVideoJobs } from "@/lib/video-jobs.functions";
 
 const IMAGE_INTENT_RE =
   /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|me\s+(?:d[áa]|d[êe]|manda|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?|generate|create|make|draw|render|produce|design|build|illustrate)\b[^\n]{0,30}\b(image(?:m|ns|s)?|fotos?|photos?|pictures?|ilustra[cç](?:[ãa]o|[õo]es)|illustrations?|desenhos?|figuras?|artes?|artworks?|pinturas?|wallpapers?|retratos?|portraits?|p[ôo]ster(?:es)?|posters?|banners?|capas?|covers?|vetor(?:es|ial|iais)?|logos?|logotipos?|[íi]cones?|icons?|stickers?|emojis?|avatares?|avatars?|personagens?|characters?|cenas?|scenes?|gifs?|thumbnails?|miniaturas?)\b([^\n]*)/i;
@@ -149,6 +150,7 @@ export function ChatView({ conversationId }: Props) {
   const { user } = useAuth();
   const fetchSubServerFn = useServerFn(getMySubscription);
   const fetchCreditsFn = useServerFn(getCredits);
+  const fetchVideoJobs = useServerFn(getMyVideoJobs);
 
   const [messages, setMessages] = useState<ChatMsg[]>(() => {
     if (!conversationId) return [];
@@ -184,11 +186,11 @@ export function ChatView({ conversationId }: Props) {
   // so we animate THAT image, not the most recent one.
   useEffect(() => {
     function onAnimate(e: Event) {
-      const detail = (e as CustomEvent<{ imageUrl?: string }>).detail;
+      const detail = (e as CustomEvent<{ imageUrl?: string; reset?: () => void }>).detail;
       const url = detail?.imageUrl;
       if (!url) return;
       // Reuse the same flow as the VIDEO_INTENT_RE detection.
-      void handleVideoIntent("Animar essa imagem", url, messages);
+      void handleVideoIntent("Animar essa imagem", url, messages, detail?.reset);
     }
     window.addEventListener("aura:animate-image", onAnimate as EventListener);
     return () =>
@@ -365,6 +367,7 @@ export function ChatView({ conversationId }: Props) {
     text: string,
     sourceImageUrl: string | null,
     baseMessages: ChatMsg[],
+    resetButton?: () => void,
   ) {
     setSending(true);
     setAwaitingReply(true);
@@ -461,9 +464,7 @@ export function ChatView({ conversationId }: Props) {
         return;
       }
 
-      // The TypingIndicator (mode="video") shows the pulsing placeholder,
-      // "🎬 Gerando animação..." text and looping progress bar while we wait.
-      // Call animate endpoint (server deducts + refunds credits)
+      // The background poller will complete the job and append the video later.
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       if (!token) throw new Error("Sessão expirada.");
@@ -508,31 +509,32 @@ export function ChatView({ conversationId }: Props) {
         return;
       }
 
-      const data = (await res.json()) as { videoUrl: string };
-      const caption = "Aqui está sua animação! 🎬";
-      const videoMsg: ChatMsg = {
-        id: `assistant-video-${Date.now()}`,
+      await res.json().catch(() => null);
+      const queuedText =
+        "🎬 Sua animação está sendo gerada. Pode levar alguns minutos. Você será notificado quando estiver pronta na sua Galeria.";
+      const queuedMsg: ChatMsg = {
+        id: `assistant-video-job-${Date.now()}`,
         role: "assistant",
-        content: caption,
-        image_url: data.videoUrl, // reused field — MessageItem detects .mp4
+        content: queuedText,
         streaming: false,
       };
       setSending(false);
       setAwaitingReply(false);
       setInflightMode("default");
-      setMessages((prev) => [...prev, videoMsg]);
+      setMessages((prev) => [...prev, queuedMsg]);
       await saveMsg({
         data: {
           conversationId: convId,
           role: "assistant",
-          content: caption,
-          imageUrl: data.videoUrl,
+          content: queuedText,
         },
       }).catch(() => undefined);
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       queryClient.invalidateQueries({ queryKey: ["credits"] });
       queryClient.invalidateQueries({ queryKey: ["gallery-v2"] });
       queryClient.invalidateQueries({ queryKey: ["messages", convId] });
+      queryClient.invalidateQueries({ queryKey: ["video-jobs"] });
+      void fetchVideoJobs({ data: { statuses: ["processing", "pending"] } }).catch(() => undefined);
 
       if (isNew) {
         try {
@@ -542,7 +544,7 @@ export function ChatView({ conversationId }: Props) {
         }
         queryClient.setQueryData<ChatMsg[]>(
           ["messages", convId],
-          [...baseMessages, userMsg, videoMsg].map((m) => ({
+          [...baseMessages, userMsg, queuedMsg].map((m) => ({
             ...m,
             streaming: false,
           })),
@@ -562,6 +564,7 @@ export function ChatView({ conversationId }: Props) {
         });
       }
     } finally {
+      resetButton?.();
       setSending(false);
       setAwaitingReply(false);
       setInflightMode("default");

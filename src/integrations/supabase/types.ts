@@ -527,6 +527,51 @@ export type Database = {
         }
         Relationships: []
       }
+      video_jobs: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          credits_charged: boolean
+          error_message: string | null
+          final_video_url: string | null
+          id: string
+          provider: string
+          source_image_url: string
+          status: string
+          updated_at: string
+          user_id: string
+          xai_request_id: string | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          credits_charged?: boolean
+          error_message?: string | null
+          final_video_url?: string | null
+          id?: string
+          provider?: string
+          source_image_url: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          xai_request_id?: string | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          credits_charged?: boolean
+          error_message?: string | null
+          final_video_url?: string | null
+          id?: string
+          provider?: string
+          source_image_url?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          xai_request_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

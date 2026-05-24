@@ -103,7 +103,18 @@ function Gallery() {
   const queryClient = useQueryClient();
   const fetchList = useServerFn(listGallery);
   const delFn = useServerFn(deleteGalleryItem);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>(() => {
+    if (typeof window === "undefined") return "all";
+    const search = new URLSearchParams(window.location.search);
+    const value = search.get("filter");
+    return value === "chat" ||
+      value === "studio" ||
+      value === "audio" ||
+      value === "video" ||
+      value === "all"
+      ? value
+      : "all";
+  });
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const [actionSheetIdx, setActionSheetIdx] = useState<number | null>(null);
   const isCoarsePointer = useCoarsePointer();
