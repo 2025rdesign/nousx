@@ -17,7 +17,13 @@ import {
   getPixStatus,
   getProfileCpf,
 } from "@/lib/mercadopago.functions";
-import { CREDIT_PACKS, PLANS, type CreditPackId, type PlanId } from "@/lib/payments-config";
+import {
+  CREDIT_PACKS,
+  PLANS,
+  type BillingPeriod,
+  type CreditPackId,
+  type PlanId,
+} from "@/lib/payments-config";
 
 export type PixModalProps = {
   open: boolean;
@@ -27,6 +33,7 @@ export type PixModalProps = {
   name: string;
   amount: number;
   couponCode?: string | null;
+  billingPeriod?: BillingPeriod;
   onPaid?: () => void;
 };
 
@@ -51,7 +58,7 @@ type PixData = {
 };
 
 export function MpPixModal(props: PixModalProps) {
-  const { open, onOpenChange, kind, id, name, amount, couponCode, onPaid } = props;
+  const { open, onOpenChange, kind, id, name, amount, couponCode, billingPeriod, onPaid } = props;
   const qc = useQueryClient();
 
   const fetchCpf = useServerFn(getProfileCpf);
@@ -101,6 +108,7 @@ export function MpPixModal(props: PixModalProps) {
           id,
           couponCode: couponCode ?? null,
           cpf: cpf ?? undefined,
+          billingPeriod: kind === "subscription" ? billingPeriod ?? "monthly" : undefined,
         },
       }),
     onSuccess: (res) => {
