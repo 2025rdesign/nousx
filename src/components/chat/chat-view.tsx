@@ -1075,7 +1075,7 @@ export function ChatView({ conversationId }: Props) {
             </div>
           </div>
         ) : (
-          <EmptyState />
+          <EmptyState onSuggest={(t) => handleSend(t)} />
         )}
 
         <ChatInput
