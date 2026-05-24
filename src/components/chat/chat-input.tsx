@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { FileText, Globe, Paperclip, Send, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
