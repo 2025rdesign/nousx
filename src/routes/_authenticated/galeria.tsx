@@ -14,6 +14,8 @@ import {
   Trash2,
   AudioLines,
   Wand2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -39,6 +41,7 @@ import { downloadAsset } from "@/lib/download";
 import {
   listGallery,
   deleteGalleryItem,
+  setGalleryItemPublic,
   type GalleryItem,
 } from "@/lib/gallery.functions";
 import { GridPageSkeleton } from "@/components/route-skeletons";
@@ -103,6 +106,7 @@ function Gallery() {
   const queryClient = useQueryClient();
   const fetchList = useServerFn(listGallery);
   const delFn = useServerFn(deleteGalleryItem);
+  const togglePublicFn = useServerFn(setGalleryItemPublic);
   const [filter, setFilter] = useState<Filter>(() => {
     if (typeof window === "undefined") return "all";
     const search = new URLSearchParams(window.location.search);
@@ -156,6 +160,34 @@ function Gallery() {
     },
     onError: () => notify.error("Não foi possível excluir."),
   });
+
+  const togglePublic = async (img: Extract<GalleryItem, { kind: "image" }>) => {
+    const next = !img.is_public;
+    // optimistic update across all gallery-v2 caches
+    queryClient.setQueriesData<{ pages: { items: GalleryItem[]; hasMore: boolean }[] } | undefined>(
+      { queryKey: ["gallery-v2"] },
+      (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((p) => ({
+            ...p,
+            items: p.items.map((it) =>
+              it.kind === "image" && it.id === img.id ? { ...it, is_public: next } : it,
+            ),
+          })),
+        };
+      },
+    );
+    try {
+      await togglePublicFn({ data: { id: img.id, isPublic: next } });
+      notify.success(next ? "Imagem publicada no Explorar." : "Imagem removida do Explorar.");
+    } catch {
+      // revert
+      queryClient.invalidateQueries({ queryKey: ["gallery-v2"] });
+      notify.error("Não foi possível atualizar a visibilidade.");
+    }
+  };
 
   const showAudios = filter === "audio";
   const exitSelectMode = () => {
@@ -443,6 +475,21 @@ function Gallery() {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
+                        void togglePublic(img);
+                      }}
+                      className={cn(
+                        "pointer-events-auto inline-flex items-center justify-center size-9 rounded-full bg-background/90 hover:bg-background",
+                        img.is_public ? "text-emerald-500" : "text-foreground",
+                      )}
+                      title={img.is_public ? "Remover do Explorar" : "Tornar pública"}
+                      aria-label={img.is_public ? "Remover do Explorar" : "Tornar pública"}
+                    >
+                      {img.is_public ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
                         if (confirm("Excluir esta imagem?"))
                           del.mutate({ kind: "image", id: img.id });
                       }}
@@ -616,11 +663,11 @@ function Gallery() {
                 variant="outline"
                 className="w-full justify-start gap-3 min-h-[52px] text-base"
                 onClick={() => {
-                  notify.info("Publicação em breve.");
+                  void togglePublic(actionSheetItem);
                   setActionSheetIdx(null);
                 }}
               >
-                🌐 Publicar
+                {actionSheetItem.is_public ? "🙈 Remover do Explorar" : "🌐 Tornar pública"}
               </Button>
               <Button
                 variant="outline"

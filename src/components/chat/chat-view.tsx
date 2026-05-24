@@ -23,6 +23,7 @@ import { PlanCheckoutDialog } from "@/components/payments/subscription-tab";
 import { getCredits } from "@/lib/credits.functions";
 import type { PlanId } from "@/lib/payments-config";
 import { getMyVideoJobs } from "@/lib/video-jobs.functions";
+import { toast } from "sonner";
 
 const IMAGE_INTENT_RE =
   /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|me\s+(?:d[áa]|d[êe]|manda|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?|generate|create|make|draw|render|produce|design|build|illustrate)\b[^\n]{0,30}\b(image(?:m|ns|s)?|fotos?|photos?|pictures?|ilustra[cç](?:[ãa]o|[õo]es)|illustrations?|desenhos?|figuras?|artes?|artworks?|pinturas?|wallpapers?|retratos?|portraits?|p[ôo]ster(?:es)?|posters?|banners?|capas?|covers?|vetor(?:es|ial|iais)?|logos?|logotipos?|[íi]cones?|icons?|stickers?|emojis?|avatares?|avatars?|personagens?|characters?|cenas?|scenes?|gifs?|thumbnails?|miniaturas?)\b([^\n]*)/i;
@@ -35,6 +36,11 @@ const VISUAL_DESC_RE =
 // Intenção de animar/criar vídeo a partir de uma imagem.
 const VIDEO_INTENT_RE =
   /(anima(?:r|ç[ãa]o|te|tion)?|faz(?:er)?\s+(?:um\s+)?v[ií]deo|make\s+(?:a\s+)?video|transforma(?:r)?\s+(?:em|pra|para)\s+v[ií]deo|turn\s+(?:into|to)\s+video|dar\s+vida|bring\s+to\s+life|v[ií]deo\s+da\s+(?:imagem|foto)|video\s+(?:of|from)\s+(?:the\s+)?(?:image|photo)|movimento|moving|gif\s+animado|animated)/i;
+
+// Perguntas de STATUS sobre animação em andamento — nunca devem disparar
+// nem geração de imagem nem nova animação.
+const ANIMATION_STATUS_QUESTION_RE =
+  /(terminou|ficou\s+pronto|cad[êe]\s+o\s+v[ií]deo|quanto\s+tempo(?:\s+falta)?|gerou\s+o\s+v[ií]deo|t[áa]\s+pronto|ta\s+pronto|j[áa]\s+(?:ficou|acabou|terminou))/i;
 
 // Intenção de EDITAR uma imagem existente (não apenas analisar).
 const IMAGE_EDIT_INTENT_RE =
@@ -67,6 +73,9 @@ function detectImageIntent(text: string): boolean {
 
   // 2) Não dispara em perguntas sobre o serviço
   if (SERVICE_QUESTION_RE.test(trimmed)) return false;
+
+  // 3) Não dispara em perguntas sobre status de animação em andamento
+  if (ANIMATION_STATUS_QUESTION_RE.test(trimmed)) return false;
 
   const match = IMAGE_INTENT_RE.exec(trimmed);
   if (!match) {
@@ -151,6 +160,60 @@ export function ChatView({ conversationId }: Props) {
   const fetchSubServerFn = useServerFn(getMySubscription);
   const fetchCreditsFn = useServerFn(getCredits);
   const fetchVideoJobs = useServerFn(getMyVideoJobs);
+
+  // Background polling for video-animation jobs. While any job is pending or
+  // processing, the query refetches every 5s — each refetch advances the job
+  // server-side (see advancePendingVideoJobsForUser). On completion we refresh
+  // the chat messages and show a toast.
+  const seenCompletedJobsRef = useRef<Set<string>>(new Set());
+  const videoJobsQuery = useQuery({
+    queryKey: ["video-jobs", "active"],
+    queryFn: () => fetchVideoJobs({ data: { statuses: ["pending", "processing"] } }),
+    refetchInterval: (q) => {
+      const data = q.state.data as { status: string }[] | undefined;
+      const hasActive = (data ?? []).some(
+        (j) => j.status === "pending" || j.status === "processing",
+      );
+      return hasActive ? 5000 : false;
+    },
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
+
+  useEffect(() => {
+    const jobs = videoJobsQuery.data ?? [];
+    for (const job of jobs) {
+      const j = job as {
+        id: string;
+        status: string;
+        conversation_id: string | null;
+        final_video_url: string | null;
+      };
+      if (seenCompletedJobsRef.current.has(j.id)) continue;
+      if (j.status === "completed" && j.final_video_url) {
+        seenCompletedJobsRef.current.add(j.id);
+        toast.success("🎬 Animação pronta! Veja na Galeria.", {
+          action: {
+            label: "Ver na Galeria",
+            onClick: () => navigate({ to: "/galeria", search: { filter: "video" } as never }),
+          },
+        });
+        queryClient.invalidateQueries({ queryKey: ["gallery-v2"] });
+        if (j.conversation_id) {
+          queryClient.invalidateQueries({ queryKey: ["messages", j.conversation_id] });
+          if (j.conversation_id === conversationId) {
+            // reload current chat messages so the video bubble appears
+            void refetchMessages();
+          }
+        }
+      } else if (j.status === "failed") {
+        seenCompletedJobsRef.current.add(j.id);
+        toast.error("🎬 A animação falhou. Seus créditos foram devolvidos.");
+        queryClient.invalidateQueries({ queryKey: ["credits"] });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoJobsQuery.data, conversationId]);
 
   const [messages, setMessages] = useState<ChatMsg[]>(() => {
     if (!conversationId) return [];
@@ -598,10 +661,16 @@ export function ChatView({ conversationId }: Props) {
     // essa imagem" type requests.
     // ============================================================
     if (!file && VIDEO_INTENT_RE.test(text)) {
+      // Ignore status questions like "terminou?" — the chat AI will answer them
+      // instead of firing a new animation.
+      if (ANIMATION_STATUS_QUESTION_RE.test(text)) {
+        // fall through to normal chat handling
+      } else {
       const sourceImageForVideo =
         image ?? stickyImageRefRef.current ?? latestAssistantImageUrl ?? null;
       await handleVideoIntent(text, sourceImageForVideo, baseMessages);
       return;
+      }
     }
 
     // Follow-up fires for ANY recent image in the conversation
