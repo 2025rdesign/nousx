@@ -205,11 +205,11 @@ export function ChatView({ conversationId }: Props) {
     "🔍 Não consegui analisar essa imagem pelos filtros de conteúdo. " +
     "Descreva o que quer saber e tento ajudar de outra forma.";
   const PLAN_PLUS_REQUIRED_TEXT =
-    "🖼️ A geração de imagens no chat é exclusiva para assinantes **Plus** e **Ultra**. " +
-    "Acesse os planos para assinar.\n\n[Ver planos](/configuracoes)";
+    "A geração de imagens no chat é exclusiva para assinantes **Plus** e **Ultra**. " +
+    "Assine um plano para desbloquear essa função e muito mais!\n\n[Ver planos](/planos)";
   const PLAN_ULTRA_REQUIRED_TEXT =
-    "✏️ A edição de imagens no chat é exclusiva para assinantes **Ultra**. " +
-    "Acesse os planos para fazer upgrade.\n\n[Ver planos](/configuracoes)";
+    "A edição de imagens no chat é exclusiva para assinantes **Ultra**. " +
+    "Faça upgrade para desbloquear essa função!\n\n[Ver planos](/planos)";
   const NETWORK_ERROR_TEXT =
     "⚡ Algo deu errado na conexão. Tente enviar novamente.";
   const GENERIC_ERROR_TEXT =
@@ -503,6 +503,21 @@ export function ChatView({ conversationId }: Props) {
       if (wantsImage) {
         console.log("[IMG 2] chamando API");
         console.log("[CHAT] chamando /api/generate-image (DeepSeek bypassado)");
+
+        // Pre-gate by plan: never call DeepSeek nor /api/generate-image
+        // when the user is not on Plus/Ultra — show the plan-required
+        // bubble and stop.
+        if (!hasActive || (planId !== "plus" && planId !== "ultra")) {
+          await appendAssistantMessage({
+            convId,
+            text: PLAN_PLUS_REQUIRED_TEXT,
+            isNew,
+            titleSeed: text,
+            baseMessages,
+            userMsg,
+          });
+          return;
+        }
 
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData.session?.access_token;

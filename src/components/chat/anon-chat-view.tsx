@@ -36,6 +36,13 @@ import { notify } from "@/lib/notify";
 const STORAGE_KEY = "auraia_anon_chat_v1";
 const MSG_LIMIT = 5;
 
+const IMAGE_INTENT_RE =
+  /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|me\s+(?:d[áa]|d[êe]|manda|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?)\b[^\n]{0,30}\b(image(?:m|ns)|fotos?|ilustra[cç](?:[ãa]o|[õo]es)|desenhos?|figuras?|artes?|pinturas?|wallpapers?|retratos?|p[ôo]ster(?:es)?|banners?|capas?|vetor(?:es|ial|iais)?|logos?|logotipos?|[íi]cones?|stickers?|emojis?|avatares?|personagens?|cenas?|gifs?)\b/i;
+
+const ANON_IMAGE_PLAN_REQUIRED =
+  "Para gerar imagens no chat você precisa de uma conta com plano **Plus** ou **Ultra** ativo. " +
+  "Crie sua conta gratuitamente e escolha um plano para começar a criar!\n\n[Ver planos](/planos)";
+
 interface AnonState {
   messages: ChatMsg[];
   userMessageCount: number;
@@ -123,6 +130,37 @@ export function AnonChatView() {
     if (!text.trim() || sending) return;
     if (limitReached) {
       openLimit();
+      return;
+    }
+
+    // Pre-gate image-generation intent for anonymous users — never
+    // call DeepSeek with image asks; show plan-required bubble instead.
+    const trimmed = text.trim();
+    const isImageAsk =
+      trimmed.length <= 800 &&
+      !trimmed.endsWith("?") &&
+      IMAGE_INTENT_RE.test(trimmed);
+    if (isImageAsk) {
+      const userMsg: ChatMsg = {
+        id: `u-${Date.now()}`,
+        role: "user",
+        content: text,
+      };
+      const planMsg: ChatMsg = {
+        id: `a-${Date.now()}`,
+        role: "assistant",
+        content: ANON_IMAGE_PLAN_REQUIRED,
+      };
+      const nextMessages = [...messages, userMsg, planMsg];
+      const nextCount = state.userMessageCount + 1;
+      const finalState: AnonState = {
+        messages: nextMessages,
+        userMessageCount: nextCount,
+        title: state.title ?? text.slice(0, 40),
+        updatedAt: Date.now(),
+      };
+      setState(finalState);
+      saveState(finalState);
       return;
     }
 
