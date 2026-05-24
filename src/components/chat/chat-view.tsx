@@ -179,6 +179,26 @@ export function ChatView({ conversationId }: Props) {
       );
   }, []);
 
+  // Listen for "Animar" button clicks on individual chat images.
+  // The button lives in MessageItem; it dispatches the image URL it owns
+  // so we animate THAT image, not the most recent one.
+  useEffect(() => {
+    function onAnimate(e: Event) {
+      const detail = (e as CustomEvent<{ imageUrl?: string }>).detail;
+      const url = detail?.imageUrl;
+      if (!url) return;
+      // Reuse the same flow as the VIDEO_INTENT_RE detection.
+      void handleVideoIntent("Animar essa imagem", url, messages);
+    }
+    window.addEventListener("aura:animate-image", onAnimate as EventListener);
+    return () =>
+      window.removeEventListener(
+        "aura:animate-image",
+        onAnimate as EventListener,
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, conversationId, subscription, planId, hasActive]);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastConversationIdRef = useRef<string | null>(conversationId);
   const pendingNavigationConversationIdRef = useRef<string | null>(null);
