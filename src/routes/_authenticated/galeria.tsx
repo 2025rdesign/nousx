@@ -41,9 +41,13 @@ import {
   deleteGalleryItem,
   type GalleryItem,
 } from "@/lib/gallery.functions";
+import { GridPageSkeleton } from "@/components/route-skeletons";
 
 export const Route = createFileRoute("/_authenticated/galeria")({
   component: Gallery,
+  pendingComponent: GridPageSkeleton,
+  pendingMs: 0,
+  pendingMinMs: 0,
 });
 
 type Filter = "all" | "chat" | "studio" | "audio";
