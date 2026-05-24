@@ -13,7 +13,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { FaviconTheme } from "@/components/theme-favicon";
 import { AuthProvider } from "@/hooks/use-auth";
-import { useAuth } from "@/hooks/use-auth";
 import { FloatingAudioPlayer } from "@/components/chat/audio-player";
 import { SwRegister } from "@/components/sw-register";
 import { AppErrorBoundary } from "@/components/error-boundary";
