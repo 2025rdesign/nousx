@@ -43,7 +43,6 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/studio")({
   head: () => ({
     meta: [
-      { title: "Estúdio — AuraIA" },
       { name: "description", content: "Crie personagens e variações com IA." },
     ],
   }),

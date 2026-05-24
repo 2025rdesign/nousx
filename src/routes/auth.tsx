@@ -16,7 +16,6 @@ import { Loader2, Check, X } from "lucide-react";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Entrar — AuraIA" },
       { name: "description", content: "Acesse a AuraIA e converse sem limites." },
     ],
   }),

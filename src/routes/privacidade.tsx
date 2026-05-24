@@ -3,13 +3,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/privacidade")({
   head: () => ({
     meta: [
-      { title: "Política de Privacidade — AuraIA" },
       {
         name: "description",
         content:
           "Como a AuraIA coleta, usa e protege seus dados pessoais conforme a LGPD.",
       },
-      { property: "og:title", content: "Política de Privacidade — AuraIA" },
       {
         property: "og:description",
         content: "Política de privacidade da plataforma AuraIA.",
