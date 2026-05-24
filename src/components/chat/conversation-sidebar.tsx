@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import {
   Plus,
   Trash2,
@@ -210,6 +210,40 @@ export function ConversationSidebar({
       prefetch: () => import("@/routes/explorar"),
     },
   ];
+
+  // Eager prefetch of primary routes (code chunks + loaders) shortly after
+  // the sidebar mounts. Uses requestIdleCallback so it never blocks the
+  // initial render.
+  const router = useRouter();
+  useEffect(() => {
+    const run = () => {
+      // Code-split chunks
+      navItems.forEach((it) => it.prefetch().catch(() => undefined));
+      import("@/routes/_authenticated/configuracoes").catch(() => undefined);
+      // Loaders / route data
+      const targets: Array<{ to: any }> = [
+        { to: "/studio" },
+        { to: "/galeria" },
+        { to: "/explorar" },
+        { to: "/configuracoes" },
+      ];
+      targets.forEach((t) => {
+        router.preloadRoute(t).catch(() => undefined);
+      });
+    };
+    const ric: any =
+      (typeof window !== "undefined" && (window as any).requestIdleCallback) ||
+      ((cb: () => void) => setTimeout(cb, 300));
+    const handle = ric(run);
+    return () => {
+      const cic: any =
+        typeof window !== "undefined" &&
+        (window as any).cancelIdleCallback;
+      if (cic) cic(handle);
+      else clearTimeout(handle);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function renderItem(c: Conv) {
     const active = currentId === c.id;
