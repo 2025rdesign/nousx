@@ -1,9 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
-import { Sparkles, Wand2 } from "lucide-react";
+import { ArrowLeft, Sparkles, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,10 +15,15 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { UserAvatar } from "@/components/user-avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { listPublicCharacters, listPublicProfiles } from "@/lib/studio.functions";
 import { GridPageSkeleton } from "@/components/route-skeletons";
+import { useTheme } from "@/components/theme-provider";
+import { useRouter } from "@tanstack/react-router";
 
 const AGE_KEY = "nousx-age-confirmed";
+const LOGO_DARK =
+  "https://central.daev.ca/wp-content/uploads/2026/05/AURA-IA-IMAGEM-DASH.png";
+const LOGO_LIGHT =
+  "https://central.daev.ca/wp-content/uploads/2026/05/AURA-IA-IMAGEM-DASH-VARIANTE-MODO-CLARO.png";
 
 export const Route = createFileRoute("/explorar")({
   component: Explore,
@@ -31,7 +35,9 @@ export const Route = createFileRoute("/explorar")({
 function Explore() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const router = useRouter();
   const queryClient = useQueryClient();
+  const { theme } = useTheme();
 
   const [confirmed, setConfirmed] = useState(false);
   useEffect(() => {
@@ -62,20 +68,15 @@ function Explore() {
     };
   }, [queryClient]);
 
-  const fetchImages = useServerFn(listPublicCharacters);
-  const fetchProfiles = useServerFn(listPublicProfiles);
-
   const { data: images = [], isLoading: liImages } = useQuery({
     queryKey: ["public-characters"],
-    queryFn: () => fetchImages(),
-    enabled: confirmed,
+    queryFn: fetchPublicCharacters,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
   });
   const { data: characters = [], isLoading: liChars } = useQuery({
     queryKey: ["public-profiles"],
-    queryFn: () => fetchProfiles(),
-    enabled: confirmed,
+    queryFn: fetchPublicProfiles,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
   });
@@ -102,14 +103,39 @@ function Explore() {
     else goAuth("signup");
   };
 
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.history.back();
+    } else {
+      navigate({ to: "/" });
+    }
+  };
+
+  const logoSrc = theme === "dark" ? LOGO_DARK : LOGO_LIGHT;
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Top bar */}
       <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur">
         <div className="max-w-6xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between gap-3">
-          <Link to="/" className="font-semibold tracking-tight">
-            AuraIA
-          </Link>
+          <div className="flex items-center gap-2 min-w-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBack}
+              className="gap-1 px-2"
+            >
+              <ArrowLeft className="size-4" />
+              <span className="hidden sm:inline">Voltar</span>
+            </Button>
+            <Link to="/" className="flex items-center shrink-0">
+              <img
+                src={logoSrc}
+                alt="AuraIA"
+                className="h-8 w-auto object-contain"
+              />
+            </Link>
+          </div>
           <nav className="flex items-center gap-2">
             {user ? (
               <>
