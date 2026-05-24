@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { SupportContact } from "@/components/support-contact";
 
 export const Route = createFileRoute("/termos")({
   head: () => ({
@@ -125,6 +126,7 @@ function TermosPage() {
             .
           </p>
         </section>
+        <SupportContact />
       </article>
     </main>
   );
