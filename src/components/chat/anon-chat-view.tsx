@@ -399,7 +399,7 @@ export function AnonChatView() {
                 </div>
               </div>
             ) : (
-              <EmptyState />
+              <EmptyState onSuggest={(t) => handleSend(t)} />
             )}
             <ChatInput
               onSend={(t) => handleSend(t)}

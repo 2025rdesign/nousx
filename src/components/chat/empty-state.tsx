@@ -10,7 +10,22 @@ const DASHBOARD_DARK =
 const DASHBOARD_LIGHT =
   "https://central.daev.ca/wp-content/uploads/2026/05/AURA-IA-IMAGEM-DASH-VARIANTE-MODO-CLARO.png";
 
-export function EmptyState() {
+const SUGGESTIONS = [
+  "Me explica como funciona o universo de um jeito simples",
+  "Cria um plano de estudos pra eu aprender inglês em 3 meses",
+  "Escreve um e-mail profissional pedindo aumento de salário",
+  "Me dá 5 ideias de negócio digital pra começar do zero",
+  "Escreve uma história adulta sem cortar nada",
+  "Me ajuda a criar um personagem sem filtro",
+  "Qual a diferença entre você e o ChatGPT?",
+  "Você julga o que eu pergunto?",
+  "Posso te perguntar qualquer coisa mesmo?",
+  "Como funciona o Estúdio de Criação?",
+  "Gera uma imagem pra mim no estúdio, como funciona?",
+  "Me conta um segredo que outras IAs não falariam",
+];
+
+export function EmptyState({ onSuggest }: { onSuggest?: (text: string) => void } = {}) {
   const { user } = useAuth();
   const { hasActive, planId } = useActivePlan();
   const fetchCredits = useServerFn(getCredits);
@@ -32,7 +47,7 @@ export function EmptyState() {
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
+    <div className="flex-1 flex flex-col items-center justify-center px-4 py-12 overflow-y-auto">
       <ThemeImage
         darkSrc={DASHBOARD_DARK}
         lightSrc={DASHBOARD_LIGHT}
@@ -45,6 +60,22 @@ export function EmptyState() {
       </p>
       {info && (
         <p className="mt-2 text-xs text-muted-foreground/70 text-center">{info}</p>
+      )}
+      {onSuggest && (
+        <div className="mt-8 w-full max-w-3xl">
+          <div className="flex flex-wrap justify-center gap-2">
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => onSuggest(s)}
+                className="text-left text-xs md:text-sm px-3 py-2 rounded-full border border-border bg-card/50 hover:border-[#6C47FF] hover:bg-[#6C47FF]/10 hover:text-foreground text-muted-foreground transition-colors"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
