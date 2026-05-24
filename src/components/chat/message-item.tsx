@@ -303,6 +303,21 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                       </RouterLink>
                     );
                   }
+                  const isSettingsSubscriptionCta =
+                    typeof href === "string" &&
+                    href.startsWith("/configuracoes") &&
+                    /tab=assinatura/.test(href);
+                  if (isSettingsSubscriptionCta) {
+                    return (
+                      <RouterLink
+                        to="/configuracoes"
+                        search={{ tab: "assinatura" as const }}
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-[#6C47FF] px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#5A38E0] no-underline"
+                      >
+                        {children}
+                      </RouterLink>
+                    );
+                  }
                   if (isInternal) {
                     return (
                       <RouterLink
