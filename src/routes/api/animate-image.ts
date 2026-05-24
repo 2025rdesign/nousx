@@ -22,13 +22,24 @@ function isReachablePublicUrl(url: string) {
   return /^https?:\/\//i.test(url) && !/localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(url);
 }
 
+async function probeImageUrl(url: string, label: string) {
+  try {
+    const response = await fetch(url, { method: "HEAD", redirect: "follow" });
+    console.log(`[ANIMATE-START] ${label} accessible?:`, response.ok, "status:", response.status);
+    return { ok: response.ok, status: response.status };
+  } catch (error) {
+    console.log(`[ANIMATE-START] ${label} HEAD error:`, error);
+    return { ok: false, status: null };
+  }
+}
+
 async function toXaiReachableImageUrl(imageUrl: string) {
   if (!isReachablePublicUrl(imageUrl)) {
     throw new Error("A imagem precisa ter uma URL pública e acessível pela internet.");
   }
 
   const storageMatch = imageUrl.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)$/i);
-  if (!storageMatch) return imageUrl;
+  if (!storageMatch) return { url: imageUrl, signed: false, bucket: null, path: null };
 
   const bucket = decodeURIComponent(storageMatch[1]);
   const path = decodeURIComponent(storageMatch[2].split("?")[0]);
@@ -36,7 +47,7 @@ async function toXaiReachableImageUrl(imageUrl: string) {
   if (error || !data?.signedUrl) {
     throw new Error(`Falha ao assinar URL da imagem: ${error?.message ?? "sem signedUrl"}`);
   }
-  return data.signedUrl;
+  return { url: data.signedUrl, signed: true, bucket, path };
 }
 
 export const Route = createFileRoute("/api/animate-image")({
@@ -109,7 +120,23 @@ export const Route = createFileRoute("/api/animate-image")({
         }
 
         try {
-          const xaiImageUrl = await toXaiReachableImageUrl(imageUrl);
+          console.log("[ANIMATE-START] userId:", userId);
+          console.log("[ANIMATE-START] imageUrl:", imageUrl);
+          const originalProbe = await probeImageUrl(imageUrl, "imageUrl");
+
+          const signedResult = await toXaiReachableImageUrl(imageUrl);
+          const xaiImageUrl = signedResult.url;
+          if (signedResult.signed) {
+            console.log("[ANIMATE-START] signed storage URL created:", {
+              bucket: signedResult.bucket,
+              path: signedResult.path,
+            });
+          }
+
+          if (xaiImageUrl !== imageUrl) {
+            await probeImageUrl(xaiImageUrl, "signedImageUrl");
+          }
+
           const requestBody = {
             model: XAI_VIDEO_MODEL,
             prompt:
@@ -120,8 +147,8 @@ export const Route = createFileRoute("/api/animate-image")({
             resolution: "720p",
           };
 
-          console.log("[ANIMATE] imageUrl:", imageUrl);
-          console.log("[ANIMATE] xAI request body:", requestBody);
+          console.log("[ANIMATE-START] imageUrl accessible?", originalProbe.ok, "status:", originalProbe.status);
+          console.log("[ANIMATE-XAI-REQUEST]", JSON.stringify(requestBody));
 
           const createRes = await fetch(XAI_VIDEO_ENDPOINT, {
             method: "POST",
@@ -132,8 +159,8 @@ export const Route = createFileRoute("/api/animate-image")({
             body: JSON.stringify(requestBody),
           });
           const createText = await createRes.text();
-          console.log("[ANIMATE] xAI response status:", createRes.status);
-          console.log("[ANIMATE] xAI response body:", createText);
+          console.log("[ANIMATE-XAI-STATUS]", createRes.status);
+          console.log("[ANIMATE-XAI-BODY]", createText);
           if (!createRes.ok) {
             console.error("[ANIMATE-IMAGE] create failed", createRes.status, createText.slice(0, 500));
             return json({ error: "Não foi possível animar a imagem." }, 500);
@@ -152,6 +179,7 @@ export const Route = createFileRoute("/api/animate-image")({
             console.error("[ANIMATE-IMAGE] missing request_id", createData);
             return json({ error: "Não foi possível iniciar a animação." }, 500);
           }
+          console.log("[ANIMATE-REQUEST-ID]", requestId);
 
           const { data: job, error: jobError } = await supabase
             .from("video_jobs")
