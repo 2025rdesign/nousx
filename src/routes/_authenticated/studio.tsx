@@ -256,6 +256,20 @@ function StudioInner() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const formScrollRef = useRef<HTMLElement>(null);
 
+  // Edit-image mode (acionado pelo botão "Editar esta imagem" no histórico)
+  const [editingImage, setEditingImage] = useState<{
+    id: string;
+    url: string;
+    mediaId: string;
+    promptId: string | null;
+    profileId: string | null;
+  } | null>(null);
+
+  const exitEditMode = () => {
+    setEditingImage(null);
+    setAppearance("");
+  };
+
   const resetForm = () => {
     setActiveProfileId(null);
     setName("");
