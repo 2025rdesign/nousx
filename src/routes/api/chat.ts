@@ -249,6 +249,8 @@ export const Route = createFileRoute("/api/chat")({
 
           upstreamKind = "gemini";
           try {
+            const ctrl = new AbortController();
+            const t = setTimeout(() => ctrl.abort(), 60_000);
             const res = await fetch(GEMINI_ENDPOINT, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -256,7 +258,9 @@ export const Route = createFileRoute("/api/chat")({
                 contents,
                 system_instruction: { parts: [{ text: systemPrompt }] },
               }),
+              signal: ctrl.signal,
             });
+            clearTimeout(t);
             if (res.ok && res.body) {
               upstream = res;
             } else {
@@ -281,7 +285,10 @@ export const Route = createFileRoute("/api/chat")({
           const systemMsg = { role: "system", content: systemPrompt };
           const payloadMessages = [systemMsg, ...body.messages];
           const dsModel = body.reasoning ? "deepseek-reasoner" : "deepseek-chat";
+          const upstreamTimeoutMs = body.reasoning ? 120_000 : 60_000;
           try {
+            const ctrl = new AbortController();
+            const t = setTimeout(() => ctrl.abort(), upstreamTimeoutMs);
             const res = await fetch(DEEPSEEK_ENDPOINT, {
               method: "POST",
               headers: {
@@ -294,7 +301,9 @@ export const Route = createFileRoute("/api/chat")({
                 max_tokens: 4096,
                 messages: payloadMessages,
               }),
+              signal: ctrl.signal,
             });
+            clearTimeout(t);
             if (res.ok && res.body) {
               upstream = res;
             } else {
