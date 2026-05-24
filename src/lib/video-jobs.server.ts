@@ -30,6 +30,8 @@ type PollResult = {
   errorMessage?: string | null;
 };
 
+type SinglePollResult = PollResult & { pending?: boolean };
+
 function getVideoUrl(data: {
   data?: Array<{ url?: string }>;
   videos?: Array<{ url?: string }>;
@@ -137,6 +139,43 @@ export async function pollXaiVideoUntilReady(requestId: string, apiKey: string):
   };
 }
 
+export async function pollXaiVideoOnce(requestId: string, apiKey: string): Promise<SinglePollResult> {
+  const pollRes = await fetch(`${XAI_VIDEO_STATUS}/${requestId}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  const pollText = await pollRes.text();
+  console.log("[ANIMATE] poll status:", pollRes.status);
+  console.log("[ANIMATE] poll body:", pollText);
+  if (!pollRes.ok) {
+    return {
+      ready: false,
+      pending: true,
+      status: `http_${pollRes.status}`,
+      finalUrl: null,
+    };
+  }
+  const pollData = JSON.parse(pollText) as {
+    status?: string;
+    error?: string;
+    data?: Array<{ url?: string }>;
+    videos?: Array<{ url?: string }>;
+    url?: string;
+  };
+  const status = (pollData.status ?? "").toLowerCase();
+  if (READY_STATUSES.has(status)) {
+    return { ready: true, status, finalUrl: getVideoUrl(pollData) };
+  }
+  if (FAILED_STATUSES.has(status)) {
+    return {
+      ready: false,
+      status,
+      finalUrl: null,
+      errorMessage: pollData.error ?? "A geração da animação falhou.",
+    };
+  }
+  return { ready: false, pending: true, status, finalUrl: null };
+}
+
 export async function finalizeVideoJob(jobId: string, apiKey: string) {
   const { data: job, error } = await supabaseAdmin
     .from("video_jobs")
@@ -193,4 +232,43 @@ export async function finalizeVideoJob(jobId: string, apiKey: string) {
     videoUrl: permanentUrl,
     conversationId: job.conversation_id,
   };
+}
+
+export async function advancePendingVideoJobsForUser(userId: string, apiKey: string) {
+  const { data: pendingJobs, error } = await supabaseAdmin
+    .from("video_jobs")
+    .select("*")
+    .eq("user_id", userId)
+    .in("status", ["pending", "processing"])
+    .order("created_at", { ascending: true })
+    .limit(10)
+    .returns<VideoJobRow[]>();
+
+  if (error) throw new Error(error.message);
+
+  for (const job of pendingJobs ?? []) {
+    if (!job.xai_request_id) {
+      await failVideoJob(job, "Job sem request_id.");
+      continue;
+    }
+    const result = await pollXaiVideoOnce(job.xai_request_id, apiKey);
+    if (result.ready && result.finalUrl) {
+      await finalizeVideoJob(job.id, apiKey);
+      continue;
+    }
+    if (!result.pending) {
+      await failVideoJob(job, result.errorMessage ?? "Não foi possível concluir a animação.");
+    }
+  }
+
+  const { data: rows, error: listError } = await supabaseAdmin
+    .from("video_jobs")
+    .select(
+      "id, conversation_id, source_image_url, xai_request_id, status, final_video_url, error_message, credits_charged, created_at, updated_at",
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (listError) throw new Error(listError.message);
+  return rows ?? [];
 }
