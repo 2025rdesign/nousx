@@ -50,6 +50,58 @@ function isVideoUrl(url: string | null | undefined): boolean {
   return /\.(mp4|webm|mov)(\?|$)/i.test(url);
 }
 
+function AnimateButton({
+  imageUrl: _imageUrl,
+  hasUltra,
+  credits,
+  animating,
+  onClick,
+}: {
+  imageUrl: string;
+  hasUltra: boolean;
+  credits: number;
+  animating: boolean;
+  onClick: () => void;
+}) {
+  const disabled = !hasUltra || credits < 10 || animating;
+  const reason = !hasUltra
+    ? "Disponível apenas no plano Ultra"
+    : credits < 10
+      ? `Você precisa de 10 créditos (tem ${credits})`
+      : "";
+  const button = (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "inline-flex items-center gap-1 text-[11px] transition-colors",
+        disabled
+          ? "cursor-not-allowed text-muted-foreground/50"
+          : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {animating ? (
+        <Loader2 className="size-3 animate-spin" />
+      ) : (
+        <Film className="size-3" />
+      )}
+      {animating ? "Animando..." : "Animar — 10 créditos"}
+    </button>
+  );
+  if (!reason) return button;
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="ml-3 inline-flex">{button}</span>
+        </TooltipTrigger>
+        <TooltipContent>{reason}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 function MessageItemInner({ msg }: { msg: ChatMsg }) {
   const isUser = msg.role === "user";
   const [copied, setCopied] = useState(false);
