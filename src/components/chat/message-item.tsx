@@ -75,7 +75,7 @@ function AnimateButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex items-center gap-1 text-[11px] transition-colors",
+        "ml-3 inline-flex items-center gap-1 text-[11px] transition-colors",
         disabled
           ? "cursor-not-allowed text-muted-foreground/50"
           : "text-muted-foreground hover:text-foreground",
@@ -94,7 +94,7 @@ function AnimateButton({
     <TooltipProvider delayDuration={150}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="ml-3 inline-flex">{button}</span>
+          <span className="inline-flex">{button}</span>
         </TooltipTrigger>
         <TooltipContent>{reason}</TooltipContent>
       </Tooltip>
