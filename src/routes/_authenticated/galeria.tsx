@@ -72,6 +72,12 @@ function formatDate(iso: string) {
   }
 }
 
+function isVideoItem(
+  img: Extract<GalleryItem, { kind: "image" }>,
+): boolean {
+  return img.source === "chat-video" || /\.(mp4|webm|mov)(\?|$)/i.test(img.image_url);
+}
+
 function useCoarsePointer(): boolean {
   const [isCoarse, setIsCoarse] = useState(false);
   useEffect(() => {
