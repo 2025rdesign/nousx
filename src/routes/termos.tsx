@@ -3,13 +3,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/termos")({
   head: () => ({
     meta: [
-      { title: "Termos de Uso — AuraIA" },
       {
         name: "description",
         content:
           "Termos de uso da AuraIA — plataforma de inteligência artificial sem censura para maiores de 18 anos.",
       },
-      { property: "og:title", content: "Termos de Uso — AuraIA" },
       {
         property: "og:description",
         content: "Termos de uso da plataforma AuraIA.",

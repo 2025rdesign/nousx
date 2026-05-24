@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/creditos")({
-  head: () => ({ meta: [{ title: "Créditos — AuraIA" }] }),
   component: CreditsPage,
 });
 

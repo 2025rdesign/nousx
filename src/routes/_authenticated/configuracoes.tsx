@@ -41,7 +41,6 @@ import { PlanBadge, getPlanKey } from "@/components/plan-badge";
 import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
-  head: () => ({ meta: [{ title: "Configurações — AuraIA" }] }),
   component: SettingsPage,
 });
 

@@ -33,7 +33,6 @@ import {
 } from "@/lib/gallery.functions";
 
 export const Route = createFileRoute("/_authenticated/galeria")({
-  head: () => ({ meta: [{ title: "Galeria — AuraIA" }] }),
   component: Gallery,
 });
 

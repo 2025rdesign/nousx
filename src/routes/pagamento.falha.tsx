@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/pagamento/falha")({
   head: () => ({
     meta: [
-      { title: "Pagamento não concluído — AuraIA" },
       { name: "robots", content: "noindex" },
     ],
   }),

@@ -9,7 +9,6 @@ import { useEffect } from "react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "AuraIA — IA livre, sem julgamentos" },
       {
         name: "description",
         content:
