@@ -132,16 +132,16 @@ function PlanosPage() {
     if (id === "free") {
       return (
         <div className="mt-2">
-          <p className="text-4xl font-bold tracking-tight text-foreground">R$ 0</p>
-          <p className="mt-1 text-xs text-muted-foreground">para sempre</p>
+          <p className="text-4xl font-bold tracking-tight" style={{ color: "#ffffff" }}>R$ 0</p>
+          <p className="mt-1 text-xs" style={{ color: "#9ca3af" }}>para sempre</p>
         </div>
       );
     }
     if (id === "credits") {
       return (
         <div className="mt-2">
-          <p className="text-xs text-muted-foreground">A partir de</p>
-          <p className="mt-1 text-4xl font-bold tracking-tight text-foreground">
+          <p className="text-xs" style={{ color: "#9ca3af" }}>A partir de</p>
+          <p className="mt-1 text-4xl font-bold tracking-tight" style={{ color: "#ffffff" }}>
             R$ 14,90
           </p>
         </div>
@@ -155,22 +155,22 @@ function PlanosPage() {
           key={`${id}-${period}`}
           className="flex items-baseline gap-1 animate-fade-in"
         >
-          <span className="text-4xl font-bold tracking-tight tabular-nums text-foreground">
+          <span className="text-4xl font-bold tracking-tight tabular-nums" style={{ color: "#ffffff" }}>
             {fmtBRL(monthly)}
           </span>
-          <span className="text-sm text-muted-foreground">/mês</span>
+          <span className="text-sm" style={{ color: "#9ca3af" }}>/mês</span>
         </p>
         {isAnnual ? (
           <div className="mt-1 space-y-0.5">
-            <p className="text-xs text-muted-foreground">
+            <p style={{ color: "#6b7280", fontSize: "13px" }}>
               cobrado anualmente · {fmtBRL(p.annualTotalPrice)}
             </p>
-            <p className="text-xs" style={{ color: "#6b7280" }}>
+            <p style={{ color: "#4b5563", fontSize: "12px" }}>
               vs {fmtBRL(p.price)}/mês
             </p>
           </div>
         ) : (
-          <p className="mt-1 text-xs text-muted-foreground">&nbsp;</p>
+          <p className="mt-1 text-xs" style={{ color: "#6b7280" }}>&nbsp;</p>
         )}
       </div>
     );
@@ -183,6 +183,7 @@ function PlanosPage() {
           disabled
           variant="outline"
           className="w-full disabled:opacity-100"
+          style={{ borderColor: "#374151", color: "#9ca3af" }}
         >
           Plano atual
         </Button>
@@ -193,6 +194,7 @@ function PlanosPage() {
         <Button
           variant="outline"
           className="w-full"
+          style={{ borderColor: "#374151", color: "#9ca3af", backgroundColor: "transparent" }}
           onClick={() =>
             user
               ? navigate({ to: "/" })
@@ -208,6 +210,7 @@ function PlanosPage() {
         <Button
           variant="outline"
           className="w-full"
+          style={{ borderColor: "#374151", color: "#9ca3af", backgroundColor: "transparent" }}
           onClick={() =>
             user
               ? navigate({ to: "/creditos" })
@@ -364,12 +367,12 @@ function PlanosPage() {
                 >
                   {card.label}
                 </p>
-                <h2 className="mt-2 text-2xl font-bold text-foreground">
+                <h2 className="mt-2 text-2xl font-semibold" style={{ color: "#ffffff" }}>
                   {card.name}
                 </h2>
 
                 {card.highlighted && (
-                  <p className="mt-3 text-xs italic text-muted-foreground">
+                  <p className="mt-3 text-xs italic" style={{ color: "#8B6FFF" }}>
                     Mais escolhido
                   </p>
                 )}
@@ -378,7 +381,7 @@ function PlanosPage() {
 
                 <div
                   className="my-6 h-px w-full"
-                  style={{ backgroundColor: "#1a1a2e" }}
+                  style={{ backgroundColor: "#1f2937" }}
                 />
 
                 <ul
@@ -400,7 +403,7 @@ function PlanosPage() {
                           style={{ color: "#6C47FF" }}
                         />
                       )}
-                      <span style={{ color: "#e5e7eb" }}>{f}</span>
+                      <span style={{ color: "#d1d5db" }}>{f}</span>
                     </li>
                   ))}
                 </ul>
