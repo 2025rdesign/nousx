@@ -65,14 +65,14 @@ function Explore() {
     queryKey: ["public-characters"],
     queryFn: () => fetchImages(),
     enabled: confirmed,
-    staleTime: 15_000,
+    staleTime: 60_000,
     gcTime: 5 * 60_000,
   });
   const { data: characters = [], isLoading: liChars } = useQuery({
     queryKey: ["public-profiles"],
     queryFn: () => fetchProfiles(),
     enabled: confirmed,
-    staleTime: 15_000,
+    staleTime: 60_000,
     gcTime: 5 * 60_000,
   });
 
