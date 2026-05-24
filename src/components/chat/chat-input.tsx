@@ -31,6 +31,7 @@ interface Props {
   voiceModeActive?: boolean;
   fillText?: string;
   onFillTextConsumed?: () => void;
+  sendButtonLabel?: string;
 }
 
 export function ChatInput({
@@ -43,6 +44,7 @@ export function ChatInput({
   voiceModeActive,
   fillText,
   onFillTextConsumed,
+  sendButtonLabel,
 }: Props) {
   const [text, setText] = useState("");
   const [image, setImage] = useState<string | null>(null);
@@ -326,7 +328,13 @@ export function ChatInput({
                     )}
                     aria-label="Enviar"
                   >
-                    <Send className="size-4" />
+                    {sendButtonLabel ? (
+                      <span className="px-1 text-[11px] font-medium leading-none">
+                        {sendButtonLabel}
+                      </span>
+                    ) : (
+                      <Send className="size-4" />
+                    )}
                   </Button>
                 </span>
               </TooltipTrigger>
