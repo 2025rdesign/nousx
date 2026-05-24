@@ -989,7 +989,13 @@ export function ChatView({ conversationId }: Props) {
       console.error(error);
 
       // Never expose technical errors / provider names to the user.
-      const friendlyText = isAbort ? NETWORK_ERROR_TEXT : GENERIC_ERROR_TEXT;
+      const isImgGeneric =
+        error instanceof Error && error.message === "__IMG_GENERIC__";
+      const friendlyText = isAbort
+        ? NETWORK_ERROR_TEXT
+        : isImgGeneric || (wantsImage && !isAbort)
+        ? GENERIC_IMG_ERROR_TEXT
+        : GENERIC_ERROR_TEXT;
       const lastConvId = conversationId ?? lastConversationIdRef.current;
 
       if (wantsImage || wantsEdit) {
