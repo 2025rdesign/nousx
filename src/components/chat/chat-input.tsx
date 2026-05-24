@@ -201,6 +201,7 @@ export function ChatInput({
           </div>
         )}
         <TextareaAutosize
+          ref={textareaRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={onKey}
