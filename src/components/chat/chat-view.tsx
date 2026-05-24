@@ -1417,13 +1417,13 @@ export function ChatView({ conversationId }: Props) {
 
         <ChatInput
           onSend={handleSend}
-          disabled={sending || planLoading}
+          disabled={sending || planLoading || planRefreshPending}
           hasUltra={hasUltra}
           onOpenVoiceMode={() => setVoiceOpen(true)}
           voiceModeActive={voiceOpen}
           fillText={fillText}
           onFillTextConsumed={() => setFillText(undefined)}
-          sendButtonLabel={planLoading ? "Plano..." : undefined}
+          sendButtonLabel={planLoading || planRefreshPending ? "Plano..." : undefined}
         />
         <VoiceModeModal open={voiceOpen} onClose={() => setVoiceOpen(false)} />
         {checkoutPlan && (
