@@ -126,3 +126,19 @@ export const deleteGalleryItem = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+export const setGalleryItemPublic = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), isPublic: z.boolean() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("gallery")
+      .update({ is_public: data.isPublic })
+      .eq("id", data.id)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { ok: true, isPublic: data.isPublic };
+  });
