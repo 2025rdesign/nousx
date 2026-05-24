@@ -1075,7 +1075,7 @@ export function ChatView({ conversationId }: Props) {
             </div>
           </div>
         ) : (
-          <EmptyState onSuggest={(t) => handleSend(t, null, null, false, false)} />
+          <EmptyState onSuggest={setFillText} />
         )}
 
         <ChatInput
@@ -1084,6 +1084,8 @@ export function ChatView({ conversationId }: Props) {
           hasUltra={hasUltra}
           onOpenVoiceMode={() => setVoiceOpen(true)}
           voiceModeActive={voiceOpen}
+          fillText={fillText}
+          onFillTextConsumed={() => setFillText(undefined)}
         />
         <VoiceModeModal open={voiceOpen} onClose={() => setVoiceOpen(false)} />
       </div>
