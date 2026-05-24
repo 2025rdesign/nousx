@@ -47,6 +47,7 @@ function HomePage() {
     return (
       <AppLayout>
         <ChatView conversationId={null} />
+        <OnboardingModal />
       </AppLayout>
     );
   }
