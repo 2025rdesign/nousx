@@ -368,7 +368,7 @@ export function ChatView({ conversationId }: Props) {
   ) {
     setSending(true);
     setAwaitingReply(true);
-    setInflightMode("image");
+    setInflightMode("video");
 
     const timestamp = Date.now();
     const userMsg: ChatMsg = {
