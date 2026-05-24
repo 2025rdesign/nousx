@@ -32,6 +32,8 @@ import { SettingsSkeleton } from "@/components/route-skeletons";
 import { SubscriptionTab } from "@/components/payments/subscription-tab";
 import { getCredits } from "@/lib/credits.functions";
 import { listMyPaymentHistory } from "@/lib/payments.functions";
+import { getMyReferralInfo } from "@/lib/referrals.functions";
+import { Copy, Check as CheckIcon } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: SettingsPage,
@@ -43,8 +45,14 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
       s.tab === "aparencia" ||
       s.tab === "seguranca" ||
       s.tab === "assinatura" ||
+      s.tab === "indicacoes" ||
       s.tab === "geral"
-        ? (s.tab as "geral" | "aparencia" | "seguranca" | "assinatura")
+        ? (s.tab as
+            | "geral"
+            | "aparencia"
+            | "seguranca"
+            | "assinatura"
+            | "indicacoes")
         : undefined;
     return tab ? { tab } : {};
   },
@@ -57,18 +65,135 @@ function SettingsPage() {
       <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
         <h1 className="text-2xl font-bold mb-6">Configurações</h1>
         <Tabs defaultValue={tab ?? "geral"}>
-          <TabsList className="grid grid-cols-4 w-full mb-6">
+          <TabsList className="grid grid-cols-5 w-full mb-6">
             <TabsTrigger value="geral">Geral</TabsTrigger>
             <TabsTrigger value="aparencia">Aparência</TabsTrigger>
             <TabsTrigger value="seguranca">Segurança</TabsTrigger>
             <TabsTrigger value="assinatura">Assinatura</TabsTrigger>
+            <TabsTrigger value="indicacoes">Indicações</TabsTrigger>
           </TabsList>
           <TabsContent value="geral"><GeneralTab /></TabsContent>
           <TabsContent value="aparencia"><AppearanceTab /></TabsContent>
           <TabsContent value="seguranca"><SecurityTab /></TabsContent>
           <TabsContent value="assinatura"><AssinaturaTab /></TabsContent>
+          <TabsContent value="indicacoes"><ReferralsTab /></TabsContent>
         </Tabs>
       </div>
+    </div>
+  );
+}
+
+function ReferralsTab() {
+  const fetchInfo = useServerFn(getMyReferralInfo);
+  const { data } = useQuery({
+    queryKey: ["referral-info"],
+    queryFn: () => fetchInfo(),
+    staleTime: 30_000,
+  });
+  const [copied, setCopied] = useState(false);
+
+  const code = data?.code ?? "";
+  const link = code ? `https://chataura.com.br/?ref=${code}` : "";
+
+  async function copyLink() {
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      notify.success("Link copiado!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      notify.error("Não foi possível copiar.");
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card className="border-border bg-card shadow-sm">
+        <CardContent className="pt-6 pb-6 space-y-4">
+          <div>
+            <h3 className="font-semibold mb-1">Indique e ganhe créditos</h3>
+            <p className="text-sm text-muted-foreground">
+              Compartilhe seu link e ganhe créditos quando seus indicados
+              assinarem um plano ou comprarem créditos.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Seu link de indicação</Label>
+            <div className="flex gap-2">
+              <Input value={link} readOnly className="font-mono text-sm" />
+              <Button onClick={copyLink} disabled={!link} variant="outline">
+                {copied ? (
+                  <CheckIcon className="size-4" />
+                ) : (
+                  <Copy className="size-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg border border-border bg-muted/30 p-4">
+              <p className="text-2xl font-semibold">
+                {data?.totalReferred ?? 0}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                pessoas indicadas
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-4">
+              <p className="text-2xl font-semibold">
+                {data?.creditsEarned ?? 0}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                créditos ganhos por indicações
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border bg-card shadow-sm">
+        <CardContent className="pt-6 pb-6 space-y-3">
+          <h3 className="font-semibold">Recompensas</h3>
+          <div className="overflow-hidden rounded-lg border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-muted-foreground">
+                <tr>
+                  <th className="text-left font-medium px-3 py-2">Evento</th>
+                  <th className="text-right font-medium px-3 py-2">
+                    Créditos para você
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-t border-border">
+                  <td className="px-3 py-2">Indicado assina Plus</td>
+                  <td className="px-3 py-2 text-right font-medium">
+                    +10 créditos
+                  </td>
+                </tr>
+                <tr className="border-t border-border">
+                  <td className="px-3 py-2">Indicado assina Ultra</td>
+                  <td className="px-3 py-2 text-right font-medium">
+                    +50 créditos
+                  </td>
+                </tr>
+                <tr className="border-t border-border">
+                  <td className="px-3 py-2">Indicado compra pacote</td>
+                  <td className="px-3 py-2 text-right font-medium">
+                    +10 créditos
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Créditos são concedidos apenas na primeira compra do indicado.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
