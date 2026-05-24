@@ -157,18 +157,18 @@ function CreditsPill({
       onClick={onClick}
       title={empty ? "Sem créditos" : `${balance} créditos`}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+        "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-200 hover:scale-[1.03] active:scale-[0.98] shadow-sm hover:shadow-md",
         empty
           ? "border-destructive bg-destructive/10 text-destructive hover:bg-destructive/20 animate-pulse"
           : danger
           ? "border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20"
-          : "border-border bg-card hover:border-accent hover:text-accent",
+          : "border-[#6C47FF]/60 bg-[#6C47FF]/15 text-foreground hover:bg-[#6C47FF]/25 hover:border-[#6C47FF]",
       )}
     >
       {danger || empty ? (
-        <AlertTriangle className="size-3.5" />
+        <AlertTriangle className="size-4" />
       ) : (
-        <SparklesIcon className="size-3.5 text-accent" />
+        <Zap className="size-4 text-[#A78BFA]" fill="currentColor" />
       )}
       <span>
         {empty
@@ -557,14 +557,6 @@ function StudioInner() {
                 onClick={() => setCreditsOpen(true)}
                 loading={creditsLoading}
               />
-              <button
-                type="button"
-                onClick={() => setCreditsOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-transparent px-2.5 py-1 text-[11px] font-medium text-foreground/80 transition-colors hover:border-accent hover:text-accent"
-              >
-                <Zap className="size-3 text-accent" />
-                Comprar créditos
-              </button>
             </div>
 
             {editingImage ? (
@@ -1107,14 +1099,6 @@ function StudioInner() {
                 </>
               )}
             </Button>
-            <button
-              type="button"
-              onClick={() => setCreditsOpen(true)}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-border bg-transparent px-4 py-2 text-xs font-medium text-foreground/70 transition-colors hover:border-accent hover:text-accent"
-            >
-              <Zap className="size-3.5 text-accent" />
-              Comprar créditos
-            </button>
             <Button
               className="w-full"
               disabled={!appearance.trim() || isLoading}
