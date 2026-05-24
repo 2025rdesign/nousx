@@ -266,6 +266,28 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                 a: ({ node: _n, href, children, ...props }: any) => {
                   const isInternal =
                     typeof href === "string" && href.startsWith("/");
+                  const checkoutMatch =
+                    typeof href === "string"
+                      ? href.match(/^aura:\/\/checkout\/(plus|ultra)$/)
+                      : null;
+                  if (checkoutMatch) {
+                    const planId = checkoutMatch[1];
+                    return (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          window.dispatchEvent(
+                            new CustomEvent("aura:open-plan-checkout", {
+                              detail: { planId },
+                            }),
+                          )
+                        }
+                        className="mt-2 ml-2 inline-flex items-center gap-1.5 rounded-md bg-[#6C47FF] px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#5A38E0] no-underline"
+                      >
+                        {children}
+                      </button>
+                    );
+                  }
                   const isPlansCta =
                     href === "/planos" ||
                     (Array.isArray(children) &&
