@@ -29,6 +29,8 @@ interface Props {
   hasUltra?: boolean;
   onOpenVoiceMode?: () => void;
   voiceModeActive?: boolean;
+  fillText?: string;
+  onFillTextConsumed?: () => void;
 }
 
 export function ChatInput({
