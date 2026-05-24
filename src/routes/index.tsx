@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/layout/app-layout";
 import { ChatView } from "@/components/chat/chat-view";
 import { AnonChatView } from "@/components/chat/anon-chat-view";
+import { OnboardingModal } from "@/components/onboarding-modal";
 import { useEffect } from "react";
 
 export const Route = createFileRoute("/")({
