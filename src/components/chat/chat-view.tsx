@@ -16,6 +16,8 @@ import { CodeCanvasProvider } from "./code-canvas";
 import { notify } from "@/lib/notify";
 import type { ExtractedFile } from "@/lib/file-extract";
 import { useActivePlan } from "@/hooks/use-active-plan";
+import { useAuth } from "@/hooks/use-auth";
+import { getMySubscription } from "@/lib/payments.functions";
 import { VoiceModeModal } from "./voice-mode-modal";
 import { PlanCheckoutDialog } from "@/components/payments/subscription-tab";
 import type { PlanId } from "@/lib/payments-config";
@@ -125,8 +127,10 @@ export function ChatView({ conversationId }: Props) {
   const createConv = useServerFn(createConversation);
   const saveMsg = useServerFn(saveMessage);
   const rename = useServerFn(renameConversation);
-  const { planId, hasActive } = useActivePlan();
+  const { planId, hasActive, subscription, isLoading: planLoading } = useActivePlan();
   const hasUltra = hasActive && planId === "ultra";
+  const { user } = useAuth();
+  const fetchSubServerFn = useServerFn(getMySubscription);
 
   const [messages, setMessages] = useState<ChatMsg[]>(() => {
     if (!conversationId) return [];
@@ -523,10 +527,40 @@ export function ChatView({ conversationId }: Props) {
         console.log("[IMG 2] chamando API");
         console.log("[CHAT] chamando /api/generate-image (DeepSeek bypassado)");
 
-        // Pre-gate by plan: never call DeepSeek nor /api/generate-image
-        // when the user is not on Plus/Ultra — show the plan-required
-        // bubble and stop.
-        if (!hasActive || (planId !== "plus" && planId !== "ultra")) {
+        // If subscription is still loading, fetch it fresh before deciding
+        // — avoids a race where the gate fires before the cache hydrates.
+        let effectiveSub = subscription;
+        let effectiveHasActive = hasActive;
+        let effectivePlanId = planId;
+        if (planLoading || !effectiveSub) {
+          try {
+            const fresh = await queryClient.fetchQuery({
+              queryKey: ["my-subscription"],
+              queryFn: () => fetchSubServerFn(),
+              staleTime: 0,
+            });
+            effectiveSub = fresh ?? null;
+            effectiveHasActive =
+              !!fresh &&
+              fresh.status === "active" &&
+              (!fresh.expires_at || new Date(fresh.expires_at).getTime() > Date.now());
+            effectivePlanId = fresh?.plan_id ?? null;
+          } catch (e) {
+            console.warn("[PLAN CHECK] failed to refetch subscription", e);
+          }
+        }
+
+        const hasPlusOrUltra =
+          effectiveHasActive &&
+          (effectivePlanId === "plus" || effectivePlanId === "ultra");
+
+        console.log("[PLAN CHECK]", {
+          hasPlusOrUltra,
+          subscription: effectiveSub,
+          userId: user?.id,
+        });
+
+        if (!hasPlusOrUltra) {
           await appendAssistantMessage({
             convId,
             text: PLAN_PLUS_REQUIRED_TEXT,

@@ -7,7 +7,7 @@ export function useActivePlan() {
   const { user } = useAuth();
   const fetchSub = useServerFn(getMySubscription);
 
-  const { data } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ["my-subscription"],
     queryFn: async () => {
       try {
@@ -20,11 +20,22 @@ export function useActivePlan() {
     staleTime: 60_000,
   });
 
-  if (!user) return { hasActive: false, planId: null as string | null };
+  if (!user)
+    return {
+      hasActive: false,
+      planId: null as string | null,
+      subscription: null as null,
+      isLoading: false,
+    };
   const sub = data ?? null;
   const hasActive =
     !!sub &&
     sub.status === "active" &&
     (!sub.expires_at || new Date(sub.expires_at).getTime() > Date.now());
-  return { hasActive, planId: sub?.plan_id ?? null };
+  return {
+    hasActive,
+    planId: sub?.plan_id ?? null,
+    subscription: sub,
+    isLoading: isLoading || (isFetching && !data),
+  };
 }
