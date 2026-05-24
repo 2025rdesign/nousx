@@ -36,6 +36,11 @@ const VISUAL_DESC_RE =
 const VIDEO_INTENT_RE =
   /(anima(?:r|ç[ãa]o|te|tion)?|faz(?:er)?\s+(?:um\s+)?v[ií]deo|make\s+(?:a\s+)?video|transforma(?:r)?\s+(?:em|pra|para)\s+v[ií]deo|turn\s+(?:into|to)\s+video|dar\s+vida|bring\s+to\s+life|v[ií]deo\s+da\s+(?:imagem|foto)|video\s+(?:of|from)\s+(?:the\s+)?(?:image|photo)|movimento|moving|gif\s+animado|animated)/i;
 
+// Perguntas de STATUS sobre animação em andamento — nunca devem disparar
+// nem geração de imagem nem nova animação.
+const ANIMATION_STATUS_QUESTION_RE =
+  /(terminou|ficou\s+pronto|cad[êe]\s+o\s+v[ií]deo|quanto\s+tempo(?:\s+falta)?|gerou\s+o\s+v[ií]deo|t[áa]\s+pronto|ta\s+pronto|j[áa]\s+(?:ficou|acabou|terminou))/i;
+
 // Intenção de EDITAR uma imagem existente (não apenas analisar).
 const IMAGE_EDIT_INTENT_RE =
   /\b(mude|muda|troque|troca|retire|retira|remova|remove|coloque|coloca|adicione|adiciona|altere|altera|edite|edita|tire|tira|bote|bota|ponha|p[oõ]e|deixe|deixa|torne|torna|transform(?:e|a|ar)|transport(?:e|a|ar)|substitua|substitui|inclua|inclui|apague|apaga|melhore|melhora|ajuste|ajusta|refa[cç]a|regenere|aumente|aumenta|diminua|diminui|deixa\s+mais|deixe\s+mais|sem\s+|com\s+|pinte|pinta|colorize)\b/i;
