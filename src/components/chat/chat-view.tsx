@@ -20,6 +20,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { getMySubscription } from "@/lib/payments.functions";
 import { VoiceModeModal } from "./voice-mode-modal";
 import { PlanCheckoutDialog } from "@/components/payments/subscription-tab";
+import { getCredits } from "@/lib/credits.functions";
 import type { PlanId } from "@/lib/payments-config";
 
 const IMAGE_INTENT_RE =
@@ -29,6 +30,10 @@ const IMAGE_INTENT_RE =
 // (ex.: "YouTube thumbnail, 1280x720px, minimalist design...").
 const VISUAL_DESC_RE =
   /(minimalist|cinematic|photorealistic|hyperrealistic|minimalista|cinematogr[áa]fico|realista|fotorrealista|fundo\s+escuro|dark\s+background|aspect\s+ratio|propor[cç][ãa]o|resolu[cç][ãa]o|resolution|ilumina[cç][ãa]o|lighting|composi[cç][ãa]o|composition|16:9|9:16|1:1|1280\s*[x×]\s*720|1920\s*[x×]\s*1080|thumbnail|wallpaper|poster|banner)/i;
+
+// Intenção de animar/criar vídeo a partir de uma imagem.
+const VIDEO_INTENT_RE =
+  /(anima(?:r|ç[ãa]o|te|tion)?|faz(?:er)?\s+(?:um\s+)?v[ií]deo|make\s+(?:a\s+)?video|transforma(?:r)?\s+(?:em|pra|para)\s+v[ií]deo|turn\s+(?:into|to)\s+video|dar\s+vida|bring\s+to\s+life|v[ií]deo\s+da\s+(?:imagem|foto)|video\s+(?:of|from)\s+(?:the\s+)?(?:image|photo)|movimento|moving|gif\s+animado|animated)/i;
 
 // Intenção de EDITAR uma imagem existente (não apenas analisar).
 const IMAGE_EDIT_INTENT_RE =
@@ -143,6 +148,7 @@ export function ChatView({ conversationId }: Props) {
   const hasUltra = hasActive && planId === "ultra";
   const { user } = useAuth();
   const fetchSubServerFn = useServerFn(getMySubscription);
+  const fetchCreditsFn = useServerFn(getCredits);
 
   const [messages, setMessages] = useState<ChatMsg[]>(() => {
     if (!conversationId) return [];
