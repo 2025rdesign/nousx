@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { advancePendingVideoJobsForUser } from "@/lib/video-jobs.server";
 
 const listSchema = z.object({
   statuses: z.array(z.enum(["pending", "processing", "completed", "failed"])).optional(),
@@ -11,6 +12,10 @@ export const getMyVideoJobs = createServerFn({ method: "POST" })
   .inputValidator((input) => listSchema.parse(input ?? {}))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
+    const apiKey = process.env.XAI_API_KEY;
+    if (apiKey && data.statuses?.some((status) => status === "pending" || status === "processing")) {
+      return advancePendingVideoJobsForUser(userId, apiKey);
+    }
     let query = supabase
       .from("video_jobs")
       .select(
