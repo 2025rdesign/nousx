@@ -551,8 +551,6 @@ export function ChatView({ conversationId }: Props) {
       }
     } catch (e) {
       console.error("[VIDEO] failed", e);
-      // Clear any pending loading bubble so we never leave it dangling.
-      setMessages((prev) => prev.filter((m) => !m.id.startsWith("assistant-video-loading-")));
       if (convId) {
         await appendAssistantMessage({
           convId,
