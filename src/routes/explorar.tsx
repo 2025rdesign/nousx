@@ -404,3 +404,72 @@ function dedupeById<T extends { id: string }>(rows: T[]): T[] {
   }
   return out;
 }
+
+async function attachCreators<T extends { user_id?: string | null }>(
+  rows: T[],
+): Promise<Array<T & { creator_name: string | null }>> {
+  const ids = Array.from(
+    new Set(rows.map((r) => r.user_id).filter(Boolean)),
+  ) as string[];
+  if (ids.length === 0) {
+    return rows.map((r) => ({ ...r, creator_name: null }));
+  }
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, name")
+    .in("id", ids);
+  const map = new Map<string, string | null>(
+    (data || []).map((p: any) => [p.id, p.name ?? null]),
+  );
+  return rows.map((r) => ({
+    ...r,
+    creator_name: r.user_id ? map.get(r.user_id) ?? null : null,
+  }));
+}
+
+async function fetchPublicCharacters() {
+  const { data, error } = await supabase
+    .from("characters")
+    .select("id, name, image_url, created_at, user_id, profile_id")
+    .eq("is_public", true)
+    .eq("is_approved", true)
+    .not("image_url", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) throw new Error(error.message);
+  const rows = dedupeById((data || []) as any[]);
+  const profileIds = Array.from(
+    new Set(rows.map((r: any) => r.profile_id).filter(Boolean)),
+  ) as string[];
+  let profileNameMap = new Map<string, string | null>();
+  if (profileIds.length > 0) {
+    const { data: profs } = await supabase
+      .from("character_profiles")
+      .select("id, name")
+      .in("id", profileIds);
+    profileNameMap = new Map(
+      (profs || []).map((p: any) => [p.id, p.name ?? null]),
+    );
+  }
+  const withTitles = rows.map((r: any) => ({
+    ...r,
+    display_name:
+      (r.profile_id && profileNameMap.get(r.profile_id)) ||
+      r.name ||
+      "Criação AuraIA",
+  }));
+  return await attachCreators(withTitles);
+}
+
+async function fetchPublicProfiles() {
+  const { data, error } = await supabase
+    .from("character_profiles")
+    .select("id, name, appearance, base_image_url, created_at, user_id")
+    .eq("is_public", true)
+    .eq("is_approved", true)
+    .not("base_image_url", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) throw new Error(error.message);
+  return await attachCreators(dedupeById((data || []) as any[]));
+}
