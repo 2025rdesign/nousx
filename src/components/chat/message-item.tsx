@@ -613,7 +613,6 @@ export function TypingIndicator({
 }
 
 function ReasoningBlock({ text }: { text: string }) {
-  void 0;
   const [open, setOpen] = useState(false);
   return (
     <div
