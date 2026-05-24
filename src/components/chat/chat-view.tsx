@@ -770,42 +770,30 @@ export function ChatView({ conversationId }: Props) {
         console.log("[IMG 2] chamando API");
         console.log("[CHAT] chamando /api/generate-image (DeepSeek bypassado)");
 
-        // If subscription is still loading, fetch it fresh before deciding
-        // — avoids a race where the gate fires before the cache hydrates.
-        let effectiveSub = subscription;
-        let effectiveHasActive = hasActive;
-        let effectivePlanId = planId;
-        if (planLoading || !effectiveSub) {
-          try {
-            const fresh = await queryClient.fetchQuery({
-              queryKey: ["my-subscription"],
-              queryFn: () => fetchSubServerFn(),
-              staleTime: 0,
-            });
-            effectiveSub = fresh ?? null;
-            effectiveHasActive =
-              !!fresh &&
-              fresh.status === "active" &&
-              (!fresh.expires_at || new Date(fresh.expires_at).getTime() > Date.now());
-            effectivePlanId = fresh?.plan_id ?? null;
-          } catch (e) {
-            console.warn("[PLAN CHECK] failed to refetch subscription", e);
-          }
+        let gateSnapshot = latestPlanRef.current;
+        if (gateSnapshot.isLoading || !gateSnapshot.subscription) {
+          setInflightMode("plan");
+          gateSnapshot = await refreshActivePlanSnapshot();
+          setInflightMode("image");
         }
 
-        const hasPlusOrUltra =
-          effectiveHasActive &&
-          (effectivePlanId === "plus" || effectivePlanId === "ultra");
+        const hasPlusOrUltra = gateSnapshot.hasPlusOrUltra;
 
         console.log("[GATE DEBUG]", {
           hasPlusOrUltra,
-          subscriptionLoading: planLoading,
-          effectiveHasActive,
-          effectivePlanId,
-          subscriptionData: JSON.stringify(effectiveSub),
+          subscriptionLoading: gateSnapshot.isLoading,
+          effectiveHasActive: gateSnapshot.hasActive,
+          effectivePlanId: gateSnapshot.planId,
+          subscriptionData: JSON.stringify(gateSnapshot.subscription),
           rawHasActive: hasActive,
           rawPlanId: planId,
           userId: user?.id,
+        });
+        console.log("[GATE FINAL]", {
+          hasPlusOrUltra,
+          isLoading: gateSnapshot.isLoading,
+          planId: gateSnapshot.subscription?.plan_id ?? null,
+          wantsImage,
         });
 
         if (!hasPlusOrUltra) {
