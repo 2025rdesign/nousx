@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -143,6 +143,39 @@ function detectImageFollowUp(text: string, hasPreviousAssistantImage: boolean): 
 const DEEPSEEK_IMAGE_CONFIRM_RE =
   /\b(gerando\s+(?:a\s+)?imagem|vou\s+gerar|criando\s+(?:a\s+)?imagem|gerando\s+agora|aqui\s+est[áa]\s+(?:a\s+)?(?:sua\s+)?(?:imagem|foto|ilustra[cç][ãa]o)|criando\s+agora|come[cç]ando\s+a\s+gera[cç][ãa]o)\b/i;
 
+type ActivePlanSubscription = {
+  plan_id?: string | null;
+  status?: string | null;
+  expires_at?: string | null;
+} | null;
+
+type ActivePlanSnapshot = {
+  subscription: ActivePlanSubscription;
+  hasActive: boolean;
+  planId: string | null;
+  hasPlusOrUltra: boolean;
+  isLoading: boolean;
+};
+
+function buildActivePlanSnapshot(
+  subscription: ActivePlanSubscription,
+  isLoading: boolean,
+): ActivePlanSnapshot {
+  const hasActive =
+    !!subscription &&
+    subscription.status === "active" &&
+    (!subscription.expires_at || new Date(subscription.expires_at).getTime() > Date.now());
+  const planId = subscription?.plan_id ?? null;
+
+  return {
+    subscription,
+    hasActive,
+    planId,
+    hasPlusOrUltra: hasActive && (planId === "plus" || planId === "ultra"),
+    isLoading,
+  };
+}
+
 interface Props {
   conversationId: string | null;
 }
@@ -193,11 +226,66 @@ export function ChatView({ conversationId }: Props) {
   const [sending, setSending] = useState(false);
   const [awaitingReply, setAwaitingReply] = useState(false);
   const [inflightMode, setInflightMode] = useState<
-    "default" | "web" | "reasoning" | "image" | "edit" | "video"
+    "default" | "web" | "reasoning" | "image" | "edit" | "video" | "plan"
   >("default");
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [fillText, setFillText] = useState<string | undefined>();
   const [checkoutPlan, setCheckoutPlan] = useState<PlanId | null>(null);
+  const [planRefreshPending, setPlanRefreshPending] = useState(false);
+  const latestPlanRef = useRef<ActivePlanSnapshot>(
+    buildActivePlanSnapshot(subscription, planLoading),
+  );
+  const planRefreshPromiseRef = useRef<Promise<ActivePlanSnapshot> | null>(null);
+
+  const refreshActivePlanSnapshot = useCallback(async () => {
+    if (!user) {
+      const emptySnapshot = buildActivePlanSnapshot(null, false);
+      latestPlanRef.current = emptySnapshot;
+      return emptySnapshot;
+    }
+
+    if (planRefreshPromiseRef.current) return planRefreshPromiseRef.current;
+
+    const pendingSnapshot = buildActivePlanSnapshot(
+      latestPlanRef.current.subscription,
+      true,
+    );
+    latestPlanRef.current = pendingSnapshot;
+    setPlanRefreshPending(true);
+
+    const refreshPromise = queryClient
+      .fetchQuery({
+        queryKey: ["my-subscription"],
+        queryFn: () => fetchSubServerFn(),
+        staleTime: 0,
+      })
+      .then((fresh) => {
+        const snapshot = buildActivePlanSnapshot(fresh ?? null, false);
+        latestPlanRef.current = snapshot;
+        return snapshot;
+      })
+      .catch((error) => {
+        console.warn("[PLAN CHECK] failed to refetch subscription", error);
+        const fallbackSnapshot = buildActivePlanSnapshot(subscription, planLoading);
+        latestPlanRef.current = fallbackSnapshot;
+        return fallbackSnapshot;
+      })
+      .finally(() => {
+        setPlanRefreshPending(false);
+        planRefreshPromiseRef.current = null;
+      });
+
+    planRefreshPromiseRef.current = refreshPromise;
+    return refreshPromise;
+  }, [fetchSubServerFn, planLoading, queryClient, subscription, user]);
+
+  useEffect(() => {
+    latestPlanRef.current = buildActivePlanSnapshot(subscription, planLoading);
+  }, [subscription, planLoading]);
+
+  useEffect(() => {
+    void refreshActivePlanSnapshot();
+  }, [refreshActivePlanSnapshot]);
 
   useEffect(() => {
     function onOpen(e: Event) {
@@ -685,42 +773,30 @@ export function ChatView({ conversationId }: Props) {
         console.log("[IMG 2] chamando API");
         console.log("[CHAT] chamando /api/generate-image (DeepSeek bypassado)");
 
-        // If subscription is still loading, fetch it fresh before deciding
-        // — avoids a race where the gate fires before the cache hydrates.
-        let effectiveSub = subscription;
-        let effectiveHasActive = hasActive;
-        let effectivePlanId = planId;
-        if (planLoading || !effectiveSub) {
-          try {
-            const fresh = await queryClient.fetchQuery({
-              queryKey: ["my-subscription"],
-              queryFn: () => fetchSubServerFn(),
-              staleTime: 0,
-            });
-            effectiveSub = fresh ?? null;
-            effectiveHasActive =
-              !!fresh &&
-              fresh.status === "active" &&
-              (!fresh.expires_at || new Date(fresh.expires_at).getTime() > Date.now());
-            effectivePlanId = fresh?.plan_id ?? null;
-          } catch (e) {
-            console.warn("[PLAN CHECK] failed to refetch subscription", e);
-          }
+        let gateSnapshot = latestPlanRef.current;
+        if (gateSnapshot.isLoading || !gateSnapshot.subscription) {
+          setInflightMode("plan");
+          gateSnapshot = await refreshActivePlanSnapshot();
+          setInflightMode("image");
         }
 
-        const hasPlusOrUltra =
-          effectiveHasActive &&
-          (effectivePlanId === "plus" || effectivePlanId === "ultra");
+        const hasPlusOrUltra = gateSnapshot.hasPlusOrUltra;
 
         console.log("[GATE DEBUG]", {
           hasPlusOrUltra,
-          subscriptionLoading: planLoading,
-          effectiveHasActive,
-          effectivePlanId,
-          subscriptionData: JSON.stringify(effectiveSub),
+          subscriptionLoading: gateSnapshot.isLoading,
+          effectiveHasActive: gateSnapshot.hasActive,
+          effectivePlanId: gateSnapshot.planId,
+          subscriptionData: JSON.stringify(gateSnapshot.subscription),
           rawHasActive: hasActive,
           rawPlanId: planId,
           userId: user?.id,
+        });
+        console.log("[GATE FINAL]", {
+          hasPlusOrUltra,
+          isLoading: gateSnapshot.isLoading,
+          planId: gateSnapshot.subscription?.plan_id ?? null,
+          wantsImage,
         });
 
         if (!hasPlusOrUltra) {
@@ -1329,7 +1405,8 @@ export function ChatView({ conversationId }: Props) {
               !hasStreamingMessage &&
               (inflightMode === "image" ||
                 inflightMode === "edit" ||
-                inflightMode === "video") ? (
+                inflightMode === "video" ||
+                inflightMode === "plan") ? (
                 <TypingIndicator mode={inflightMode} />
               ) : null}
             </div>
@@ -1340,12 +1417,13 @@ export function ChatView({ conversationId }: Props) {
 
         <ChatInput
           onSend={handleSend}
-          disabled={sending}
+          disabled={sending || planLoading || planRefreshPending}
           hasUltra={hasUltra}
           onOpenVoiceMode={() => setVoiceOpen(true)}
           voiceModeActive={voiceOpen}
           fillText={fillText}
           onFillTextConsumed={() => setFillText(undefined)}
+          sendButtonLabel={planLoading || planRefreshPending ? "Plano..." : undefined}
         />
         <VoiceModeModal open={voiceOpen} onClose={() => setVoiceOpen(false)} />
         {checkoutPlan && (

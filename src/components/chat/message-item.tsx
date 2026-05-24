@@ -580,7 +580,7 @@ export const MessageItem = memo(
 export function TypingIndicator({
   mode = "default",
 }: {
-  mode?: "default" | "web" | "reasoning" | "image" | "edit" | "video";
+  mode?: "default" | "web" | "reasoning" | "image" | "edit" | "video" | "plan";
 }) {
   if (mode === "edit" || mode === "image") {
     const label =
@@ -666,6 +666,18 @@ export function TypingIndicator({
           style={{ color: "#6C47FF" }}
         >
           💭 Analisando...
+        </div>
+      </div>
+    );
+  }
+  if (mode === "plan") {
+    return (
+      <div className="flex justify-start">
+        <div
+          className="px-4 py-3 text-sm animate-pulse"
+          style={{ color: "#6C47FF" }}
+        >
+          verificando seu plano...
         </div>
       </div>
     );
