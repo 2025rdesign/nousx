@@ -3,14 +3,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/termos")({
   head: () => ({
     meta: [
+      { title: "Termos de Uso — Aura Chat" },
       {
         name: "description",
-        content:
-          "Termos de uso da AuraIA — plataforma de inteligência artificial sem censura para maiores de 18 anos.",
+        content: "Termos e condições de uso da plataforma Aura Chat.",
       },
+      { property: "og:title", content: "Termos de Uso — Aura Chat" },
       {
         property: "og:description",
-        content: "Termos de uso da plataforma AuraIA.",
+        content: "Termos e condições de uso da plataforma Aura Chat.",
       },
     ],
     links: [{ rel: "canonical", href: "https://chataura.com.br/termos" }],
