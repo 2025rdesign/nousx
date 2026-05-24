@@ -206,13 +206,10 @@ export const Route = createFileRoute("/api/animate-image")({
             return json({ error: "insufficient_credits", message: "Créditos insuficientes." }, 402);
           }
 
-          queueMicrotask(() => {
-            void finalizeVideoJob(job.id, apiKey).catch(async (error) => {
-              console.error("[ANIMATE-IMAGE] background finalize failed", error);
-              await failVideoJob(job, error instanceof Error ? error.message : "Não foi possível concluir a animação.");
-            });
-          });
-
+          // Do NOT poll xAI here — Workers may terminate background tasks after
+          // the response returns. Client polls /api/video-status (which calls
+          // getMyVideoJobs → advancePendingVideoJobsForUser) to drive the job
+          // to completion.
           return json({ jobId: job.id, requestId, status: "processing" }, 202);
         } catch (e) {
           console.error("[ANIMATE-IMAGE] error", e);
