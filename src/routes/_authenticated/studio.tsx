@@ -882,6 +882,7 @@ function StudioInner() {
                     </label>
                   )}
 
+                  <div className="space-y-1.5">
                     <Label htmlFor="negative" className="text-xs text-muted-foreground">
                       Prompt negativo
                     </Label>
