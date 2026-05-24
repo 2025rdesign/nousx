@@ -402,6 +402,12 @@ export function ChatView({ conversationId }: Props) {
     baseMessages: ChatMsg[],
     resetButton?: () => void,
   ) {
+    // Animation feature temporarily disabled — short-circuit to coming-soon msg.
+    void sourceImageUrl;
+    resetButton?.();
+    await handleAnimationComingSoon(text, baseMessages);
+    return;
+    // eslint-disable-next-line no-unreachable
     setSending(true);
     setAwaitingReply(true);
     setInflightMode("video");
