@@ -50,7 +50,7 @@ const PLANS: PlanItem[] = [
       "Chat ilimitado",
       "Busca na web",
       "Análise de arquivos e imagens",
-      "3 créditos de boas-vindas no Estúdio",
+      "5 créditos de boas-vindas no Estúdio",
     ],
     cta: "Criar conta grátis",
     ctaVariant: "outline",
