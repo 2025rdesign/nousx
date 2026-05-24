@@ -257,6 +257,16 @@ export function ChatView({ conversationId }: Props) {
     "😕 Algo inesperado aconteceu. Tente novamente.";
   const GENERIC_IMG_ERROR_TEXT =
     "⚡ Algo deu errado na geração. Tente novamente.";
+  const VIDEO_NEED_ULTRA_TEXT =
+    "🎬 A **animação de imagens** é exclusiva do plano **Ultra**.\n\n" +
+    "Com o Ultra (R$57,90/mês) você anima qualquer imagem gerada no chat — 10 segundos de vídeo por apenas 10 créditos.\n\n" +
+    "[Assinar Ultra](/configuracoes?tab=assinatura)";
+  const VIDEO_NEED_CREDITS_TEXT = (have: number) =>
+    `🎬 Você precisa de **10 créditos** para animar uma imagem. Você tem ${have} crédito(s) disponíveis.\n\n[Comprar créditos](/creditos)`;
+  const VIDEO_NEED_IMAGE_TEXT =
+    "🎬 Para animar, primeiro gere ou edite uma imagem aqui no chat. Depois é só pedir a animação!";
+  const VIDEO_GENERIC_ERROR_TEXT =
+    "🎬 Não consegui animar a imagem. Seus créditos foram devolvidos. Tente novamente.";
 
   const {
     data: dbMessages,
