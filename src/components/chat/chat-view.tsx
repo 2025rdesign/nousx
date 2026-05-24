@@ -550,7 +550,7 @@ export function ChatView({ conversationId }: Props) {
             return;
           }
           stickyImageRefRef.current = null;
-          throw new Error(err.error || "Falha ao gerar imagem.");
+          throw new Error("__IMG_GENERIC__");
         }
 
         const data = (await res.json()) as { url: string; caption?: string };
