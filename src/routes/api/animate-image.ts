@@ -171,6 +171,7 @@ export const Route = createFileRoute("/api/animate-image")({
 
           try {
             await ensureVideoCreditsCharged(job);
+            job.credits_charged = true;
           } catch (e) {
             console.warn("[ANIMATE-IMAGE] credits insufficient", e);
             await failVideoJob(job, "Créditos insuficientes.");
