@@ -88,41 +88,46 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { title: "AuraIA" },
+      { name: "apple-mobile-web-app-title", content: "Aura Chat" },
+      { title: "Aura Chat — IA Sem Censura e 100% Grátis" },
       {
         name: "description",
         content:
-          "AuraIA é uma inteligência artificial sem censura e sem filtros. Converse livremente, gere imagens realistas e explore sem limites.",
+          "Aura Chat é a inteligência artificial sem censura, sem filtros e 100% grátis. Converse sem limites, gere imagens e explore sem julgamentos.",
       },
       {
         name: "keywords",
         content:
-          "IA sem censura, inteligência artificial, chat IA, geração de imagem IA, AI sem filtro, chatbot livre",
+          "aura chat, aura ia, chat ia gratis, inteligencia artificial sem censura, ia sem filtro, chat ia brasileiro, gerar imagem ia, ia adulto, ia sem restricao, chataura",
       },
-      { name: "author", content: "AuraIA" },
+      { name: "author", content: "Aura Chat" },
       { name: "theme-color", content: "#6C47FF" },
-      { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-title", content: "AuraIA" },
-      { property: "og:title", content: "AuraIA — IA sem censura" },
+      { name: "google-site-verification", content: "ADICIONAR_CODIGO_GSC_AQUI" },
+      { property: "og:title", content: "Aura Chat — IA Sem Censura e 100% Grátis" },
       {
         property: "og:description",
         content:
-          "Converse e crie sem limites com a AuraIA. Chat livre e geração de imagens sem censura.",
+          "Converse sem limites com a IA mais livre do Brasil. Sem censura, sem filtros, 100% grátis para começar.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://chataura.com.br" },
+      { property: "og:site_name", content: "Aura Chat" },
+      { property: "og:locale", content: "pt_BR" },
       {
         property: "og:image",
         content:
-          "https://central.daev.ca/wp-content/uploads/2026/05/icone-logo-nousx-pwa-scaled.png",
+          "https://central.daev.ca/wp-content/uploads/2026/05/AURA-IA-IMAGEM-DASH.png",
       },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "AuraIA — IA sem censura" },
-      { name: "twitter:description", content: "Converse e crie sem limites com a AuraIA." },
+      { name: "twitter:title", content: "Aura Chat — IA Sem Censura e 100% Grátis" },
+      {
+        name: "twitter:description",
+        content: "Converse sem limites com a IA mais livre do Brasil.",
+      },
       {
         name: "twitter:image",
         content:
-          "https://central.daev.ca/wp-content/uploads/2026/05/icone-logo-nousx-pwa-scaled.png",
+          "https://central.daev.ca/wp-content/uploads/2026/05/AURA-IA-IMAGEM-DASH.png",
       },
     ],
     links: [
@@ -166,6 +171,51 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "manifest", href: "/manifest.json" },
       { rel: "canonical", href: "https://chataura.com.br" },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          name: "Aura Chat",
+          alternateName: ["AuraIA", "Aura IA", "Chat Aura"],
+          url: "https://chataura.com.br",
+          description:
+            "Inteligência artificial sem censura e 100% grátis. Converse, gere imagens e explore sem limites.",
+          applicationCategory: "AIApplication",
+          operatingSystem: "Web, iOS, Android",
+          offers: [
+            {
+              "@type": "Offer",
+              name: "Plano Gratuito",
+              price: "0",
+              priceCurrency: "BRL",
+            },
+            {
+              "@type": "Offer",
+              name: "Plano Plus",
+              price: "29.90",
+              priceCurrency: "BRL",
+              billingIncrement: "P1M",
+            },
+            {
+              "@type": "Offer",
+              name: "Plano Ultra",
+              price: "57.90",
+              priceCurrency: "BRL",
+              billingIncrement: "P1M",
+            },
+          ],
+          contactPoint: {
+            "@type": "ContactPoint",
+            contactType: "customer support",
+            availableLanguage: "Portuguese",
+          },
+          inLanguage: "pt-BR",
+          countriesSupported: "BR",
+        }),
+      },
     ],
   }),
   shellComponent: RootShell,
