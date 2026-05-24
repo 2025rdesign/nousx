@@ -280,6 +280,27 @@ export type Database = {
         }
         Relationships: []
       }
+      image_usage: {
+        Row: {
+          count: number
+          reset_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          reset_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          reset_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -496,6 +517,7 @@ export type Database = {
       }
       user_subscriptions: {
         Row: {
+          billing_period: string
           cakto_subscription_id: string | null
           created_at: string
           expires_at: string | null
@@ -506,6 +528,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          billing_period?: string
           cakto_subscription_id?: string | null
           created_at?: string
           expires_at?: string | null
@@ -516,6 +539,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          billing_period?: string
           cakto_subscription_id?: string | null
           created_at?: string
           expires_at?: string | null

@@ -10,10 +10,15 @@ export const CREDIT_PACKS: Record<
 };
 
 export type PlanId = "plus" | "ultra";
+export type BillingPeriod = "monthly" | "annual";
+
 export const PLANS: Record<PlanId, {
   name: string;
   credits: number;
   price: number;
+  annualMonthlyPrice: number;
+  annualTotalPrice: number;
+  annualSavingsPercent: number;
   productId: string;
   tagline: string;
   highlight?: boolean;
@@ -23,6 +28,9 @@ export const PLANS: Record<PlanId, {
     name: "Plus",
     credits: 30,
     price: 29.9,
+    annualMonthlyPrice: 25.9,
+    annualTotalPrice: 310.8,
+    annualSavingsPercent: 13,
     productId: "36i2qxd",
     tagline: "Ideal para começar",
     features: [
@@ -37,6 +45,9 @@ export const PLANS: Record<PlanId, {
     name: "Ultra",
     credits: 80,
     price: 57.9,
+    annualMonthlyPrice: 38.9,
+    annualTotalPrice: 466.8,
+    annualSavingsPercent: 33,
     productId: "ouavt87",
     tagline: "Mais popular",
     highlight: true,
@@ -50,6 +61,11 @@ export const PLANS: Record<PlanId, {
     ],
   },
 };
+
+export function planPriceFor(planId: PlanId, period: BillingPeriod): number {
+  const p = PLANS[planId];
+  return period === "annual" ? p.annualTotalPrice : p.price;
+}
 
 export function applyDiscount(value: number, percent: number) {
   const v = value * (1 - percent / 100);

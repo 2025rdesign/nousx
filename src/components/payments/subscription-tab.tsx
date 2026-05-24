@@ -14,7 +14,13 @@ import { Check, Loader2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
-import { PLANS, applyDiscount, type PlanId } from "@/lib/payments-config";
+import {
+  PLANS,
+  applyDiscount,
+  planPriceFor,
+  type BillingPeriod,
+  type PlanId,
+} from "@/lib/payments-config";
 import {
   cancelMySubscription,
   getMySubscription,
@@ -193,37 +199,51 @@ export function PlanCheckoutDialog({
   planId,
   open,
   onOpenChange,
+  billingPeriod = "monthly",
 }: {
   planId: PlanId;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  billingPeriod?: BillingPeriod;
 }) {
   const plan = PLANS[planId];
   const [coupon, setCoupon] = useState<AppliedCoupon>(null);
   const [pixOpen, setPixOpen] = useState(false);
 
+  const basePrice = planPriceFor(planId, billingPeriod);
   const finalPrice = useMemo(
-    () => (coupon ? applyDiscount(plan.price, coupon.discountPercent) : plan.price),
-    [plan.price, coupon],
+    () => (coupon ? applyDiscount(basePrice, coupon.discountPercent) : basePrice),
+    [basePrice, coupon],
   );
+  const isAnnual = billingPeriod === "annual";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-[#0A0A0F] border-border">
         <DialogHeader>
-          <DialogTitle>Assinar {plan.name}</DialogTitle>
+          <DialogTitle>
+            Assinar {plan.name}
+            {isAnnual ? " (anual)" : ""}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="rounded-lg bg-[#13131A] border border-[#1E1E2E] p-3 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-white">{plan.name}</p>
-              <p className="text-xs text-zinc-400">{plan.credits} créditos/mês</p>
+              <p className="text-xs text-zinc-400">
+                {plan.credits} créditos/mês · {isAnnual ? "cobrado anualmente" : "cobrado mensalmente"}
+              </p>
             </div>
             <div className="text-right">
               {coupon && (
-                <p className="text-xs text-zinc-500 line-through">{formatBRL(plan.price)}</p>
+                <p className="text-xs text-zinc-500 line-through">{formatBRL(basePrice)}</p>
               )}
-              <p className="text-lg font-bold text-white">{formatBRL(finalPrice)}/mês</p>
+              <p className="text-lg font-bold text-white">
+                {formatBRL(finalPrice)}
+                <span className="text-xs font-normal text-zinc-400">
+                  {isAnnual ? "/ano" : "/mês"}
+                </span>
+              </p>
             </div>
           </div>
           <CouponField value={coupon} onApply={setCoupon} />
@@ -246,9 +266,10 @@ export function PlanCheckoutDialog({
         onOpenChange={setPixOpen}
         kind="subscription"
         id={planId}
-        name={`Assinatura ${plan.name}`}
+        name={`Assinatura ${plan.name}${isAnnual ? " (anual)" : ""}`}
         amount={finalPrice}
         couponCode={coupon?.code ?? null}
+        billingPeriod={billingPeriod}
         onPaid={() => onOpenChange(false)}
       />
     </Dialog>

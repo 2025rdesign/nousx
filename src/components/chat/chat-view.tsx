@@ -417,6 +417,27 @@ export function ChatView({ conversationId }: Props) {
   const VIDEO_GENERIC_ERROR_TEXT =
     "🎬 Não consegui animar a imagem. Seus créditos foram devolvidos. Tente novamente.";
 
+  function formatResetDate(iso: string): string {
+    try {
+      return new Date(iso).toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "long",
+      });
+    } catch {
+      return "início do próximo mês";
+    }
+  }
+
+  const LIMIT_REACHED_PLUS_TEXT = (resetIso: string) =>
+    `Você atingiu o limite de imagens do plano **Plus** este mês. Seu limite renova em **${formatResetDate(resetIso)}**.\n\n` +
+    "Para gerar mais imagens agora, você pode fazer upgrade para o **Ultra** — que inclui mais imagens por mês no chat.\n\n" +
+    "[Fazer upgrade para Ultra](/planos)";
+
+  const LIMIT_REACHED_ULTRA_TEXT = (resetIso: string) =>
+    `Você atingiu o limite de imagens do plano **Ultra** este mês. Seu limite renova em **${formatResetDate(resetIso)}**.\n\n` +
+    "Enquanto isso, você ainda pode gerar imagens ilimitadas no **Estúdio de Criação** usando seus créditos.\n\n" +
+    "[Ir para o Estúdio](/studio)";
+
   const {
     data: dbMessages,
     isLoading: messagesLoading,
@@ -732,6 +753,19 @@ export function ChatView({ conversationId }: Props) {
           return;
         }
 
+        if (res.status === 429) {
+          const payload = await res.json().catch(() => ({} as { resetAt?: string }));
+          await appendAssistantMessage({
+            convId,
+            text: LIMIT_REACHED_ULTRA_TEXT(payload.resetAt ?? new Date().toISOString()),
+            isNew,
+            titleSeed: text,
+            baseMessages,
+            userMsg,
+          });
+          return;
+        }
+
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: "Falha ao editar imagem." }));
           if (res.status === 422 && (err.code === "moderation" || err.error === "content_moderation")) {
@@ -849,6 +883,24 @@ export function ChatView({ conversationId }: Props) {
           await appendAssistantMessage({
             convId,
             text: PLAN_PLUS_REQUIRED_TEXT,
+            isNew,
+            titleSeed: text,
+            baseMessages,
+            userMsg,
+          });
+          return;
+        }
+
+        if (res.status === 429) {
+          const payload = await res.json().catch(
+            () => ({} as { resetAt?: string; plan?: string }),
+          );
+          const isUltra = (payload.plan ?? gateSnapshot.planId) === "ultra";
+          await appendAssistantMessage({
+            convId,
+            text: isUltra
+              ? LIMIT_REACHED_ULTRA_TEXT(payload.resetAt ?? new Date().toISOString())
+              : LIMIT_REACHED_PLUS_TEXT(payload.resetAt ?? new Date().toISOString()),
             isNew,
             titleSeed: text,
             baseMessages,

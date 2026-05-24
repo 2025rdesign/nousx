@@ -5,16 +5,26 @@ import { rewardReferrerOnFirstPurchase } from "./referrals.server";
 import {
   CREDIT_PACKS,
   PLANS,
+  type BillingPeriod,
   type CreditPackId,
   type PlanId,
 } from "./payments-config";
 
-async function activateSubscription(userId: string, planId: PlanId, externalId: string) {
+async function activateSubscription(
+  userId: string,
+  planId: PlanId,
+  externalId: string,
+  billingPeriod: BillingPeriod = "monthly",
+) {
   const plan = PLANS[planId];
   if (!plan) return;
   const now = new Date();
   const expires = new Date();
-  expires.setDate(now.getDate() + 30);
+  if (billingPeriod === "annual") {
+    expires.setDate(now.getDate() + 365);
+  } else {
+    expires.setDate(now.getDate() + 30);
+  }
 
   const { data: existing } = await supabaseAdmin
     .from("user_subscriptions")
@@ -28,7 +38,7 @@ async function activateSubscription(userId: string, planId: PlanId, externalId: 
   let nextExpires = expires;
   if (existing?.expires_at && new Date(existing.expires_at) > now) {
     const cur = new Date(existing.expires_at);
-    cur.setDate(cur.getDate() + 30);
+    cur.setDate(cur.getDate() + (billingPeriod === "annual" ? 365 : 30));
     nextExpires = cur;
   }
 
@@ -40,6 +50,7 @@ async function activateSubscription(userId: string, planId: PlanId, externalId: 
         status: "active",
         expires_at: nextExpires.toISOString(),
         cakto_subscription_id: externalId,
+        billing_period: billingPeriod,
       })
       .eq("id", existing.id);
   } else {
@@ -49,6 +60,7 @@ async function activateSubscription(userId: string, planId: PlanId, externalId: 
       status: "active",
       cakto_subscription_id: externalId,
       expires_at: nextExpires.toISOString(),
+      billing_period: billingPeriod,
     });
   }
 }
@@ -74,11 +86,15 @@ export async function processMpPayment(paymentId: string) {
   let kind: string | undefined;
   let targetId: string | undefined;
   let historyId: string | undefined;
+  let billingPeriod: BillingPeriod = "monthly";
 
   const extRef = detail.external_reference ?? "";
   const parts = extRef.split("|");
   if (parts.length >= 4) {
     [userId, kind, targetId, historyId] = parts;
+    if (parts[4] === "annual" || parts[4] === "monthly") {
+      billingPeriod = parts[4] as BillingPeriod;
+    }
   } else {
     console.warn(
       "[MP-WEBHOOK] external_reference missing/invalid, falling back to history lookup",
@@ -98,6 +114,9 @@ export async function processMpPayment(paymentId: string) {
     kind = (meta.kind as string) ?? row.type;
     targetId = (meta.target as string) ?? "";
     historyId = row.id as string;
+    if (meta.billing_period === "annual" || meta.billing_period === "monthly") {
+      billingPeriod = meta.billing_period as BillingPeriod;
+    }
   }
 
   console.log("[MP-WEBHOOK] resolved", { mpId, status, userId, kind, targetId, historyId });
@@ -114,7 +133,7 @@ export async function processMpPayment(paymentId: string) {
     } else if (kind === "subscription") {
       const plan = PLANS[targetId as PlanId];
       if (plan && userId) {
-        await activateSubscription(userId, targetId as PlanId, mpId);
+        await activateSubscription(userId, targetId as PlanId, mpId, billingPeriod);
         await creditUserOnce(mpId, userId, plan.credits, targetId);
         await rewardReferrerOnFirstPurchase(userId, "subscription", targetId);
       } else {
