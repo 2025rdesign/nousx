@@ -712,9 +712,14 @@ export function ChatView({ conversationId }: Props) {
           effectiveHasActive &&
           (effectivePlanId === "plus" || effectivePlanId === "ultra");
 
-        console.log("[PLAN CHECK]", {
+        console.log("[GATE DEBUG]", {
           hasPlusOrUltra,
-          subscription: effectiveSub,
+          subscriptionLoading: planLoading,
+          effectiveHasActive,
+          effectivePlanId,
+          subscriptionData: JSON.stringify(effectiveSub),
+          rawHasActive: hasActive,
+          rawPlanId: planId,
           userId: user?.id,
         });
 
