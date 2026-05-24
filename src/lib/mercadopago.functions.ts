@@ -8,7 +8,9 @@ import {
   CREDIT_PACKS,
   PLANS,
   applyDiscount,
+  planPriceFor,
   type CreditPackId,
+  type BillingPeriod,
   type PlanId,
 } from "./payments-config";
 
@@ -57,6 +59,7 @@ export const createPixPayment = createServerFn({ method: "POST" })
         id: z.string().min(1).max(40),
         couponCode: z.string().max(40).optional().nullable(),
         cpf: z.string().min(11).max(14).optional().nullable(),
+        billingPeriod: z.enum(["monthly", "annual"]).optional(),
       })
       .parse(d),
   )
@@ -82,6 +85,8 @@ export const createPixPayment = createServerFn({ method: "POST" })
     // Pricing
     let baseAmount: number;
     let title: string;
+    const billingPeriod: BillingPeriod =
+      data.kind === "subscription" ? data.billingPeriod ?? "monthly" : "monthly";
     if (data.kind === "credit") {
       const pack = CREDIT_PACKS[data.id as CreditPackId];
       if (!pack) throw new Error("Pacote inválido.");
@@ -90,8 +95,8 @@ export const createPixPayment = createServerFn({ method: "POST" })
     } else {
       const plan = PLANS[data.id as PlanId];
       if (!plan) throw new Error("Plano inválido.");
-      baseAmount = plan.price;
-      title = `AuraIA — Assinatura ${plan.name}`;
+      baseAmount = planPriceFor(data.id as PlanId, billingPeriod);
+      title = `AuraIA — Assinatura ${plan.name}${billingPeriod === "annual" ? " (anual)" : ""}`;
     }
     const coupon = await resolveCoupon(data.couponCode);
     const finalValue = coupon ? applyDiscount(baseAmount, coupon.discountPercent) : baseAmount;
@@ -112,6 +117,7 @@ export const createPixPayment = createServerFn({ method: "POST" })
           target: data.id,
           coupon: coupon?.code ?? null,
           email,
+          billing_period: billingPeriod,
         },
       })
       .select("id")
@@ -121,7 +127,7 @@ export const createPixPayment = createServerFn({ method: "POST" })
       throw new Error("Erro ao iniciar pagamento.");
     }
 
-    const externalReference = `${userId}|${data.kind}|${data.id}|${history.id}`;
+    const externalReference = `${userId}|${data.kind}|${data.id}|${history.id}|${billingPeriod}`;
     const firstName = (profile?.name ?? email.split("@")[0] ?? "Cliente").split(" ")[0];
 
     try {
@@ -148,6 +154,7 @@ export const createPixPayment = createServerFn({ method: "POST" })
             target: data.id,
             coupon: coupon?.code ?? null,
             email,
+            billing_period: billingPeriod,
             mp_payment_id: pix.paymentId,
             external_reference: externalReference,
             expires_at: pix.expiresAt,
