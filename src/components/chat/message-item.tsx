@@ -238,7 +238,7 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
               src={imageUrl}
               alt=""
               onClick={() => setLightboxOpen(true)}
-              className="mb-2 h-auto w-full max-w-[500px] rounded-xl object-contain cursor-zoom-in transition-opacity hover:opacity-90"
+              className="aura-image-in mb-2 h-auto w-full max-w-[500px] rounded-xl object-contain cursor-zoom-in transition-opacity hover:opacity-90"
               loading="lazy"
               decoding="async"
               onError={(e) => {
@@ -251,7 +251,7 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                 src={imageUrl}
                 alt={textContent || "Imagem gerada no chat"}
                 onClick={() => setLightboxOpen(true)}
-                className="h-auto w-full max-w-[500px] rounded-xl object-contain cursor-zoom-in transition-opacity hover:opacity-90"
+                className="aura-image-in h-auto w-full max-w-[500px] rounded-xl object-contain cursor-zoom-in transition-opacity hover:opacity-90"
                 loading="lazy"
                 decoding="async"
                 onError={(e) => {
