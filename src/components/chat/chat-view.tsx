@@ -824,6 +824,8 @@ export function ChatView({ conversationId }: Props) {
         clearTimeout(stallTimer);
       }
 
+      // Stream may have closed early. If we received nothing at all, treat as failure.
+      // If we got partial content, keep what we have instead of discarding.
       if (!gotFirstChunk && stallController.signal.aborted) {
         throw new Error("A resposta demorou muito. Tente novamente.");
       }
@@ -834,7 +836,7 @@ export function ChatView({ conversationId }: Props) {
         processPayload(buffer.trim().slice(5).trim());
       }
 
-      const finalContent = accum || "Desculpe, não consegui responder agora.";
+      const finalContent = accum || GENERIC_ERROR_TEXT;
 
       // Gemini blocked image/file analysis by safety filters — show the
       // friendly analysis-block message instead of the silent fallback.
