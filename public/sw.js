@@ -3,6 +3,13 @@
 // navegador detecte a nova versão e dispare o fluxo de update.
 const CACHE_VERSION = 'build-1779590840507';
 
+self.addEventListener('error', (event) => {
+  console.error('[sw] error', event.message || event);
+});
+self.addEventListener('unhandledrejection', (event) => {
+  console.error('[sw] unhandledrejection', event.reason);
+});
+
 self.addEventListener('install', () => {
   // Ativa imediatamente o novo SW sem esperar fechar todas as abas.
   self.skipWaiting();
