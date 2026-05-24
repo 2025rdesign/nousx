@@ -555,8 +555,8 @@ export const generateCharacter = createServerFn({ method: "POST" })
         ? await translateToEnglish(fallbackAppearance)
         : "";
       const combined = baseAppearance
-        ? `${baseAppearance}. ${translated}`
-        : translated;
+        ? `${baseAppearance}. ${combinedAppearance}`
+        : combinedAppearance;
       endpoint = `${ALIVEAI_BASE}/prompts`;
       body = {
         name: `variation-${Date.now()}`,
