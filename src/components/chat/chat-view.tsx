@@ -23,7 +23,12 @@ import { PlanCheckoutDialog } from "@/components/payments/subscription-tab";
 import type { PlanId } from "@/lib/payments-config";
 
 const IMAGE_INTENT_RE =
-  /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|me\s+(?:d[áa]|d[êe]|manda|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?)\b[^\n]{0,30}\b(image(?:m|ns)|fotos?|ilustra[cç](?:[ãa]o|[õo]es)|desenhos?|figuras?|artes?|pinturas?|wallpapers?|retratos?|p[ôo]ster(?:es)?|banners?|capas?|vetor(?:es|ial|iais)?|logos?|logotipos?|[íi]cones?|stickers?|emojis?|avatares?|personagens?|cenas?|gifs?)\b([^\n]*)/i;
+  /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|me\s+(?:d[áa]|d[êe]|manda|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?|generate|create|make|draw|render|produce|design|build|illustrate)\b[^\n]{0,30}\b(image(?:m|ns|s)?|fotos?|photos?|pictures?|ilustra[cç](?:[ãa]o|[õo]es)|illustrations?|desenhos?|figuras?|artes?|artworks?|pinturas?|wallpapers?|retratos?|portraits?|p[ôo]ster(?:es)?|posters?|banners?|capas?|covers?|vetor(?:es|ial|iais)?|logos?|logotipos?|[íi]cones?|icons?|stickers?|emojis?|avatares?|avatars?|personagens?|characters?|cenas?|scenes?|gifs?|thumbnails?|miniaturas?)\b([^\n]*)/i;
+
+// Detecta descrições visuais explícitas mesmo sem verbo de geração
+// (ex.: "YouTube thumbnail, 1280x720px, minimalist design...").
+const VISUAL_DESC_RE =
+  /(minimalist|cinematic|photorealistic|hyperrealistic|minimalista|cinematogr[áa]fico|realista|fotorrealista|fundo\s+escuro|dark\s+background|aspect\s+ratio|propor[cç][ãa]o|resolu[cç][ãa]o|resolution|ilumina[cç][ãa]o|lighting|composi[cç][ãa]o|composition|16:9|9:16|1:1|1280\s*[x×]\s*720|1920\s*[x×]\s*1080|thumbnail|wallpaper|poster|banner)/i;
 
 // Intenção de EDITAR uma imagem existente (não apenas analisar).
 const IMAGE_EDIT_INTENT_RE =
@@ -58,7 +63,14 @@ function detectImageIntent(text: string): boolean {
   if (SERVICE_QUESTION_RE.test(trimmed)) return false;
 
   const match = IMAGE_INTENT_RE.exec(trimmed);
-  if (!match) return false;
+  if (!match) {
+    // Fallback: descrição visual rica sem verbo (ex.: brief de thumbnail).
+    if (trimmed.length >= 20 && VISUAL_DESC_RE.test(trimmed)) {
+      const visualHits = trimmed.match(/\b\w+\b/g)?.length ?? 0;
+      if (visualHits >= 5) return true;
+    }
+    return false;
+  }
 
   const after = (match[3] ?? "")
     .replace(/[.!?,;:]+/g, " ")
