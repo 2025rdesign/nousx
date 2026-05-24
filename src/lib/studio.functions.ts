@@ -96,6 +96,143 @@ async function pollPrompt(promptId: string): Promise<{ mediaId: string; mediaUrl
   throw new Error("Tempo limite de geração atingido. Tente novamente.");
 }
 
+/**
+ * Wait for prompt completion via WebSocket (real-time).
+ * Connects to wss://api.aliveai.app/ws/prompts/{promptId} using Cloudflare
+ * Workers' WebSocket upgrade pattern. Resolves with {mediaId, mediaUrl} when
+ * a completion event arrives. Rejects on explicit error events or timeout.
+ */
+async function waitForPromptViaWebSocket(
+  promptId: string,
+  timeoutMs = 180_000,
+): Promise<{ mediaId: string; mediaUrl: string }> {
+  const key = process.env.ALIVEAI_API_KEY;
+  if (!key) throw new Error("Serviço de imagem indisponível.");
+
+  const url = `https://api.aliveai.app/ws/prompts/${promptId}`;
+  const resp = await fetch(url, {
+    headers: {
+      Upgrade: "websocket",
+      Authorization: `Key ${key}`,
+    },
+  });
+
+  // Cloudflare Workers exposes the upgraded socket on response.webSocket.
+  const ws = (resp as unknown as { webSocket?: WebSocket }).webSocket;
+  if (!ws) throw new Error("WebSocket upgrade não suportado.");
+
+  (ws as any).accept?.();
+
+  return await new Promise<{ mediaId: string; mediaUrl: string }>(
+    (resolve, reject) => {
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        try { ws.close(); } catch { /* ignore */ }
+        reject(new Error("Tempo limite de geração (WS) atingido."));
+      }, timeoutMs);
+
+      const cleanup = () => {
+        clearTimeout(timer);
+        try { ws.close(); } catch { /* ignore */ }
+      };
+
+      ws.addEventListener("message", (event: MessageEvent) => {
+        if (settled) return;
+        try {
+          const raw =
+            typeof event.data === "string"
+              ? event.data
+              : new TextDecoder().decode(event.data as ArrayBuffer);
+          const msg = JSON.parse(raw) as any;
+
+          const status = String(
+            msg?.status ?? msg?.state ?? msg?.type ?? "",
+          ).toLowerCase();
+          const progress =
+            typeof msg?.progress === "number" ? msg.progress : null;
+          if (progress !== null) {
+            console.log("[WS PROGRESS]", promptId, progress);
+          }
+
+          const medias = msg?.medias ?? msg?.promptContainer?.medias ?? [];
+          const firstMedia = Array.isArray(medias) && medias.length > 0 ? medias[0] : null;
+          const mediaUrl =
+            msg?.mediaUrl ??
+            msg?.media_url ??
+            msg?.url ??
+            msg?.media?.mediaUrl ??
+            firstMedia?.mediaUrl ??
+            null;
+          const mediaId =
+            msg?.mediaId ??
+            msg?.media_id ??
+            msg?.media?.id ??
+            firstMedia?.id ??
+            firstMedia?.mediaId ??
+            "";
+
+          if (mediaUrl) {
+            settled = true;
+            cleanup();
+            resolve({ mediaId: String(mediaId || ""), mediaUrl: String(mediaUrl) });
+            return;
+          }
+
+          if (
+            status === "error" ||
+            status === "failed" ||
+            status === "rejected" ||
+            msg?.error
+          ) {
+            settled = true;
+            cleanup();
+            reject(new Error(msg?.error || msg?.message || "Falha na geração."));
+          }
+        } catch {
+          /* ignore malformed frame */
+        }
+      });
+
+      ws.addEventListener("close", () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(new Error("WebSocket fechado antes da conclusão."));
+      });
+
+      ws.addEventListener("error", () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error("Erro no WebSocket."));
+      });
+    },
+  );
+}
+
+/**
+ * Aguarda conclusão de um prompt usando WebSocket em tempo real, com
+ * 1 tentativa de reconexão automática e fallback para polling se ambas
+ * as tentativas falharem.
+ */
+async function waitForPrompt(
+  promptId: string,
+): Promise<{ mediaId: string; mediaUrl: string }> {
+  try {
+    return await waitForPromptViaWebSocket(promptId);
+  } catch (firstErr) {
+    console.warn("[studio] WS attempt 1 failed, retrying once", firstErr);
+    try {
+      return await waitForPromptViaWebSocket(promptId);
+    } catch (secondErr) {
+      console.warn("[studio] WS failed twice, falling back to polling", secondErr);
+      return await pollPrompt(promptId);
+    }
+  }
+}
+
 async function logPromptPoseEcho(promptId: string) {
   try {
     const res = await fetch(`${ALIVEAI_BASE}/prompts/${promptId}`, {
@@ -636,8 +773,8 @@ export const generateCharacter = createServerFn({ method: "POST" })
       throw new Error("AliveAI não retornou promptId.");
     }
 
-    const { mediaId, mediaUrl } = await pollPrompt(promptId);
-    console.log("[DEBUG] Poll completed", { mediaId, mediaUrl });
+    const { mediaId, mediaUrl } = await waitForPrompt(promptId);
+    console.log("[DEBUG] Generation completed", { mediaId, mediaUrl });
     await logPromptPoseEcho(promptId);
 
     let profileId: string | null =
