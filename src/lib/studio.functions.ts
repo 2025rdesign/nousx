@@ -569,10 +569,12 @@ function buildPosePayload(
   poseId: string | null | undefined,
   posePromptInput: string | null | undefined,
   poseStrengthInput: number | null | undefined,
+  model?: "DEFAULT" | "REALISM" | "ANIME",
 ): Record<string, unknown> | null {
-  const poseStrength = Number.isFinite(Number(poseStrengthInput))
+  const defaultStrength = model === "REALISM" ? 35 : 50;
+  const poseStrength: number = Number.isFinite(Number(poseStrengthInput))
     ? Math.round(Number(poseStrengthInput))
-    : 50;
+    : defaultStrength;
   const userPrompt = (posePromptInput ?? "").trim();
   if (poseId) {
     const type = resolvePoseType(poseId);
