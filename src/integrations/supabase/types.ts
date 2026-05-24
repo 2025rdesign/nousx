@@ -52,6 +52,7 @@ export type Database = {
           base_media_id: string | null
           created_at: string
           id: string
+          is_approved: boolean
           is_public: boolean
           name: string
           updated_at: string
@@ -64,6 +65,7 @@ export type Database = {
           base_media_id?: string | null
           created_at?: string
           id?: string
+          is_approved?: boolean
           is_public?: boolean
           name: string
           updated_at?: string
@@ -76,6 +78,7 @@ export type Database = {
           base_media_id?: string | null
           created_at?: string
           id?: string
+          is_approved?: boolean
           is_public?: boolean
           name?: string
           updated_at?: string
@@ -88,6 +91,7 @@ export type Database = {
           created_at: string
           id: string
           image_url: string | null
+          is_approved: boolean
           is_public: boolean
           media_id: string | null
           name: string | null
@@ -100,6 +104,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          is_approved?: boolean
           is_public?: boolean
           media_id?: string | null
           name?: string | null
@@ -112,6 +117,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          is_approved?: boolean
           is_public?: boolean
           media_id?: string | null
           name?: string | null
@@ -246,6 +252,8 @@ export type Database = {
           created_at: string
           id: string
           image_url: string
+          is_approved: boolean
+          is_public: boolean
           prompt: string | null
           source: string
           user_id: string
@@ -254,6 +262,8 @@ export type Database = {
           created_at?: string
           id?: string
           image_url: string
+          is_approved?: boolean
+          is_public?: boolean
           prompt?: string | null
           source?: string
           user_id: string
@@ -262,6 +272,8 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string
+          is_approved?: boolean
+          is_public?: boolean
           prompt?: string | null
           source?: string
           user_id?: string
