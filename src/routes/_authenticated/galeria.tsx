@@ -366,6 +366,13 @@ function Gallery() {
                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
                     />
                   </button>
+                  {isVideoItem(img) && !selectMode && (
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <div className="size-12 rounded-full bg-black/55 backdrop-blur flex items-center justify-center">
+                        <Play className="size-6 text-white ml-0.5" />
+                      </div>
+                    </div>
+                  )}
                   {selectMode && (
                     <div className="absolute top-2 left-2 z-10 pointer-events-none">
                       <div
@@ -389,12 +396,18 @@ function Gallery() {
                     <span
                       className={cn(
                         "px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider",
-                        img.source === "chat"
-                          ? "bg-primary/80 text-primary-foreground"
-                          : "bg-accent/80 text-accent-foreground",
+                        img.source === "chat-video"
+                          ? "bg-[#6C47FF]/85 text-white"
+                          : img.source === "chat"
+                            ? "bg-primary/80 text-primary-foreground"
+                            : "bg-accent/80 text-accent-foreground",
                       )}
                     >
-                      {img.source === "chat" ? "Chat" : "Estúdio"}
+                      {img.source === "chat-video"
+                        ? "Vídeo"
+                        : img.source === "chat"
+                          ? "Chat"
+                          : "Estúdio"}
                     </span>
                   </div>
                   )}
