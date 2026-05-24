@@ -25,6 +25,7 @@ import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-imag
 import { Route as ApiEditImageRouteImport } from './routes/api/edit-image'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiCaktoWebhookRouteImport } from './routes/api/cakto-webhook'
+import { Route as ApiAnimateImageRouteImport } from './routes/api/animate-image'
 import { Route as AuthenticatedStudioRouteImport } from './routes/_authenticated/studio'
 import { Route as AuthenticatedGaleriaRouteImport } from './routes/_authenticated/galeria'
 import { Route as AuthenticatedCreditosRouteImport } from './routes/_authenticated/creditos'
@@ -113,6 +114,11 @@ const ApiCaktoWebhookRoute = ApiCaktoWebhookRouteImport.update({
   path: '/api/cakto-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAnimateImageRoute = ApiAnimateImageRouteImport.update({
+  id: '/api/animate-image',
+  path: '/api/animate-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedStudioRoute = AuthenticatedStudioRouteImport.update({
   id: '/studio',
   path: '/studio',
@@ -167,6 +173,7 @@ export interface FileRoutesByFullPath {
   '/creditos': typeof AuthenticatedCreditosRoute
   '/galeria': typeof AuthenticatedGaleriaRoute
   '/studio': typeof AuthenticatedStudioRoute
+  '/api/animate-image': typeof ApiAnimateImageRoute
   '/api/cakto-webhook': typeof ApiCaktoWebhookRoute
   '/api/chat': typeof ApiChatRoute
   '/api/edit-image': typeof ApiEditImageRoute
@@ -192,6 +199,7 @@ export interface FileRoutesByTo {
   '/creditos': typeof AuthenticatedCreditosRoute
   '/galeria': typeof AuthenticatedGaleriaRoute
   '/studio': typeof AuthenticatedStudioRoute
+  '/api/animate-image': typeof ApiAnimateImageRoute
   '/api/cakto-webhook': typeof ApiCaktoWebhookRoute
   '/api/chat': typeof ApiChatRoute
   '/api/edit-image': typeof ApiEditImageRoute
@@ -219,6 +227,7 @@ export interface FileRoutesById {
   '/_authenticated/creditos': typeof AuthenticatedCreditosRoute
   '/_authenticated/galeria': typeof AuthenticatedGaleriaRoute
   '/_authenticated/studio': typeof AuthenticatedStudioRoute
+  '/api/animate-image': typeof ApiAnimateImageRoute
   '/api/cakto-webhook': typeof ApiCaktoWebhookRoute
   '/api/chat': typeof ApiChatRoute
   '/api/edit-image': typeof ApiEditImageRoute
@@ -246,6 +255,7 @@ export interface FileRouteTypes {
     | '/creditos'
     | '/galeria'
     | '/studio'
+    | '/api/animate-image'
     | '/api/cakto-webhook'
     | '/api/chat'
     | '/api/edit-image'
@@ -271,6 +281,7 @@ export interface FileRouteTypes {
     | '/creditos'
     | '/galeria'
     | '/studio'
+    | '/api/animate-image'
     | '/api/cakto-webhook'
     | '/api/chat'
     | '/api/edit-image'
@@ -297,6 +308,7 @@ export interface FileRouteTypes {
     | '/_authenticated/creditos'
     | '/_authenticated/galeria'
     | '/_authenticated/studio'
+    | '/api/animate-image'
     | '/api/cakto-webhook'
     | '/api/chat'
     | '/api/edit-image'
@@ -320,6 +332,7 @@ export interface RootRouteChildren {
   PlanosRoute: typeof PlanosRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   TermosRoute: typeof TermosRoute
+  ApiAnimateImageRoute: typeof ApiAnimateImageRoute
   ApiCaktoWebhookRoute: typeof ApiCaktoWebhookRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiEditImageRoute: typeof ApiEditImageRoute
@@ -448,6 +461,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCaktoWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/animate-image': {
+      id: '/api/animate-image'
+      path: '/api/animate-image'
+      fullPath: '/api/animate-image'
+      preLoaderRoute: typeof ApiAnimateImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/studio': {
       id: '/_authenticated/studio'
       path: '/studio'
@@ -535,6 +555,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlanosRoute: PlanosRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   TermosRoute: TermosRoute,
+  ApiAnimateImageRoute: ApiAnimateImageRoute,
   ApiCaktoWebhookRoute: ApiCaktoWebhookRoute,
   ApiChatRoute: ApiChatRoute,
   ApiEditImageRoute: ApiEditImageRoute,

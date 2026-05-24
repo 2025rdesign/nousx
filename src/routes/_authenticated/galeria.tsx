@@ -50,12 +50,13 @@ export const Route = createFileRoute("/_authenticated/galeria")({
   pendingMinMs: 0,
 });
 
-type Filter = "all" | "chat" | "studio" | "audio";
+type Filter = "all" | "chat" | "studio" | "audio" | "video";
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: "all", label: "Todas" },
   { value: "chat", label: "Chat" },
   { value: "studio", label: "Estúdio" },
+  { value: "video", label: "Vídeos" },
   { value: "audio", label: "Áudios" },
 ];
 
@@ -69,6 +70,12 @@ function formatDate(iso: string) {
   } catch {
     return "";
   }
+}
+
+function isVideoItem(
+  img: Extract<GalleryItem, { kind: "image" }>,
+): boolean {
+  return img.source === "chat-video" || /\.(mp4|webm|mov)(\?|$)/i.test(img.image_url);
 }
 
 function useCoarsePointer(): boolean {
@@ -359,6 +366,13 @@ function Gallery() {
                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
                     />
                   </button>
+                  {isVideoItem(img) && !selectMode && (
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <div className="size-12 rounded-full bg-black/55 backdrop-blur flex items-center justify-center">
+                        <Play className="size-6 text-white ml-0.5" />
+                      </div>
+                    </div>
+                  )}
                   {selectMode && (
                     <div className="absolute top-2 left-2 z-10 pointer-events-none">
                       <div
@@ -382,12 +396,18 @@ function Gallery() {
                     <span
                       className={cn(
                         "px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider",
-                        img.source === "chat"
-                          ? "bg-primary/80 text-primary-foreground"
-                          : "bg-accent/80 text-accent-foreground",
+                        img.source === "chat-video"
+                          ? "bg-[#6C47FF]/85 text-white"
+                          : img.source === "chat"
+                            ? "bg-primary/80 text-primary-foreground"
+                            : "bg-accent/80 text-accent-foreground",
                       )}
                     >
-                      {img.source === "chat" ? "Chat" : "Estúdio"}
+                      {img.source === "chat-video"
+                        ? "Vídeo"
+                        : img.source === "chat"
+                          ? "Chat"
+                          : "Estúdio"}
                     </span>
                   </div>
                   )}
@@ -467,11 +487,21 @@ function Gallery() {
           <DialogTitle className="sr-only">Imagem</DialogTitle>
           {lightboxItem && (
             <div className="relative">
-              <img
-                src={lightboxItem.image_url}
-                alt={lightboxItem.prompt || "Imagem"}
-                className="w-full max-h-[80vh] object-contain bg-black"
-              />
+              {isVideoItem(lightboxItem) ? (
+                <video
+                  src={lightboxItem.image_url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full max-h-[80vh] object-contain bg-black"
+                />
+              ) : (
+                <img
+                  src={lightboxItem.image_url}
+                  alt={lightboxItem.prompt || "Imagem"}
+                  className="w-full max-h-[80vh] object-contain bg-black"
+                />
+              )}
               <div className="absolute top-2 right-2 flex gap-2">
                 <Button
                   size="icon"
@@ -479,7 +509,7 @@ function Gallery() {
                   onClick={() =>
                     downloadAsset(
                       lightboxItem.image_url,
-                      `auraia-${lightboxItem.source === "chat" ? "chat" : "studio"}-${Date.now()}.jpg`,
+                      `auraia-${lightboxItem.source === "chat-video" ? "video" : lightboxItem.source === "chat" ? "chat" : "studio"}-${Date.now()}.${isVideoItem(lightboxItem) ? "mp4" : "jpg"}`,
                     )
                   }
                   aria-label="Baixar"
@@ -528,12 +558,18 @@ function Gallery() {
                   <span
                     className={cn(
                       "px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider",
-                      lightboxItem.source === "chat"
-                        ? "bg-primary/80 text-primary-foreground"
-                        : "bg-accent/80 text-accent-foreground",
+                      lightboxItem.source === "chat-video"
+                        ? "bg-[#6C47FF]/85 text-white"
+                        : lightboxItem.source === "chat"
+                          ? "bg-primary/80 text-primary-foreground"
+                          : "bg-accent/80 text-accent-foreground",
                     )}
                   >
-                    {lightboxItem.source === "chat" ? "Chat" : "Estúdio"}
+                    {lightboxItem.source === "chat-video"
+                      ? "Vídeo"
+                      : lightboxItem.source === "chat"
+                        ? "Chat"
+                        : "Estúdio"}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {formatDate(lightboxItem.created_at)}

@@ -20,6 +20,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { getMySubscription } from "@/lib/payments.functions";
 import { VoiceModeModal } from "./voice-mode-modal";
 import { PlanCheckoutDialog } from "@/components/payments/subscription-tab";
+import { getCredits } from "@/lib/credits.functions";
 import type { PlanId } from "@/lib/payments-config";
 
 const IMAGE_INTENT_RE =
@@ -29,6 +30,10 @@ const IMAGE_INTENT_RE =
 // (ex.: "YouTube thumbnail, 1280x720px, minimalist design...").
 const VISUAL_DESC_RE =
   /(minimalist|cinematic|photorealistic|hyperrealistic|minimalista|cinematogr[áa]fico|realista|fotorrealista|fundo\s+escuro|dark\s+background|aspect\s+ratio|propor[cç][ãa]o|resolu[cç][ãa]o|resolution|ilumina[cç][ãa]o|lighting|composi[cç][ãa]o|composition|16:9|9:16|1:1|1280\s*[x×]\s*720|1920\s*[x×]\s*1080|thumbnail|wallpaper|poster|banner)/i;
+
+// Intenção de animar/criar vídeo a partir de uma imagem.
+const VIDEO_INTENT_RE =
+  /(anima(?:r|ç[ãa]o|te|tion)?|faz(?:er)?\s+(?:um\s+)?v[ií]deo|make\s+(?:a\s+)?video|transforma(?:r)?\s+(?:em|pra|para)\s+v[ií]deo|turn\s+(?:into|to)\s+video|dar\s+vida|bring\s+to\s+life|v[ií]deo\s+da\s+(?:imagem|foto)|video\s+(?:of|from)\s+(?:the\s+)?(?:image|photo)|movimento|moving|gif\s+animado|animated)/i;
 
 // Intenção de EDITAR uma imagem existente (não apenas analisar).
 const IMAGE_EDIT_INTENT_RE =
@@ -143,6 +148,7 @@ export function ChatView({ conversationId }: Props) {
   const hasUltra = hasActive && planId === "ultra";
   const { user } = useAuth();
   const fetchSubServerFn = useServerFn(getMySubscription);
+  const fetchCreditsFn = useServerFn(getCredits);
 
   const [messages, setMessages] = useState<ChatMsg[]>(() => {
     if (!conversationId) return [];
@@ -251,6 +257,16 @@ export function ChatView({ conversationId }: Props) {
     "😕 Algo inesperado aconteceu. Tente novamente.";
   const GENERIC_IMG_ERROR_TEXT =
     "⚡ Algo deu errado na geração. Tente novamente.";
+  const VIDEO_NEED_ULTRA_TEXT =
+    "🎬 A **animação de imagens** é exclusiva do plano **Ultra**.\n\n" +
+    "Com o Ultra (R$57,90/mês) você anima qualquer imagem gerada no chat — 10 segundos de vídeo por apenas 10 créditos.\n\n" +
+    "[Assinar Ultra](/configuracoes?tab=assinatura)";
+  const VIDEO_NEED_CREDITS_TEXT = (have: number) =>
+    `🎬 Você precisa de **10 créditos** para animar uma imagem. Você tem ${have} crédito(s) disponíveis.\n\n[Comprar créditos](/creditos)`;
+  const VIDEO_NEED_IMAGE_TEXT =
+    "🎬 Para animar, primeiro gere ou edite uma imagem aqui no chat. Depois é só pedir a animação!";
+  const VIDEO_GENERIC_ERROR_TEXT =
+    "🎬 Não consegui animar a imagem. Seus créditos foram devolvidos. Tente novamente.";
 
   const {
     data: dbMessages,
@@ -325,6 +341,210 @@ export function ChatView({ conversationId }: Props) {
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, awaitingReply]);
 
+  async function handleVideoIntent(
+    text: string,
+    sourceImageUrl: string | null,
+    baseMessages: ChatMsg[],
+  ) {
+    setSending(true);
+    setAwaitingReply(true);
+    setInflightMode("image");
+
+    const timestamp = Date.now();
+    const userMsg: ChatMsg = {
+      id: `user-${timestamp}`,
+      role: "user",
+      content: text,
+      streaming: false,
+    };
+    setMessages((prev) => [...prev, userMsg]);
+
+    let convId = conversationId;
+    let isNew = false;
+    try {
+      if (!convId) {
+        const conv = await createConv({ data: { title: text.slice(0, 30) } });
+        convId = conv.id;
+        isNew = true;
+        pendingNavigationConversationIdRef.current = convId;
+      }
+
+      await saveMsg({
+        data: { conversationId: convId, role: "user", content: text },
+      }).catch(() => undefined);
+
+      // Re-check plan freshly to avoid stale cache races.
+      let effectiveSub = subscription;
+      let effectiveHasActive = hasActive;
+      let effectivePlanId = planId;
+      if (planLoading || !effectiveSub) {
+        try {
+          const fresh = await queryClient.fetchQuery({
+            queryKey: ["my-subscription"],
+            queryFn: () => fetchSubServerFn(),
+            staleTime: 0,
+          });
+          effectiveSub = fresh ?? null;
+          effectiveHasActive =
+            !!fresh &&
+            fresh.status === "active" &&
+            (!fresh.expires_at || new Date(fresh.expires_at).getTime() > Date.now());
+          effectivePlanId = fresh?.plan_id ?? null;
+        } catch {
+          /* fallthrough */
+        }
+      }
+      const hasUltraPlan =
+        effectiveHasActive && effectivePlanId === "ultra";
+
+      if (!hasUltraPlan) {
+        await appendAssistantMessage({
+          convId,
+          text: VIDEO_NEED_ULTRA_TEXT,
+          isNew,
+          titleSeed: text,
+          baseMessages,
+          userMsg,
+        });
+        return;
+      }
+
+      // Credits check (fresh fetch)
+      let credits = 0;
+      try {
+        const c = await fetchCreditsFn();
+        credits = c?.balance ?? 0;
+      } catch {
+        credits = 0;
+      }
+      if (credits < 10) {
+        await appendAssistantMessage({
+          convId,
+          text: VIDEO_NEED_CREDITS_TEXT(credits),
+          isNew,
+          titleSeed: text,
+          baseMessages,
+          userMsg,
+        });
+        return;
+      }
+
+      if (!sourceImageUrl) {
+        await appendAssistantMessage({
+          convId,
+          text: VIDEO_NEED_IMAGE_TEXT,
+          isNew,
+          titleSeed: text,
+          baseMessages,
+          userMsg,
+        });
+        return;
+      }
+
+      // Call animate endpoint (server deducts + refunds credits)
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Sessão expirada.");
+
+      const res = await fetch("/api/animate-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          imageUrl: sourceImageUrl,
+          conversationId: convId,
+        }),
+      });
+
+      if (res.status === 402) {
+        const err = await res.json().catch(() => ({} as { error?: string }));
+        const msg =
+          err.error === "insufficient_credits"
+            ? VIDEO_NEED_CREDITS_TEXT(credits)
+            : VIDEO_NEED_ULTRA_TEXT;
+        await appendAssistantMessage({
+          convId,
+          text: msg,
+          isNew,
+          titleSeed: text,
+          baseMessages,
+          userMsg,
+        });
+        return;
+      }
+      if (!res.ok) {
+        await appendAssistantMessage({
+          convId,
+          text: VIDEO_GENERIC_ERROR_TEXT,
+          isNew,
+          titleSeed: text,
+          baseMessages,
+          userMsg,
+        });
+        return;
+      }
+
+      const data = (await res.json()) as { videoUrl: string };
+      const caption = "Aqui está sua animação! 🎬";
+      const videoMsg: ChatMsg = {
+        id: `assistant-video-${Date.now()}`,
+        role: "assistant",
+        content: caption,
+        image_url: data.videoUrl, // reused field — MessageItem detects .mp4
+        streaming: false,
+      };
+      setSending(false);
+      setAwaitingReply(false);
+      setInflightMode("default");
+      setMessages((prev) => [...prev, videoMsg]);
+      await saveMsg({
+        data: {
+          conversationId: convId,
+          role: "assistant",
+          content: caption,
+          imageUrl: data.videoUrl,
+        },
+      }).catch(() => undefined);
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["credits"] });
+      queryClient.invalidateQueries({ queryKey: ["gallery-v2"] });
+
+      if (isNew) {
+        try {
+          await rename({ data: { id: convId, title: text.slice(0, 30) } });
+        } catch {
+          /* ignore */
+        }
+        queryClient.setQueryData<ChatMsg[]>(
+          ["messages", convId],
+          [...baseMessages, userMsg, videoMsg].map((m) => ({
+            ...m,
+            streaming: false,
+          })),
+        );
+        navigate({ to: "/c/$conversationId", params: { conversationId: convId } });
+      }
+    } catch (e) {
+      console.error("[VIDEO] failed", e);
+      if (convId) {
+        await appendAssistantMessage({
+          convId,
+          text: VIDEO_GENERIC_ERROR_TEXT,
+          isNew,
+          titleSeed: text,
+          baseMessages,
+          userMsg,
+        });
+      }
+    } finally {
+      setSending(false);
+      setAwaitingReply(false);
+      setInflightMode("default");
+    }
+  }
+
   async function handleSend(
     text: string,
     image: string | null,
@@ -344,6 +564,20 @@ export function ChatView({ conversationId }: Props) {
     const baseMessages = messages;
     const latestImageCtx = getLatestImageContext(baseMessages);
     const latestAssistantImageUrl = getLatestAssistantImageUrl(baseMessages);
+
+    // ============================================================
+    // VIDEO ANIMATION GATE (Ultra-only, 10 credits, image required)
+    // Runs before any other intent detection. Hard-returns on each
+    // branch so DeepSeek / image generation never fires for "anime
+    // essa imagem" type requests.
+    // ============================================================
+    if (!file && VIDEO_INTENT_RE.test(text)) {
+      const sourceImageForVideo =
+        image ?? stickyImageRefRef.current ?? latestAssistantImageUrl ?? null;
+      await handleVideoIntent(text, sourceImageForVideo, baseMessages);
+      return;
+    }
+
     // Follow-up fires for ANY recent image in the conversation
     // (assistant-generated OR user-uploaded that the AI just analyzed).
     const isImageFollowUp =
