@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useNavigate,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -13,11 +14,16 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { FaviconTheme } from "@/components/theme-favicon";
 import { AuthProvider } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/use-auth";
 import { FloatingAudioPlayer } from "@/components/chat/audio-player";
 import { SwRegister } from "@/components/sw-register";
 import { AppErrorBoundary } from "@/components/error-boundary";
 import { installChunkReloadHandler } from "@/lib/chunk-reload";
+import { getMyVideoJobs } from "@/lib/video-jobs.functions";
 import { useEffect } from "react";
+import { useRef } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 
 function NotFoundComponent() {
   return (
@@ -215,6 +221,7 @@ function RootComponent() {
         <ThemeProvider>
           <FaviconTheme />
           <AuthProvider>
+            <VideoJobsWatcher />
             <Outlet />
             <Toaster position="top-center" richColors />
             <FloatingAudioPlayer />
@@ -224,4 +231,54 @@ function RootComponent() {
       </QueryClientProvider>
     </AppErrorBoundary>
   );
+}
+
+function VideoJobsWatcher() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const router = useRouter();
+  const queryClient = Route.useRouteContext().queryClient;
+  const fetchVideoJobs = useServerFn(getMyVideoJobs);
+  const notifiedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!user) {
+      notifiedRef.current.clear();
+      return;
+    }
+
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const jobs = await fetchVideoJobs({ data: { statuses: ["pending", "processing", "completed"] } });
+        if (cancelled) return;
+        for (const job of jobs) {
+          if (job.status !== "completed" || !job.final_video_url || notifiedRef.current.has(job.id)) continue;
+          notifiedRef.current.add(job.id);
+          queryClient.invalidateQueries({ queryKey: ["gallery-v2"] });
+          if (job.conversation_id) {
+            queryClient.invalidateQueries({ queryKey: ["messages", job.conversation_id] });
+          }
+          router.invalidate();
+          toast.success("🎬 Sua animação está pronta! Ver na Galeria →", {
+            action: {
+              label: "Abrir",
+              onClick: () => navigate({ to: "/galeria", search: { filter: "video" as const } }),
+            },
+          });
+        }
+      } catch {
+        // silent background polling
+      }
+    };
+
+    void tick();
+    const id = window.setInterval(() => void tick(), 15000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [fetchVideoJobs, navigate, queryClient, router, user]);
+
+  return null;
 }
