@@ -557,14 +557,6 @@ function StudioInner() {
                 onClick={() => setCreditsOpen(true)}
                 loading={creditsLoading}
               />
-              <button
-                type="button"
-                onClick={() => setCreditsOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-transparent px-2.5 py-1 text-[11px] font-medium text-foreground/80 transition-colors hover:border-accent hover:text-accent"
-              >
-                <Zap className="size-3 text-accent" />
-                Comprar créditos
-              </button>
             </div>
 
             {editingImage ? (
@@ -1107,14 +1099,6 @@ function StudioInner() {
                 </>
               )}
             </Button>
-            <button
-              type="button"
-              onClick={() => setCreditsOpen(true)}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-border bg-transparent px-4 py-2 text-xs font-medium text-foreground/70 transition-colors hover:border-accent hover:text-accent"
-            >
-              <Zap className="size-3.5 text-accent" />
-              Comprar créditos
-            </button>
             <Button
               className="w-full"
               disabled={!appearance.trim() || isLoading}
