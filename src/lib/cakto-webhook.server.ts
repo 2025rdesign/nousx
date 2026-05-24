@@ -4,6 +4,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { creditUserOnce, revokeAllCredits } from "@/lib/credits.server";
 import { CREDIT_PACKS, PLANS, type CreditPackId, type PlanId } from "@/lib/payments-config";
+import { rewardReferrerOnFirstPurchase } from "@/lib/referrals.server";
 
 type CaktoWebhook = {
   event?: string;
@@ -189,6 +190,7 @@ export async function handleCaktoWebhook(request: Request): Promise<Response> {
       }
       await creditUserOnce(orderId, userId, product.credits, product.id);
     }
+    await rewardReferrerOnFirstPurchase(userId, product.kind, product.id);
     return new Response("ok");
   }
 
