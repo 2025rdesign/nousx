@@ -636,9 +636,7 @@ export function ChatView({ conversationId }: Props) {
       if (ANIMATION_STATUS_QUESTION_RE.test(text)) {
         // fall through to normal chat handling
       } else {
-      const sourceImageForVideo =
-        image ?? stickyImageRefRef.current ?? latestAssistantImageUrl ?? null;
-      await handleVideoIntent(text, sourceImageForVideo, baseMessages);
+      await handleAnimationComingSoon(text, baseMessages);
       return;
       }
     }
