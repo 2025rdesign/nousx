@@ -17,6 +17,8 @@ import { notify } from "@/lib/notify";
 import type { ExtractedFile } from "@/lib/file-extract";
 import { useActivePlan } from "@/hooks/use-active-plan";
 import { VoiceModeModal } from "./voice-mode-modal";
+import { PlanCheckoutDialog } from "@/components/payments/subscription-tab";
+import type { PlanId } from "@/lib/payments-config";
 
 const IMAGE_INTENT_RE =
   /\b(ger(?:a|e|ar)|cri(?:a|e|ar)|fa[zç](?:a|er)|desenh(?:a|e|ar)|pint(?:a|e|ar)|me\s+(?:d[áa]|d[êe]|manda|envia)|quero|gostaria(?:\s+de)?|preciso(?:\s+de)?)\b[^\n]{0,30}\b(image(?:m|ns)|fotos?|ilustra[cç](?:[ãa]o|[õo]es)|desenhos?|figuras?|artes?|pinturas?|wallpapers?|retratos?|p[ôo]ster(?:es)?|banners?|capas?|vetor(?:es|ial|iais)?|logos?|logotipos?|[íi]cones?|stickers?|emojis?|avatares?|personagens?|cenas?|gifs?)\b([^\n]*)/i;
@@ -138,6 +140,22 @@ export function ChatView({ conversationId }: Props) {
   >("default");
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [fillText, setFillText] = useState<string | undefined>();
+  const [checkoutPlan, setCheckoutPlan] = useState<PlanId | null>(null);
+
+  useEffect(() => {
+    function onOpen(e: Event) {
+      const detail = (e as CustomEvent<{ planId?: PlanId }>).detail;
+      if (detail?.planId === "plus" || detail?.planId === "ultra") {
+        setCheckoutPlan(detail.planId);
+      }
+    }
+    window.addEventListener("aura:open-plan-checkout", onOpen as EventListener);
+    return () =>
+      window.removeEventListener(
+        "aura:open-plan-checkout",
+        onOpen as EventListener,
+      );
+  }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastConversationIdRef = useRef<string | null>(conversationId);
@@ -1131,6 +1149,13 @@ export function ChatView({ conversationId }: Props) {
           onFillTextConsumed={() => setFillText(undefined)}
         />
         <VoiceModeModal open={voiceOpen} onClose={() => setVoiceOpen(false)} />
+        {checkoutPlan && (
+          <PlanCheckoutDialog
+            planId={checkoutPlan}
+            open={!!checkoutPlan}
+            onOpenChange={(v) => !v && setCheckoutPlan(null)}
+          />
+        )}
       </div>
     </CodeCanvasProvider>
   );
