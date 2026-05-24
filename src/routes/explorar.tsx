@@ -132,7 +132,7 @@ function Explore() {
               <img
                 src={logoSrc}
                 alt="AuraIA"
-                className="h-8 w-auto object-contain"
+                className="h-10 max-h-10 w-auto object-contain"
               />
             </Link>
           </div>
@@ -170,7 +170,7 @@ function Explore() {
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="text-lg md:text-xl font-semibold">
-                  Ganhe 3 créditos grátis ao criar sua conta
+                  Ganhe 5 créditos grátis ao criar sua conta
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   Gere imagens sem censura no Estúdio de Criação.
