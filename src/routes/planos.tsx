@@ -138,9 +138,19 @@ function PlanosPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div
+      className="min-h-screen bg-background text-foreground"
+      style={{
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}
+    >
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur">
+      <header
+        className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
         <div className="max-w-6xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between gap-3">
           <Link to="/" className="flex items-center shrink-0">
             <img

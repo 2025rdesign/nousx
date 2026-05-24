@@ -5,7 +5,7 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0A0A0F",
-  "theme_color": "#6C47FF",
+  "theme_color": "#0A0A0F",
   "icons": [
     {
       "src": "https://central.daev.ca/wp-content/uploads/2026/05/PWAAURA.png",
