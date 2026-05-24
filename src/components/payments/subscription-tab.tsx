@@ -189,7 +189,7 @@ export function SubscriptionTab() {
   );
 }
 
-function PlanCheckoutDialog({
+export function PlanCheckoutDialog({
   planId,
   open,
   onOpenChange,
