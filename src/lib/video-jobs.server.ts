@@ -274,3 +274,32 @@ export async function advancePendingVideoJobsForUser(userId: string, apiKey: str
   if (listError) throw new Error(listError.message);
   return rows ?? [];
 }
+
+// Marks any pending/processing video jobs for a user that are older than
+// `olderThanMinutes` as failed, and refunds any charged credits. Returns the
+// number of jobs cleaned up.
+export async function cleanupStalePendingJobsForUser(
+  userId: string,
+  olderThanMinutes = 10,
+): Promise<number> {
+  const cutoff = new Date(Date.now() - olderThanMinutes * 60_000).toISOString();
+  const { data: stale, error } = await supabaseAdmin
+    .from("video_jobs")
+    .select("id, user_id, credits_charged")
+    .eq("user_id", userId)
+    .in("status", ["pending", "processing"])
+    .lt("created_at", cutoff)
+    .returns<Array<Pick<VideoJobRow, "id" | "user_id" | "credits_charged">>>();
+  if (error) {
+    console.error("[VIDEO-CLEANUP] list error", error);
+    return 0;
+  }
+  for (const job of stale ?? []) {
+    try {
+      await failVideoJob(job, "Animação cancelada (timeout).");
+    } catch (e) {
+      console.error("[VIDEO-CLEANUP] fail error", e);
+    }
+  }
+  return stale?.length ?? 0;
+}
