@@ -4,7 +4,6 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  useNavigate,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -235,7 +234,6 @@ function RootComponent() {
 
 function VideoJobsWatcher() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const router = useRouter();
   const queryClient = Route.useRouteContext().queryClient;
   const fetchVideoJobs = useServerFn(getMyVideoJobs);
@@ -263,7 +261,9 @@ function VideoJobsWatcher() {
           toast.success("🎬 Sua animação está pronta! Ver na Galeria →", {
             action: {
               label: "Abrir",
-              onClick: () => navigate({ to: "/galeria", search: { filter: "video" as const } }),
+              onClick: () => {
+                window.location.assign("/galeria?filter=video");
+              },
             },
           });
         }
@@ -278,7 +278,7 @@ function VideoJobsWatcher() {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [fetchVideoJobs, navigate, queryClient, router, user]);
+  }, [fetchVideoJobs, queryClient, router, user]);
 
   return null;
 }
