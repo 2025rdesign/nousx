@@ -158,7 +158,7 @@ export function ChatView({ conversationId }: Props) {
   const [sending, setSending] = useState(false);
   const [awaitingReply, setAwaitingReply] = useState(false);
   const [inflightMode, setInflightMode] = useState<
-    "default" | "web" | "reasoning" | "image" | "edit"
+    "default" | "web" | "reasoning" | "image" | "edit" | "video"
   >("default");
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [fillText, setFillText] = useState<string | undefined>();
@@ -368,7 +368,7 @@ export function ChatView({ conversationId }: Props) {
   ) {
     setSending(true);
     setAwaitingReply(true);
-    setInflightMode("image");
+    setInflightMode("video");
 
     const timestamp = Date.now();
     const userMsg: ChatMsg = {
@@ -461,18 +461,8 @@ export function ChatView({ conversationId }: Props) {
         return;
       }
 
-      // Show explicit "animating..." message so the chat is never empty
-      // during the (potentially multi-minute) generation.
-      const loadingId = `assistant-video-loading-${Date.now()}`;
-      const loadingMsg: ChatMsg = {
-        id: loadingId,
-        role: "assistant",
-        content:
-          "🎬 Animando sua imagem... isso pode levar alguns minutos. Não feche esta janela.",
-        streaming: false,
-      };
-      setMessages((prev) => [...prev, loadingMsg]);
-
+      // The TypingIndicator (mode="video") shows the pulsing placeholder,
+      // "🎬 Gerando animação..." text and looping progress bar while we wait.
       // Call animate endpoint (server deducts + refunds credits)
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
@@ -496,7 +486,6 @@ export function ChatView({ conversationId }: Props) {
           err.error === "insufficient_credits"
             ? VIDEO_NEED_CREDITS_TEXT(credits)
             : VIDEO_NEED_ULTRA_TEXT;
-        setMessages((prev) => prev.filter((m) => m.id !== loadingId));
         await appendAssistantMessage({
           convId,
           text: msg,
@@ -508,7 +497,6 @@ export function ChatView({ conversationId }: Props) {
         return;
       }
       if (!res.ok) {
-        setMessages((prev) => prev.filter((m) => m.id !== loadingId));
         await appendAssistantMessage({
           convId,
           text: VIDEO_GENERIC_ERROR_TEXT,
@@ -532,10 +520,7 @@ export function ChatView({ conversationId }: Props) {
       setSending(false);
       setAwaitingReply(false);
       setInflightMode("default");
-      setMessages((prev) => [
-        ...prev.filter((m) => m.id !== loadingId),
-        videoMsg,
-      ]);
+      setMessages((prev) => [...prev, videoMsg]);
       await saveMsg({
         data: {
           conversationId: convId,
@@ -566,8 +551,6 @@ export function ChatView({ conversationId }: Props) {
       }
     } catch (e) {
       console.error("[VIDEO] failed", e);
-      // Clear any pending loading bubble so we never leave it dangling.
-      setMessages((prev) => prev.filter((m) => !m.id.startsWith("assistant-video-loading-")));
       if (convId) {
         await appendAssistantMessage({
           convId,
@@ -1450,7 +1433,9 @@ export function ChatView({ conversationId }: Props) {
               ))}
               {awaitingReply &&
               !hasStreamingMessage &&
-              (inflightMode === "image" || inflightMode === "edit") ? (
+              (inflightMode === "image" ||
+                inflightMode === "edit" ||
+                inflightMode === "video") ? (
                 <TypingIndicator mode={inflightMode} />
               ) : null}
             </div>

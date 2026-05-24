@@ -238,7 +238,7 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
               src={imageUrl}
               alt=""
               onClick={() => setLightboxOpen(true)}
-              className="mb-2 h-auto w-full max-w-[500px] rounded-xl object-contain cursor-zoom-in transition-opacity hover:opacity-90"
+              className="aura-image-in mb-2 h-auto w-full max-w-[500px] rounded-xl object-contain cursor-zoom-in transition-opacity hover:opacity-90"
               loading="lazy"
               decoding="async"
               onError={(e) => {
@@ -251,7 +251,7 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                 src={imageUrl}
                 alt={textContent || "Imagem gerada no chat"}
                 onClick={() => setLightboxOpen(true)}
-                className="h-auto w-full max-w-[500px] rounded-xl object-contain cursor-zoom-in transition-opacity hover:opacity-90"
+                className="aura-image-in h-auto w-full max-w-[500px] rounded-xl object-contain cursor-zoom-in transition-opacity hover:opacity-90"
                 loading="lazy"
                 decoding="async"
                 onError={(e) => {
@@ -592,39 +592,70 @@ export const MessageItem = memo(
 export function TypingIndicator({
   mode = "default",
 }: {
-  mode?: "default" | "web" | "reasoning" | "image" | "edit";
+  mode?: "default" | "web" | "reasoning" | "image" | "edit" | "video";
 }) {
-  if (mode === "edit") {
+  if (mode === "edit" || mode === "image") {
+    const label =
+      mode === "edit" ? "🪄 Editando sua imagem..." : "✨ Criando sua imagem...";
     return (
       <div className="flex justify-start w-full">
         <div className="px-4 w-full max-w-sm">
           <div
-            className="rounded-2xl border border-border animate-pulse"
+            className="aura-glow rounded-2xl border border-border"
             style={{
               aspectRatio: "1 / 1",
-              background:
-                "linear-gradient(135deg, #1C1C26 0%, #2A2A3A 50%, #1C1C26 100%)",
+              borderColor: "color-mix(in oklab, #6C47FF 30%, transparent)",
             }}
           />
-          <div className="mt-2 text-xs animate-pulse" style={{ color: "#6C47FF" }}>
-            🪄 Editando sua imagem...
+          <div className="mt-3 text-xs animate-pulse" style={{ color: "#6C47FF" }}>
+            {label}
+          </div>
+          <div
+            className="mt-2 h-1 w-full overflow-hidden rounded-full"
+            style={{ background: "color-mix(in oklab, #6C47FF 15%, transparent)" }}
+          >
+            <div
+              className="aura-progress-fill h-full rounded-full"
+              style={{
+                background:
+                  "linear-gradient(90deg, #6C47FF 0%, #9B7EFF 50%, #6C47FF 100%)",
+              }}
+            />
           </div>
         </div>
       </div>
     );
   }
-  if (mode === "image") {
+  if (mode === "video") {
     return (
       <div className="flex justify-start w-full">
         <div className="px-4 w-full max-w-sm">
           <div
-            className="rounded-2xl border border-border animate-pulse"
+            className="aura-glow rounded-2xl border border-border"
             style={{
-              aspectRatio: "1 / 1",
-              background:
-                "linear-gradient(135deg, #1C1C26 0%, #2A2A3A 50%, #1C1C26 100%)",
+              aspectRatio: "9 / 16",
+              maxHeight: "320px",
+              borderColor: "color-mix(in oklab, #6C47FF 30%, transparent)",
             }}
           />
+          <div className="mt-3 text-xs animate-pulse" style={{ color: "#6C47FF" }}>
+            🎬 Gerando animação... (~2 minutos)
+          </div>
+          <div
+            className="mt-2 h-1 w-full overflow-hidden rounded-full"
+            style={{ background: "color-mix(in oklab, #6C47FF 15%, transparent)" }}
+          >
+            <div
+              className="aura-progress-loop h-full rounded-full"
+              style={{
+                background:
+                  "linear-gradient(90deg, transparent 0%, #6C47FF 50%, transparent 100%)",
+              }}
+            />
+          </div>
+          <div className="mt-2 text-[11px] text-muted-foreground">
+            Não feche esta janela.
+          </div>
         </div>
       </div>
     );
