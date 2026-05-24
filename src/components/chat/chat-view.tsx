@@ -158,7 +158,7 @@ export function ChatView({ conversationId }: Props) {
   const [sending, setSending] = useState(false);
   const [awaitingReply, setAwaitingReply] = useState(false);
   const [inflightMode, setInflightMode] = useState<
-    "default" | "web" | "reasoning" | "image" | "edit"
+    "default" | "web" | "reasoning" | "image" | "edit" | "video"
   >("default");
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [fillText, setFillText] = useState<string | undefined>();
