@@ -299,23 +299,23 @@ function Gallery() {
         {!query.isLoading && items.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             {showAudios ? (
-              <AudioLines className="size-16 text-muted-foreground/40 mb-4" />
+              <AudioLines size={48} className="text-[#6C47FF] mb-4" />
             ) : (
-              <ImageIcon className="size-16 text-muted-foreground/40 mb-4" />
+              <ImageIcon size={48} className="text-[#6C47FF] mb-4" />
             )}
-            <p className="text-base font-medium text-foreground">
+            <p className="text-lg font-semibold text-foreground">
               {showAudios
                 ? "Nenhum áudio aqui ainda"
-                : "Nenhuma imagem aqui ainda"}
+                : "Sua galeria está vazia"}
             </p>
-            <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+            <p className="text-sm text-muted-foreground mt-2 max-w-md">
               {showAudios
                 ? "Gere áudios TTS no chat para vê-los aqui."
-                : "Gere imagens no chat ou no Estúdio para vê-las aqui."}
+                : "Gere sua primeira imagem no Estúdio de Criação e ela aparecerá aqui automaticamente."}
             </p>
             {!showAudios && (
               <Button
-                className="mt-4 gap-2"
+                className="mt-5 gap-2 bg-[#6C47FF] hover:bg-[#5a39e6] text-white"
                 onClick={() => navigate({ to: "/studio" })}
               >
                 <Wand2 className="size-4" />
