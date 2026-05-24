@@ -144,7 +144,7 @@ export const listMyCharacters = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     let q = supabase
       .from("characters")
-      .select("id, name, image_url, media_id, profile_id, is_public, status, created_at")
+      .select("id, name, image_url, media_id, prompt_id, profile_id, is_public, status, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (data?.profileId) q = q.eq("profile_id", data.profileId);
@@ -359,7 +359,7 @@ Retorne APENAS o prompt melhorado, sem explicacoes nem aspas.`;
 /* --------------------------- Generate (main) -------------------------- */
 
 const generateSchema = z.object({
-  mode: z.enum(["new", "variation"]),
+  mode: z.enum(["new", "variation", "edit"]),
   // shared
   appearance: z.string().min(1).max(2000),
   faceDetails: z.string().max(1000).optional(),
@@ -380,6 +380,9 @@ const generateSchema = z.object({
   // variation
   profileId: z.string().uuid().optional(),
   editModel: z.enum(["CREATIVE", "REALISM", "QWEN_PRO"]).optional(),
+  // edit (variation from a specific historic image)
+  sourceMediaId: z.string().optional(),
+  sourcePromptId: z.string().optional(),
 });
 
 const REMOVE_BOTTOM = /calcinha|biqu[íi]ni de baixo|tire tudo|completamente nua|totalmente nua|panties|fully nude|completely naked/i;
@@ -493,6 +496,28 @@ export const generateCharacter = createServerFn({ method: "POST" })
           (body as Record<string, unknown>).pose = pose;
         }
       }
+    } else if (data.mode === "edit") {
+      if (!data.sourceMediaId) throw new Error("Imagem de origem ausente.");
+      endpoint = `${ALIVEAI_BASE}/prompts/edit-image`;
+      const variationPrompt = `extract this person keep her appearance, skin color, face and body shape. ${combinedAppearance}`;
+      body = {
+        editModel: data.editModel ?? "QWEN_PRO",
+        mediaId: data.sourceMediaId,
+        prompt: variationPrompt,
+        ...(translatedFace ? { faceDetails: translatedFace } : {}),
+        ...(translatedScene ? { scene: translatedScene } : {}),
+        ...(data.sourcePromptId ? { createdFromPromptId: data.sourcePromptId } : {}),
+        aspectRatio: mapAspectRatio(data.aspectRatio),
+        faceImproveEnabled: true,
+        faceImproveStrength: 7,
+        restoreFace: true,
+        cfg: cfgFromLevel ?? 7,
+      };
+      {
+        const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength);
+        if (pose) (body as Record<string, unknown>).pose = pose;
+      }
+      console.log("[EDIT IMAGE]", JSON.stringify(body));
     } else {
       if (!data.profileId) throw new Error("Personagem não encontrado.");
       const { data: profile, error: pErr } = await supabase
@@ -592,7 +617,12 @@ export const generateCharacter = createServerFn({ method: "POST" })
     console.log("[DEBUG] Poll completed", { mediaId, mediaUrl });
     await logPromptPoseEcho(promptId);
 
-    let profileId: string | null = data.mode === "variation" ? data.profileId! : null;
+    let profileId: string | null =
+      data.mode === "variation"
+        ? data.profileId!
+        : data.mode === "edit"
+          ? data.profileId ?? null
+          : null;
 
     // Persistência: não deve falhar a geração se houver erro.
     try {

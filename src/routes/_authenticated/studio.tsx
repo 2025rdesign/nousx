@@ -256,6 +256,20 @@ function StudioInner() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const formScrollRef = useRef<HTMLElement>(null);
 
+  // Edit-image mode (acionado pelo botão "Editar esta imagem" no histórico)
+  const [editingImage, setEditingImage] = useState<{
+    id: string;
+    url: string;
+    mediaId: string;
+    promptId: string | null;
+    profileId: string | null;
+  } | null>(null);
+
+  const exitEditMode = () => {
+    setEditingImage(null);
+    setAppearance("");
+  };
+
   const resetForm = () => {
     setActiveProfileId(null);
     setName("");
@@ -292,6 +306,20 @@ function StudioInner() {
   const gen = useMutation({
     mutationFn: async () => {
       const ratio = aspect;
+      if (editingImage) {
+        return genFn({
+          data: {
+            mode: "edit",
+            appearance,
+            aspectRatio: ratio,
+            editModel,
+            sourceMediaId: editingImage.mediaId,
+            sourcePromptId: editingImage.promptId ?? undefined,
+            profileId: editingImage.profileId ?? undefined,
+            detailLevel: "MEDIUM",
+          },
+        });
+      }
       if (activeProfile) {
         return genFn({
           data: {
@@ -524,6 +552,111 @@ function StudioInner() {
               />
             </div>
 
+            {editingImage ? (
+              <>
+                <div className="flex items-center gap-3 p-3 rounded-lg border border-primary/40 bg-primary/5">
+                  <div className="size-12 rounded-md overflow-hidden bg-muted shrink-0">
+                    <img
+                      src={editingImage.url}
+                      alt="Editando"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">Editando esta imagem</div>
+                    <p className="text-[11px] text-muted-foreground">As alterações serão aplicadas mantendo o rosto.</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={exitEditMode}
+                    aria-label="Sair do modo edição"
+                  >
+                    <ArrowLeft className="size-4" />
+                    Voltar
+                  </Button>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Modelo</Label>
+                  <Select value={editModel} onValueChange={(v) => setEditModel(v as any)}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="QWEN_PRO">Aura Pro</SelectItem>
+                      <SelectItem value="CREATIVE">Aura Standard</SelectItem>
+                      <SelectItem value="REALISM">Aura Realismo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-prompt" className="text-xs text-muted-foreground">
+                    Descrição da edição
+                  </Label>
+                  <div className="relative">
+                    <Textarea
+                      id="edit-prompt"
+                      ref={textRef}
+                      value={appearance}
+                      onChange={(e) => setAppearance(e.target.value)}
+                      rows={5}
+                      maxLength={2000}
+                      placeholder="O que você quer mudar? Ex: coloque um vestido vermelho, mude o cenário para uma floresta..."
+                      className="resize-none min-h-[110px] w-full text-[15px] leading-relaxed pr-12"
+                    />
+                    <VoiceRecordButton
+                      className="absolute bottom-2 right-2 size-8"
+                      value={appearance}
+                      onChange={setAppearance}
+                    />
+                  </div>
+                  <div className="flex items-center justify-end">
+                    <span className="text-[11px] text-muted-foreground">{appearance.length}/2000</span>
+                  </div>
+                  <ScrollArea className="w-full">
+                    <div className="flex gap-2 pb-2">
+                      {CHIPS.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => insertChip(c)}
+                          className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/70 text-foreground/80"
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+
+                <div className="text-center text-xs text-muted-foreground">
+                  Esta edição custará <span className="font-semibold text-foreground">1 crédito</span>.
+                </div>
+                <Button
+                  className="w-full"
+                  disabled={!appearance.trim() || isLoading}
+                  onClick={() => {
+                    gen.mutate();
+                    setMobileTab("resultado");
+                  }}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Gerando...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="size-4" />
+                      Gerar edição
+                    </>
+                  )}
+                </Button>
+              </>
+            ) : (
+              <>
             {activeProfile ? (
               <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
                 <div className="size-12 rounded-md overflow-hidden bg-muted shrink-0">
@@ -970,6 +1103,8 @@ function StudioInner() {
                 "Gerar Imagem"
               )}
             </Button>
+              </>
+            )}
           </div>
         </section>
 
@@ -1048,7 +1183,8 @@ function StudioInner() {
             </div>
 
             {result && (
-              <div className="flex gap-2">
+              <div className="space-y-2">
+                <div className="flex gap-2">
                 <Button
                   variant="outline"
                   className="flex-1"
@@ -1067,6 +1203,34 @@ function StudioInner() {
                   <Maximize2 className="size-4" />
                   Tela cheia
                 </Button>
+                </div>
+                {resultId && (() => {
+                  const item = history.find((h) => h.id === resultId);
+                  if (!item || !item.media_id || !item.image_url) return null;
+                  return (
+                    <Button
+                      variant="outline"
+                      className="w-full border-primary text-primary hover:bg-primary/10 hover:text-primary"
+                      onClick={() => {
+                        setEditingImage({
+                          id: item.id,
+                          url: item.image_url!,
+                          mediaId: item.media_id!,
+                          promptId: (item as any).prompt_id ?? null,
+                          profileId: item.profile_id ?? null,
+                        });
+                        setAppearance("");
+                        setMobileTab("criar");
+                        requestAnimationFrame(() => {
+                          formScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+                        });
+                      }}
+                    >
+                      <Wand2 className="size-4" />
+                      Editar esta imagem
+                    </Button>
+                  );
+                })()}
               </div>
             )}
 
