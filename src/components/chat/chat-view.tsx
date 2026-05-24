@@ -753,6 +753,19 @@ export function ChatView({ conversationId }: Props) {
           return;
         }
 
+        if (res.status === 429) {
+          const payload = await res.json().catch(() => ({} as { resetAt?: string }));
+          await appendAssistantMessage({
+            convId,
+            text: LIMIT_REACHED_ULTRA_TEXT(payload.resetAt ?? new Date().toISOString()),
+            isNew,
+            titleSeed: text,
+            baseMessages,
+            userMsg,
+          });
+          return;
+        }
+
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: "Falha ao editar imagem." }));
           if (res.status === 422 && (err.code === "moderation" || err.error === "content_moderation")) {
@@ -870,6 +883,24 @@ export function ChatView({ conversationId }: Props) {
           await appendAssistantMessage({
             convId,
             text: PLAN_PLUS_REQUIRED_TEXT,
+            isNew,
+            titleSeed: text,
+            baseMessages,
+            userMsg,
+          });
+          return;
+        }
+
+        if (res.status === 429) {
+          const payload = await res.json().catch(
+            () => ({} as { resetAt?: string; plan?: string }),
+          );
+          const isUltra = (payload.plan ?? gateSnapshot.planId) === "ultra";
+          await appendAssistantMessage({
+            convId,
+            text: isUltra
+              ? LIMIT_REACHED_ULTRA_TEXT(payload.resetAt ?? new Date().toISOString())
+              : LIMIT_REACHED_PLUS_TEXT(payload.resetAt ?? new Date().toISOString()),
             isNew,
             titleSeed: text,
             baseMessages,
