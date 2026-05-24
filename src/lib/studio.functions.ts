@@ -509,7 +509,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
       endpoint = `${ALIVEAI_BASE}/prompts/edit-image`;
       const variationPrompt = `extract this person keep her appearance, skin color, face and body shape. ${combinedAppearance}`;
       body = {
-        editModel: data.editModel ?? "CREATIVE",
+        editModel: data.editModel ?? "QWEN_PRO",
         mediaId: profile.base_media_id,
         prompt: variationPrompt,
         ...(translatedFace ? { faceDetails: translatedFace } : {}),

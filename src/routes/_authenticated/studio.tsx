@@ -238,7 +238,7 @@ function StudioInner() {
   const [poseStrength, setPoseStrength] = useState<number>(50);
   const [posePrompt, setPosePrompt] = useState<string>("");
   const [highQuality, setHighQuality] = useState(false);
-  const [editModel, setEditModel] = useState<"CREATIVE" | "REALISM" | "QWEN_PRO">("CREATIVE");
+  const [editModel, setEditModel] = useState<"CREATIVE" | "REALISM" | "QWEN_PRO">("QWEN_PRO");
 
   const filteredPoses = useMemo(
     () => POSES.filter((p) => p.category === poseCategory),
