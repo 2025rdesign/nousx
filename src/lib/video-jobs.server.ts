@@ -97,12 +97,13 @@ export async function pollXaiVideoUntilReady(requestId: string, apiKey: string):
     if (attempt > 1) {
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     }
+    console.log("[ANIMATE-POLL] attempt:", attempt, "request_id:", requestId);
     const pollRes = await fetch(`${XAI_VIDEO_STATUS}/${requestId}`, {
       headers: { Authorization: `Bearer ${apiKey}` },
     });
     const pollText = await pollRes.text();
-    console.log("[ANIMATE] poll status:", pollRes.status);
-    console.log("[ANIMATE] poll body:", pollText);
+    console.log("[ANIMATE-POLL-STATUS]", pollRes.status);
+    console.log("[ANIMATE-POLL-DATA]", pollText);
     if (!pollRes.ok) {
       continue;
     }
@@ -140,12 +141,13 @@ export async function pollXaiVideoUntilReady(requestId: string, apiKey: string):
 }
 
 export async function pollXaiVideoOnce(requestId: string, apiKey: string): Promise<SinglePollResult> {
+  console.log("[ANIMATE-POLL] attempt:", 1, "request_id:", requestId);
   const pollRes = await fetch(`${XAI_VIDEO_STATUS}/${requestId}`, {
     headers: { Authorization: `Bearer ${apiKey}` },
   });
   const pollText = await pollRes.text();
-  console.log("[ANIMATE] poll status:", pollRes.status);
-  console.log("[ANIMATE] poll body:", pollText);
+  console.log("[ANIMATE-POLL-STATUS]", pollRes.status);
+  console.log("[ANIMATE-POLL-DATA]", pollText);
   if (!pollRes.ok) {
     return {
       ready: false,
