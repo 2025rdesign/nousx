@@ -22,19 +22,20 @@ const LOGO_LIGHT =
 export const Route = createFileRoute("/planos")({
   head: () => ({
     meta: [
-      { title: "Planos — AuraIA" },
+      { title: "Planos — Aura Chat" },
       {
         name: "description",
         content:
-          "Escolha o plano ideal para você. Comece grátis e evolua para Plus ou Ultra.",
+          "Escolha seu plano e desbloqueie recursos exclusivos. Comece grátis, sem cartão de crédito.",
       },
-      { property: "og:title", content: "Planos — AuraIA" },
+      { property: "og:title", content: "Planos — Aura Chat" },
       {
         property: "og:description",
         content:
-          "Escolha o plano ideal para você. Comece grátis e evolua para Plus ou Ultra.",
+          "Escolha seu plano e desbloqueie recursos exclusivos. Comece grátis, sem cartão de crédito.",
       },
     ],
+    links: [{ rel: "canonical", href: "https://chataura.com.br/planos" }],
   }),
   component: PlanosPage,
 });

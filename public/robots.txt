@@ -1,5 +1,9 @@
 User-agent: *
 Allow: /
-Disallow: /configuracoes
-Disallow: /api
+Allow: /planos
+Allow: /explorar
+Allow: /termos
+Allow: /privacidade
+Disallow: /api/
+Disallow: /_authenticated/
 Sitemap: https://chataura.com.br/sitemap.xml
