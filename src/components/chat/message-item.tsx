@@ -51,7 +51,7 @@ function isVideoUrl(url: string | null | undefined): boolean {
 }
 
 function AnimateButton({
-  imageUrl: _imageUrl,
+  imageUrl,
   hasUltra,
   credits,
   animating,
@@ -74,19 +74,20 @@ function AnimateButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
+      aria-label="Animar imagem por 10 créditos"
       className={cn(
-        "ml-3 inline-flex items-center gap-1 text-[11px] transition-colors",
+        "mt-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-md border px-3 py-2 text-[14px] font-semibold transition-colors md:mt-0 md:min-h-0 md:w-auto md:px-3 md:py-1 md:text-[13px]",
         disabled
-          ? "cursor-not-allowed text-muted-foreground/50"
-          : "text-muted-foreground hover:text-foreground",
+          ? "cursor-not-allowed border-border text-muted-foreground/50"
+          : "border-primary/70 text-accent hover:border-accent hover:bg-primary/10",
       )}
     >
       {animating ? (
-        <Loader2 className="size-3 animate-spin" />
+        <Loader2 className="size-3.5 animate-spin md:size-3.5" />
       ) : (
-        <Film className="size-3" />
+        <Film className="size-3.5 md:size-3.5" />
       )}
-      {animating ? "Animando..." : "Animar — 10 créditos"}
+      {animating ? "Animando..." : "Animar · 10 créditos"}
     </button>
   );
   if (!reason) return button;
@@ -258,32 +259,33 @@ function MessageItemInner({ msg }: { msg: ChatMsg }) {
                   e.currentTarget.style.display = "none";
                 }}
               />
-              <button
-                type="button"
-                onClick={() =>
-                  downloadAsset(imageUrl, `auraia-chat-${Date.now()}.jpg`)
-                }
-                className="mt-2 inline-flex text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Baixar imagem
-              </button>
-              <AnimateButton
-                imageUrl={imageUrl}
-                hasUltra={hasUltra}
-                credits={credits}
-                animating={animating}
-                onClick={() => {
-                  if (!hasUltra || credits < 10 || animating) return;
-                  setAnimating(true);
-                  window.dispatchEvent(
-                    new CustomEvent("aura:animate-image", {
-                      detail: { imageUrl },
-                    }),
-                  );
-                  // Re-enable after a few seconds so user can retry if dispatch failed silently.
-                  setTimeout(() => setAnimating(false), 8000);
-                }}
-              />
+               <div className="mt-2 flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
+                 <button
+                   type="button"
+                   onClick={() =>
+                     downloadAsset(imageUrl, `auraia-chat-${Date.now()}.jpg`)
+                   }
+                   className="inline-flex text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                 >
+                   Baixar imagem
+                 </button>
+                 <AnimateButton
+                   imageUrl={imageUrl}
+                   hasUltra={hasUltra}
+                   credits={credits}
+                   animating={animating}
+                   onClick={() => {
+                     if (!hasUltra || credits < 10 || animating) return;
+                     setAnimating(true);
+                     const reset = () => setAnimating(false);
+                     window.dispatchEvent(
+                       new CustomEvent("aura:animate-image", {
+                         detail: { imageUrl, reset },
+                       }),
+                     );
+                   }}
+                 />
+               </div>
             </div>
           )
         )}
