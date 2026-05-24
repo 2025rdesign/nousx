@@ -14,7 +14,6 @@ import {
   Check,
   X,
   MoreHorizontal,
-  CreditCard,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
