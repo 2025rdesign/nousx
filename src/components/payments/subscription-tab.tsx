@@ -274,7 +274,7 @@ export function SubscriptionTab() {
       )}
 
       {/* ────── Plan cards (only when there's an upsell) ────── */}
-      {upsellCards.length > 0 && (
+      {upsellCards.length > 0 && !hasActive && (
         <>
           {/* Monthly / Annual toggle */}
           <div className="flex flex-col items-center">
