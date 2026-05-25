@@ -382,20 +382,42 @@ export function SubscriptionTab() {
         </>
       )}
 
-      {/* ────── Ultra-only celebratory note (no cards) ────── */}
-      {hasActive && activePlanId === "ultra" && (
-        <div
-          className="flex items-center gap-3 rounded-2xl border px-5 py-4"
-          style={{
-            borderColor: "rgba(108,71,255,0.4)",
-            backgroundColor: "rgba(108,71,255,0.06)",
-          }}
+      {/* ────── Plus → Ultra minimal upgrade card ────── */}
+      {hasActive && activePlanId === "plus" && (
+        <section
+          className="rounded-xl border p-5"
+          style={{ borderColor: "#1f2937", backgroundColor: "#111118" }}
         >
-          <Sparkles size={18} style={{ color: "#8B6FFF" }} />
-          <p className="text-sm" style={{ color: "#d1d5db" }}>
-            Você está no plano máximo. Aproveite tudo sem limites.
+          <p
+            className="text-[11px] font-medium uppercase"
+            style={{ color: "#6b7280", letterSpacing: "0.1em" }}
+          >
+            Upgrade
           </p>
-        </div>
+          <h3 className="mt-1 text-xl font-semibold" style={{ color: "#8B6FFF" }}>
+            Faça upgrade para Ultra
+          </h3>
+          <ul className="mt-4 space-y-2 text-sm" style={{ color: "#d1d5db" }}>
+            <li className="flex items-start gap-2">
+              <Check className="mt-0.5 shrink-0" size={14} style={{ color: "#6C47FF" }} />
+              <span>Edição de imagem no chat</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="mt-0.5 shrink-0" size={14} style={{ color: "#6C47FF" }} />
+              <span>80 créditos por mês no Estúdio</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="mt-0.5 shrink-0" size={14} style={{ color: "#6C47FF" }} />
+              <span>Prioridade máxima na fila</span>
+            </li>
+          </ul>
+          <Button
+            className="mt-5 w-full bg-[#6C47FF] hover:bg-[#7d5cff] text-white"
+            onClick={() => setOpenPlan("ultra")}
+          >
+            Assinar Ultra
+          </Button>
+        </section>
       )}
 
       {/* ────── Purchase history ────── */}
