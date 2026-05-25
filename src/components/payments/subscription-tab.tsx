@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Check, Loader2, Sparkles } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
 import {
@@ -204,63 +204,51 @@ export function SubscriptionTab() {
     : null;
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-[600px] space-y-6">
       {/* ────── State A: Active plan summary ────── */}
       {hasActive && (
         <section
-          className="rounded-2xl border bg-[#0F0F1A] p-5 sm:p-7"
-          style={{ borderColor: "#1a1a2e" }}
+          className="rounded-xl border p-5"
+          style={{ borderColor: "#1f2937", backgroundColor: "#111118" }}
         >
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-1.5">
-              <p
-                className="text-[11px] font-medium uppercase"
-                style={{ color: "#6b7280", letterSpacing: "0.1em" }}
-              >
-                Seu plano
-              </p>
-              <h2
-                className="text-3xl font-semibold sm:text-4xl"
-                style={{ color: "#8B6FFF" }}
-              >
-                {PLANS[activePlanId as PlanId]?.name ?? activePlanId}
-              </h2>
-              {renewLabel && (
-                <p className="text-sm" style={{ color: "#6b7280" }}>
-                  Renova em {renewLabel}
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-3 sm:items-end">
-              <div className="sm:text-right">
-                <p
-                  className="text-2xl font-bold tabular-nums sm:text-3xl"
-                  style={{ color: "#4ade80" }}
-                >
-                  {credits?.balance ?? 0}
-                </p>
-                <p className="text-xs" style={{ color: "#9ca3af" }}>
-                  créditos disponíveis
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2 sm:justify-end">
-                <Button
-                  className="bg-[#6C47FF] hover:bg-[#7d5cff] text-white"
-                  onClick={() => setCreditsOpen(true)}
-                >
-                  Comprar créditos
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => cancel.mutate()}
-                  disabled={cancel.isPending}
-                  style={{ borderColor: "#374151", color: "#9ca3af" }}
-                >
-                  {cancel.isPending ? "Cancelando..." : "Cancelar"}
-                </Button>
-              </div>
-            </div>
+          <p
+            className="text-[11px] font-medium uppercase"
+            style={{ color: "#6b7280", letterSpacing: "0.1em" }}
+          >
+            Plano
+          </p>
+          <h2 className="mt-1 text-3xl font-semibold" style={{ color: "#8B6FFF" }}>
+            {PLANS[activePlanId as PlanId]?.name ?? activePlanId}
+          </h2>
+          {renewLabel && (
+            <p className="mt-1 text-sm" style={{ color: "#6b7280" }}>
+              Renova em {renewLabel}
+            </p>
+          )}
+          <p className="mt-4 text-lg font-bold text-white">
+            <span className="tabular-nums">{credits?.balance ?? 0}</span>{" "}
+            <span className="text-sm font-normal" style={{ color: "#9ca3af" }}>
+              créditos disponíveis
+            </span>
+          </p>
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <Button
+              variant="outline"
+              className="w-full sm:flex-1 bg-transparent hover:bg-[#6C47FF]/10"
+              style={{ borderColor: "#6C47FF", color: "#8B6FFF" }}
+              onClick={() => setCreditsOpen(true)}
+            >
+              Comprar créditos
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full sm:w-auto"
+              onClick={() => cancel.mutate()}
+              disabled={cancel.isPending}
+              style={{ color: "#6b7280" }}
+            >
+              {cancel.isPending ? "Cancelando..." : "Cancelar assinatura"}
+            </Button>
           </div>
         </section>
       )}
@@ -286,7 +274,7 @@ export function SubscriptionTab() {
       )}
 
       {/* ────── Plan cards (only when there's an upsell) ────── */}
-      {upsellCards.length > 0 && (
+      {upsellCards.length > 0 && !hasActive && (
         <>
           {/* Monthly / Annual toggle */}
           <div className="flex flex-col items-center">
@@ -394,78 +382,99 @@ export function SubscriptionTab() {
         </>
       )}
 
-      {/* ────── Ultra-only celebratory note (no cards) ────── */}
-      {hasActive && activePlanId === "ultra" && (
-        <div
-          className="flex items-center gap-3 rounded-2xl border px-5 py-4"
-          style={{
-            borderColor: "rgba(108,71,255,0.4)",
-            backgroundColor: "rgba(108,71,255,0.06)",
-          }}
+      {/* ────── Plus → Ultra minimal upgrade card ────── */}
+      {hasActive && activePlanId === "plus" && (
+        <section
+          className="rounded-xl border p-5"
+          style={{ borderColor: "#1f2937", backgroundColor: "#111118" }}
         >
-          <Sparkles size={18} style={{ color: "#8B6FFF" }} />
-          <p className="text-sm" style={{ color: "#d1d5db" }}>
-            Você está no plano máximo. Aproveite tudo sem limites.
+          <p
+            className="text-[11px] font-medium uppercase"
+            style={{ color: "#6b7280", letterSpacing: "0.1em" }}
+          >
+            Upgrade
           </p>
-        </div>
+          <h3 className="mt-1 text-xl font-semibold" style={{ color: "#8B6FFF" }}>
+            Faça upgrade para Ultra
+          </h3>
+          <ul className="mt-4 space-y-2 text-sm" style={{ color: "#d1d5db" }}>
+            <li className="flex items-start gap-2">
+              <Check className="mt-0.5 shrink-0" size={14} style={{ color: "#6C47FF" }} />
+              <span>Edição de imagem no chat</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="mt-0.5 shrink-0" size={14} style={{ color: "#6C47FF" }} />
+              <span>80 créditos por mês no Estúdio</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="mt-0.5 shrink-0" size={14} style={{ color: "#6C47FF" }} />
+              <span>Prioridade máxima na fila</span>
+            </li>
+          </ul>
+          <Button
+            className="mt-5 w-full bg-[#6C47FF] hover:bg-[#7d5cff] text-white"
+            onClick={() => setOpenPlan("ultra")}
+          >
+            Assinar Ultra
+          </Button>
+        </section>
       )}
 
       {/* ────── Purchase history ────── */}
       {history && history.length > 0 && (
-        <section className="space-y-3">
-          <h3
-            className="text-[11px] font-medium uppercase"
-            style={{ color: "#6b7280", letterSpacing: "0.1em" }}
-          >
+        <section
+          className="rounded-xl border p-5"
+          style={{ borderColor: "#1f2937", backgroundColor: "#111118" }}
+        >
+          <h3 className="text-base font-semibold text-white">
             Histórico de compras
           </h3>
-          <ul
-            className="divide-y rounded-xl border"
-            style={{ borderColor: "#1a1a2e", backgroundColor: "#0F0F1A" }}
-          >
-            {history.map((h) => (
-              <li
-                key={h.id}
-                className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
-                style={{ borderColor: "#1a1a2e" }}
-              >
-                <div className="min-w-0">
-                  <p className="text-sm text-white truncate">
-                    {h.type === "subscription"
-                      ? "Assinatura"
-                      : h.type === "credits"
-                        ? "Créditos"
-                        : h.type ?? "Pagamento"}
-                  </p>
-                  <p className="text-xs" style={{ color: "#6b7280" }}>
-                    {new Date(h.created_at).toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                    {" · "}
-                    <span
-                      style={{
-                        color:
-                          h.status === "approved" || h.status === "paid"
-                            ? "#4ade80"
-                            : h.status === "pending"
-                              ? "#f59e0b"
-                              : "#9ca3af",
-                      }}
-                    >
-                      {h.status}
-                    </span>
-                  </p>
-                </div>
-                <p
-                  className="text-sm font-semibold tabular-nums"
-                  style={{ color: "#4ade80" }}
+          <ul className="mt-3 divide-y" style={{ borderColor: "#1f2937" }}>
+            {history.map((h) => {
+              const label =
+                h.type === "subscription"
+                  ? "Assinatura"
+                  : h.type === "credits"
+                    ? "Créditos"
+                    : h.type ?? "Pagamento";
+              const isOk =
+                h.status === "approved" ||
+                h.status === "paid" ||
+                h.status === "confirmed";
+              const isPending = h.status === "pending";
+              const statusLabel = isOk
+                ? "Confirmado"
+                : isPending
+                  ? "Pendente"
+                  : "Falhou";
+              const statusColor = isOk
+                ? "#4ade80"
+                : isPending
+                  ? "#fbbf24"
+                  : "#f87171";
+              return (
+                <li
+                  key={h.id}
+                  className="flex flex-wrap items-center justify-between gap-2 py-3"
+                  style={{ borderColor: "#1f2937" }}
                 >
-                  {fmtBRL(Number(h.amount))}
-                </p>
-              </li>
-            ))}
+                  <div className="min-w-0">
+                    <p className="text-sm text-white truncate">{label}</p>
+                    <p className="text-xs" style={{ color: "#6b7280" }}>
+                      {new Date(h.created_at).toLocaleDateString("pt-BR")}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold tabular-nums text-white">
+                      {fmtBRL(Number(h.amount))}
+                    </p>
+                    <p className="text-xs" style={{ color: statusColor }}>
+                      {statusLabel}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
