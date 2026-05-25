@@ -323,7 +323,7 @@ function StudioInner() {
             sourceMediaId: editingImage.mediaId,
             sourcePromptId: editingImage.promptId ?? undefined,
             profileId: editingImage.profileId ?? undefined,
-            detailLevel: "MEDIUM",
+            detailLevel: highQuality ? "HIGH" : "MEDIUM",
             poseId: poseEnabled ? poseId ?? undefined : undefined,
             poseType: poseEnabled ? poseType ?? undefined : undefined,
             poseStrength: poseEnabled ? poseStrength : undefined,
