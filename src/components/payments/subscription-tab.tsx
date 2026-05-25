@@ -9,7 +9,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Check, Loader2, Sparkles } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
 import {
@@ -92,7 +91,6 @@ const PLAN_RANK: Record<string, number> = { free: 0, plus: 1, ultra: 2 };
 
 export function SubscriptionTab() {
   const qc = useQueryClient();
-  const navigate = useNavigate();
   const fetchSub = useServerFn(getMySubscription);
   const fetchLatestSub = useServerFn(getMyLatestSubscription);
   const fetchCredits = useServerFn(getCredits);
