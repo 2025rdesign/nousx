@@ -314,6 +314,13 @@ function StudioInner() {
     mutationFn: async () => {
       const ratio = aspect;
       if (editingImage) {
+        console.log("[EDIT REQUEST]", {
+          highQuality,
+          detailLevel: highQuality ? "HIGH" : "MEDIUM",
+          editModel,
+          poseEnabled,
+          poseId: poseEnabled ? poseId : null,
+        });
         return genFn({
           data: {
             mode: "edit",
