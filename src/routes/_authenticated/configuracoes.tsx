@@ -30,8 +30,6 @@ import { useEffect, useState } from "react";
 import { UserAvatar } from "@/components/user-avatar";
 import { SettingsSkeleton } from "@/components/route-skeletons";
 import { SubscriptionTab } from "@/components/payments/subscription-tab";
-import { getCredits } from "@/lib/credits.functions";
-import { listMyPaymentHistory } from "@/lib/payments.functions";
 import { getMyReferralInfo } from "@/lib/referrals.functions";
 import { Copy, Check as CheckIcon } from "lucide-react";
 
@@ -272,106 +270,6 @@ function AssinaturaTab() {
   return (
     <div className="space-y-6">
       <SubscriptionTab />
-      <CreditsAndHistory />
-    </div>
-  );
-}
-
-function CreditsAndHistory() {
-  const fetchCredits = useServerFn(getCredits);
-  const fetchHistory = useServerFn(listMyPaymentHistory);
-
-  const { data: credits } = useQuery({
-    queryKey: ["credits"],
-    queryFn: () => fetchCredits(),
-    staleTime: 60_000,
-  });
-  const { data: history = [] } = useQuery({
-    queryKey: ["payment-history"],
-    queryFn: () => fetchHistory(),
-    staleTime: 60_000,
-  });
-
-  const [showAll, setShowAll] = useState(false);
-  const balance = credits?.balance ?? 0;
-  const visibleHistory = showAll ? history : history.slice(0, 5);
-
-  return (
-    <div className="space-y-4">
-      <Card className="border-border bg-card shadow-sm">
-        <CardContent className="pt-6 pb-6 space-y-2">
-          <h3 className="font-semibold">Créditos</h3>
-          <p className="text-sm text-muted-foreground">
-            Você tem{" "}
-            <span className="text-foreground font-medium">{balance}</span>{" "}
-            créditos disponíveis.
-          </p>
-        </CardContent>
-      </Card>
-
-      {history.length > 0 && (
-        <Card className="border-border bg-card shadow-sm">
-          <CardContent className="pt-6 pb-6 space-y-4">
-            <h3 className="font-semibold">Histórico de compras</h3>
-            <ul className="divide-y divide-border">
-              {visibleHistory.map((h: any) => {
-                const meta = (h.metadata ?? {}) as Record<string, any>;
-                const label =
-                  h.type === "subscription"
-                    ? `Assinatura ${meta.planId ?? ""}`.trim()
-                    : h.type === "credit"
-                      ? `Créditos${meta.packId ? ` — ${meta.packId}` : ""}`
-                      : h.type;
-                const statusLabel: Record<string, string> = {
-                  paid: "Aprovado",
-                  approved: "Aprovado",
-                  pending: "Pendente",
-                  refunded: "Reembolsado",
-                  cancelled: "Cancelado",
-                  failed: "Falhou",
-                };
-                const tone =
-                  h.status === "paid" || h.status === "approved"
-                    ? "text-success"
-                    : h.status === "refunded" || h.status === "failed" || h.status === "cancelled"
-                      ? "text-destructive"
-                      : "text-muted-foreground";
-                return (
-                  <li
-                    key={h.id}
-                    className="py-2 flex items-center justify-between gap-3 text-sm"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate">{label}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(h.created_at).toLocaleDateString("pt-BR")}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="font-medium">
-                        R$ {Number(h.amount).toFixed(2).replace(".", ",")}
-                      </p>
-                      <p className={`text-xs ${tone}`}>
-                        {statusLabel[h.status] ?? h.status}
-                      </p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-            {history.length > 5 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAll((v) => !v)}
-                className="w-full"
-              >
-                {showAll ? "Mostrar menos" : "Ver histórico completo"}
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
