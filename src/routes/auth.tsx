@@ -219,24 +219,31 @@ function SignupForm() {
     }
     console.log("[signUp] success:", signUpData);
 
-    // Attach referral code captured from ?ref= on landing
+    // Attach referral code captured from ?ref= on landing.
+    // Credits are only given when a valid referral is attached —
+    // attachReferral() grants 5 welcome credits on the server side.
+    let referralAttached = false;
     try {
       const code = localStorage.getItem("auraia-ref-code");
       if (code) {
-        // Wait briefly for the session to be available, then attach
+        // Wait briefly for the Supabase session to propagate.
         await new Promise((r) => setTimeout(r, 400));
         const res = await attachReferral({ data: { code } });
+        localStorage.removeItem("auraia-ref-code");
         if (res && (res as { ok?: boolean }).ok) {
-          localStorage.removeItem("auraia-ref-code");
-        } else {
-          localStorage.removeItem("auraia-ref-code");
+          referralAttached = true;
         }
       }
     } catch (err) {
       console.warn("[signUp] attachReferral failed", err);
+      localStorage.removeItem("auraia-ref-code");
     }
 
-    notify.success("Bem-vindo! Você ganhou 5 créditos para usar no Estúdio.");
+    if (referralAttached) {
+      notify.success("Bem-vindo! Você ganhou 5 créditos de boas-vindas.");
+    } else {
+      notify.success("Bem-vindo à AuraIA! Explore o Estúdio de criação.");
+    }
     router.invalidate();
     navigate({ to: "/" });
   }

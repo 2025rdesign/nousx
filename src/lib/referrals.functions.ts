@@ -62,6 +62,35 @@ export const attachReferral = createServerFn({ method: "POST" })
       referral_code: code,
     });
 
+    // Give 5 welcome credits to the referred user (only reached here
+    // when referred_by has just been set for the first time).
+    await supabaseAdmin.from("credit_batches").insert({
+      user_id: userId,
+      pack_id: "welcome",
+      credits_total: 5,
+      credits_remaining: 5,
+      expires_at: null,
+    });
+
+    // Recompute balance from all active batches (mirrors the pattern in
+    // rewardReferrerOnFirstPurchase to keep credits.balance consistent).
+    const { data: batches } = await supabaseAdmin
+      .from("credit_batches")
+      .select("credits_remaining")
+      .eq("user_id", userId);
+    const newBalance = (batches ?? []).reduce(
+      (sum, b) => sum + (b.credits_remaining ?? 0),
+      0,
+    );
+    await supabaseAdmin
+      .from("credits")
+      .upsert(
+        { user_id: userId, balance: newBalance, updated_at: new Date().toISOString() },
+        { onConflict: "user_id" },
+      );
+
+    console.log("[REFERRAL] welcome credits granted", { userId, newBalance });
+
     return { ok: true as const };
   });
 
