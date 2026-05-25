@@ -620,9 +620,16 @@ export const generateCharacter = createServerFn({ method: "POST" })
       translatedFace ? `Face details: ${translatedFace}` : "",
       translatedScene ? `Scene: ${translatedScene}` : "",
     ].filter(Boolean).join(". ");
-    const cfgFromLevel = data.cfgLevel
-      ? ({ free: 4, balanced: 7, precise: 10 } as const)[data.cfgLevel]
-      : null;
+    function getCfg(
+      cfgLevel: "free" | "balanced" | "precise" | undefined,
+      model: "DEFAULT" | "REALISM" | "ANIME" | "CREATIVE" | "QWEN_PRO" | undefined,
+    ): number {
+      if (model === "REALISM") {
+        return cfgLevel ? ({ free: 3, balanced: 5, precise: 6 } as const)[cfgLevel] : 5;
+      }
+      return cfgLevel ? ({ free: 4, balanced: 7, precise: 10 } as const)[cfgLevel] : 7;
+    }
+
 
     let promptId: string;
     let endpoint = `${ALIVEAI_BASE}/prompts`;
@@ -643,7 +650,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         model: data.model,
         gender: data.gender,
         aspectRatio: mapAspectRatio(data.aspectRatio),
-        cfg: cfgFromLevel ?? 7,
+        cfg: getCfg(data.cfgLevel, data.model),
         faceImproveEnabled: true,
         faceModel: "REALISM",
         faceImproveStrength: 5,
@@ -676,7 +683,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         faceImproveEnabled: true,
         faceImproveStrength: 7,
         restoreFace: true,
-        cfg: cfgFromLevel ?? 7,
+        cfg: getCfg(data.cfgLevel, data.editModel),
       };
       {
         const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength, data.model);
@@ -708,7 +715,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         faceImproveEnabled: true,
         faceImproveStrength: 7,
         restoreFace: true,
-        cfg: cfgFromLevel ?? 7,
+        cfg: getCfg(data.cfgLevel, data.editModel),
       };
       {
         const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength, data.model);
