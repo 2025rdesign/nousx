@@ -406,6 +406,37 @@ export const deleteProfile = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string }) => d)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
+    // Cascade: collect all character images for this profile, then
+    // remove the matching gallery rows, the characters history rows,
+    // and finally the profile itself.
+    const { data: chars } = await supabase
+      .from("characters")
+      .select("image_url")
+      .eq("user_id", userId)
+      .eq("profile_id", data.id);
+    const urls = (chars ?? [])
+      .map((c) => (c as { image_url?: string | null }).image_url)
+      .filter((u): u is string => !!u);
+    if (urls.length) {
+      try {
+        await supabase
+          .from("gallery")
+          .delete()
+          .eq("user_id", userId)
+          .in("image_url", urls);
+      } catch (e) {
+        console.warn("[deleteProfile] gallery cleanup failed (ignored)", e);
+      }
+    }
+    try {
+      await supabase
+        .from("characters")
+        .delete()
+        .eq("user_id", userId)
+        .eq("profile_id", data.id);
+    } catch (e) {
+      console.warn("[deleteProfile] characters cleanup failed (ignored)", e);
+    }
     const { error } = await supabase
       .from("character_profiles")
       .delete()

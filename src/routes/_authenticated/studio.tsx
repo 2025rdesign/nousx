@@ -468,6 +468,7 @@ function StudioInner() {
                   toast.success("Personagem excluído com sucesso");
                   qc.invalidateQueries({ queryKey: ["my-profiles"] });
                   qc.invalidateQueries({ queryKey: ["my-characters"] });
+                  qc.invalidateQueries({ queryKey: ["gallery-v2"] });
                 } catch (err) {
                   qc.setQueryData(["my-profiles"], prev);
                   toast.error(
