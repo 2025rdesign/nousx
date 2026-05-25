@@ -145,6 +145,20 @@ export const getMySubscription = createServerFn({ method: "GET" })
     return data;
   });
 
+export const getMyLatestSubscription = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await supabaseAdmin
+      .from("user_subscriptions")
+      .select("id, plan_id, status, expires_at, created_at")
+      .eq("user_id", context.userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data;
+  });
+
 export const cancelMySubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
