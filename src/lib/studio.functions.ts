@@ -620,9 +620,16 @@ export const generateCharacter = createServerFn({ method: "POST" })
       translatedFace ? `Face details: ${translatedFace}` : "",
       translatedScene ? `Scene: ${translatedScene}` : "",
     ].filter(Boolean).join(". ");
-    const cfgFromLevel = data.cfgLevel
-      ? ({ free: 4, balanced: 7, precise: 10 } as const)[data.cfgLevel]
-      : null;
+    function getCfg(
+      cfgLevel: "free" | "balanced" | "precise" | undefined,
+      model: "DEFAULT" | "REALISM" | "ANIME" | "CREATIVE" | "QWEN_PRO" | undefined,
+    ): number {
+      if (model === "REALISM") {
+        return cfgLevel ? ({ free: 3, balanced: 5, precise: 6 } as const)[cfgLevel] : 5;
+      }
+      return cfgLevel ? ({ free: 4, balanced: 7, precise: 10 } as const)[cfgLevel] : 7;
+    }
+
 
     let promptId: string;
     let endpoint = `${ALIVEAI_BASE}/prompts`;
