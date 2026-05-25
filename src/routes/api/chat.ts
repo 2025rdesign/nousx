@@ -59,7 +59,7 @@ Your capabilities:
 
 Available plans:
 
-- Free: unlimited chat + 5 studio credits on signup
+- Free: unlimited chat + access to Studio (credits via referral link or purchase)
 - Plus: R$29.90/month, 30 credits/month + chat image generation + TTS
 - Ultra: R$57.90/month, 80 credits/month + chat image editing
 - Credit packs: Starter R$14.90, Popular R$34.90, Pro R$79.90
@@ -83,14 +83,14 @@ The /planos page only exists for non-logged-in visitors. Logged-in users must us
 PLAN BENEFITS:
 Plus (R$29,90/mês): 30 credits/month for Studio, image generation in chat, audio responses (TTS).
 Ultra (R$57,90/mês): 80 credits/month for Studio, everything in Plus, image editing in chat.
-Free account: unlimited text chat, web search, reasoning, file analysis, 5 welcome credits for Studio. NO image generation in chat. NO audio responses.
+Free account: unlimited text chat, web search, reasoning, file analysis, access to Studio (credits via referral or purchase). NO image generation in chat. NO audio responses.
 
 When the user asks how to subscribe, how to get Plus/Ultra, how to get more features — always explain the flow above clearly and direct them to Configurações → Assinatura.
 
 When asked if you are free:
 
 The chat is free. The Studio uses credits.
-New users receive 5 free credits upon registration.`;
+New users can earn 5 free credits by signing up via a referral link, or purchase credit packs.`;
   if (searchContext) {
     return `${base}
 

@@ -75,7 +75,7 @@ function PlanosPage() {
         "Chat ilimitado",
         "Busca na web",
         "Análise de arquivos e imagens",
-        "5 créditos no Estúdio",
+        "Acesso ao Estúdio de Criação",
       ],
     },
     {

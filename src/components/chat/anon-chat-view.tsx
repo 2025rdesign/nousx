@@ -470,8 +470,7 @@ export function AnonChatView() {
           <DialogHeader>
             <DialogTitle>Crie sua conta grátis</DialogTitle>
             <DialogDescription className="pt-2">
-              Tenha conversas ilimitadas e ganhe{" "}
-              <strong>5 créditos</strong> para gerar imagens sem censura no Estúdio.
+              Tenha conversas ilimitadas e acesse o Estúdio de Criação para gerar imagens sem censura.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex flex-col sm:flex-col gap-2 pt-2">
@@ -509,8 +508,7 @@ export function AnonChatView() {
           <DialogHeader>
             <DialogTitle>Você chegou ao limite gratuito</DialogTitle>
             <DialogDescription className="pt-2">
-              Crie sua conta — é totalmente grátis — para continuar sem limites e ganhar{" "}
-              <strong>5 créditos</strong> para gerar imagens sem censura.
+              Crie sua conta — é totalmente grátis — para continuar sem limites e acessar o Estúdio de Criação.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex flex-col sm:flex-col gap-2 pt-2">

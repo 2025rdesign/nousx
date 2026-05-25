@@ -18,7 +18,7 @@ const STEPS: OnboardingStep[] = [
     icon: <Wand2 className="size-8" />,
     title: "Crie imagens sem filtros",
     description:
-      "No Estúdio de Criação você gera imagens de alta qualidade sem censura. Seus 5 créditos grátis já estão disponíveis — use agora.",
+      "No Estúdio de Criação você gera imagens de alta qualidade sem censura. Compre créditos ou ganhe via indicação e comece a criar agora.",
   },
   {
     icon: <Compass className="size-8" />,

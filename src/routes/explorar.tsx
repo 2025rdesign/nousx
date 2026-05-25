@@ -63,8 +63,10 @@ function Explore() {
   const listProfilesFn = useServerFn(listPublicProfiles);
 
   const [confirmed, setConfirmed] = useState(false);
+  const [hasRefCode, setHasRefCode] = useState(false);
   useEffect(() => {
     setConfirmed(localStorage.getItem(AGE_KEY) === "1");
+    setHasRefCode(!!localStorage.getItem("auraia-ref-code"));
   }, []);
 
   // Refresh Explorar in real-time when someone publishes (toggles is_public)
@@ -205,11 +207,14 @@ function Explore() {
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="text-lg md:text-xl font-semibold">
-                  Ganhe 5 créditos grátis ao criar sua conta
+                  {hasRefCode
+                    ? "Você foi convidado! Crie sua conta e ganhe 5 créditos grátis"
+                    : "Crie sua conta grátis e comece a conversar agora"}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Gere imagens sem censura no Estúdio de Criação.
-                  Sem filtros. Sem limites.
+                  {hasRefCode
+                    ? "Seus 5 créditos serão adicionados ao criar a conta pelo link de indicação."
+                    : "Chat ilimitado, busca na web e Estúdio de Criação — tudo grátis para começar."}
                 </p>
               </div>
               <div className="flex gap-2 md:shrink-0">
