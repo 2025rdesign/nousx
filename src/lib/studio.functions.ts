@@ -703,6 +703,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
       }
     } else if (data.mode === "edit") {
       if (!data.sourceMediaId) throw new Error("Imagem de origem ausente.");
+      console.log("[EDIT detailLevel]", data.detailLevel);
       endpoint = `${ALIVEAI_BASE}/prompts/edit-image`;
       const variationPrompt = `extract this person keep her appearance, skin color, face and body shape. ${combinedAppearance}`;
       body = {
@@ -721,13 +722,14 @@ export const generateCharacter = createServerFn({ method: "POST" })
           data.detailLevel === "HIGH"
             ? data.editModel === "REALISM"
               ? 6
-              : 7
+              : 9
             : getCfg(data.cfgLevel, data.editModel),
         negativeDetails: DEFAULT_NEGATIVE,
       };
       {
+        // Always set pose explicitly: null clears the inherited pose from the source image
         const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength, data.model);
-        if (pose) (body as Record<string, unknown>).pose = pose;
+        (body as Record<string, unknown>).pose = pose;
       }
       console.log("[EDIT IMAGE]", JSON.stringify(body));
     } else {
