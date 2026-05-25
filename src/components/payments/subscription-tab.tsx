@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, Sparkles } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
@@ -22,7 +22,11 @@ import {
 import {
   cancelMySubscription,
   getMySubscription,
+  getMyLatestSubscription,
+  listMyPaymentHistory,
 } from "@/lib/payments.functions";
+import { getCredits } from "@/lib/credits.functions";
+import { CreditPurchaseModal } from "./credit-purchase-modal";
 import { CouponField, type AppliedCoupon } from "./coupon-field";
 import { MpPixModal } from "./mp-pix-modal";
 
