@@ -650,7 +650,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         model: data.model,
         gender: data.gender,
         aspectRatio: mapAspectRatio(data.aspectRatio),
-        cfg: cfgFromLevel ?? 7,
+        cfg: getCfg(data.cfgLevel, data.model),
         faceImproveEnabled: true,
         faceModel: "REALISM",
         faceImproveStrength: 5,
@@ -683,7 +683,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         faceImproveEnabled: true,
         faceImproveStrength: 7,
         restoreFace: true,
-        cfg: cfgFromLevel ?? 7,
+        cfg: getCfg(data.cfgLevel, data.editModel),
       };
       {
         const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength, data.model);
@@ -715,7 +715,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         faceImproveEnabled: true,
         faceImproveStrength: 7,
         restoreFace: true,
-        cfg: cfgFromLevel ?? 7,
+        cfg: getCfg(data.cfgLevel, data.editModel),
       };
       {
         const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength, data.model);
