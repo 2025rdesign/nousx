@@ -140,8 +140,12 @@ function detectImageFollowUp(text: string, hasPreviousAssistantImage: boolean): 
   if (!hasPreviousAssistantImage) return false;
   const trimmed = text.trim();
   if (!trimmed || trimmed.length > 500) return false;
-  if (trimmed.length <= 120) return true;
-  return IMAGE_FOLLOW_UP_RE.test(trimmed) || VISUAL_EDIT_CUE_RE.test(trimmed);
+  // Require BOTH a follow-up action word AND a visual/body cue word to avoid
+  // treating any short message in a conversation with images as an image request.
+  // The old `trimmed.length <= 120 → return true` shortcut was too broad: it
+  // made all short text messages (e.g. "obrigado", "explique mais") hit the
+  // image/plan gate and block free users from text chat.
+  return IMAGE_FOLLOW_UP_RE.test(trimmed) && VISUAL_EDIT_CUE_RE.test(trimmed);
 }
 
 // Phrases DeepSeek emits when it decided to "generate" an image instead of
@@ -272,7 +276,11 @@ export function ChatView({ conversationId }: Props) {
       })
       .catch((error) => {
         console.warn("[PLAN CHECK] failed to refetch subscription", error);
-        const fallbackSnapshot = buildActivePlanSnapshot(subscription, planLoading);
+        // Use the ref (not closure vars) so subscription/planLoading are not
+        // deps of this callback — that was causing an infinite re-trigger loop
+        // because each fetch updated the React Query cache → subscription ref
+        // changed → new callback → effect re-fired → fetched again → repeat.
+        const fallbackSnapshot = buildActivePlanSnapshot(latestPlanRef.current.subscription, false);
         latestPlanRef.current = fallbackSnapshot;
         return fallbackSnapshot;
       })
@@ -283,7 +291,13 @@ export function ChatView({ conversationId }: Props) {
 
     planRefreshPromiseRef.current = refreshPromise;
     return refreshPromise;
-  }, [fetchSubServerFn, planLoading, queryClient, subscription, user]);
+  // Intentionally exclude `subscription` and `planLoading` from deps:
+  // those values are read via `latestPlanRef.current` inside the callback,
+  // not as closure variables — including them caused an infinite loop where
+  // each fetch updated the cache → subscription ref changed → new callback →
+  // useEffect re-fired → fetched again indefinitely.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchSubServerFn, queryClient, user]);
 
   useEffect(() => {
     latestPlanRef.current = buildActivePlanSnapshot(subscription, planLoading);
@@ -1486,13 +1500,12 @@ export function ChatView({ conversationId }: Props) {
 
         <ChatInput
           onSend={handleSend}
-          disabled={sending || planLoading || planRefreshPending}
+          disabled={sending}
           hasUltra={hasUltra}
           onOpenVoiceMode={() => setVoiceOpen(true)}
           voiceModeActive={voiceOpen}
           fillText={fillText}
           onFillTextConsumed={() => setFillText(undefined)}
-          sendButtonLabel={planLoading || planRefreshPending ? "Plano..." : undefined}
         />
         <VoiceModeModal open={voiceOpen} onClose={() => setVoiceOpen(false)} />
         {checkoutPlan && (
