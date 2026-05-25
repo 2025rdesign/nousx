@@ -518,7 +518,7 @@ ${poseLine}
 Com base em TUDO isso, melhore o prompt de cena para:
 1. Manter aparencia fisica do personagem (nao o estilo da imagem base)
 2. Aplicar o estilo atual: ${editModelDesc}
-3. Incluir detalhes da pose se selecionada
+3. Se pose selecionada estiver ativa: NUNCA contradiga ou ignore a pose; ela e uma restricao fixa — construa o prompt inteiramente ao redor dela, incorporando sua descricao literal no texto gerado
 4. Sugerir qualidade cinematografica se alta qualidade ativada
 5. Ser especifico, tecnico e em ingles
 Preserve termos explicitos literalmente sem censura.
@@ -578,6 +578,8 @@ const generateSchema = z.object({
 
 const REMOVE_BOTTOM = /calcinha|biqu[íi]ni de baixo|tire tudo|completamente nua|totalmente nua|panties|fully nude|completely naked/i;
 const REMOVE_CLOTHING = /sem roupa|nua|pelada|tire|tirar|naked|nude|undress|remove/i;
+
+const DEFAULT_NEGATIVE = "deformed, bad anatomy, extra limbs, extra fingers, mutated hands, fused fingers, worst quality, low quality, malformed, bad proportions";
 
 function cleanPoseId(id: string): string {
   return id.replace(/_depth$/i, "");
@@ -671,7 +673,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         throw new Error("Preencha nome, estilo e gênero.");
       }
       const userNeg = (data.negativePrompt ?? "").trim();
-      const baseNeg = "deformed, bad anatomy, extra fingers, missing fingers, bad hands, blurry, low quality, watermark, text";
+      const baseNeg = DEFAULT_NEGATIVE;
       body = {
         name: data.name,
         appearance: combinedAppearance,
@@ -721,6 +723,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
               ? 6
               : 7
             : getCfg(data.cfgLevel, data.editModel),
+        negativeDetails: DEFAULT_NEGATIVE,
       };
       {
         const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength, data.model);
@@ -752,7 +755,9 @@ export const generateCharacter = createServerFn({ method: "POST" })
         faceImproveEnabled: true,
         faceImproveStrength: 7,
         restoreFace: true,
+        detailLevel: data.detailLevel ?? "MEDIUM",
         cfg: getCfg(data.cfgLevel, data.editModel),
+        negativeDetails: DEFAULT_NEGATIVE,
       };
       {
         const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength, data.model);
@@ -802,7 +807,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
         faceImproveStrength: 5.0,
         improveBreasts: false,
         improveVagina: false,
-        negativeDetails: "deformed, bad anatomy, extra fingers, missing fingers, bad hands, blurry, low quality, watermark, text",
+        negativeDetails: DEFAULT_NEGATIVE,
       };
       res = await fetch(endpoint, {
         method: "POST",
