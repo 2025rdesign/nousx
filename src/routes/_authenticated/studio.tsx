@@ -323,7 +323,7 @@ function StudioInner() {
             sourceMediaId: editingImage.mediaId,
             sourcePromptId: editingImage.promptId ?? undefined,
             profileId: editingImage.profileId ?? undefined,
-            detailLevel: "MEDIUM",
+            detailLevel: highQuality ? "HIGH" : "MEDIUM",
             poseId: poseEnabled ? poseId ?? undefined : undefined,
             poseType: poseEnabled ? poseType ?? undefined : undefined,
             poseStrength: poseEnabled ? poseStrength : undefined,
@@ -747,8 +747,30 @@ function StudioInner() {
                   )}
                 </div>
 
+                {/* High quality toggle (edit mode) */}
+                <label className="flex items-center gap-3 rounded-lg border border-border p-3 cursor-pointer">
+                  <Switch checked={highQuality} onCheckedChange={setHighQuality} />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium flex items-center gap-2">
+                      Alta qualidade
+                      {highQuality && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/15 text-accent font-medium">
+                          +1 crédito
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Renderização em alto detalhe (HIGH). Consome 1 crédito extra.
+                    </p>
+                  </div>
+                </label>
+
                 <div className="text-center text-xs text-muted-foreground">
-                  Esta edição custará <span className="font-semibold text-foreground">1 crédito</span>.
+                  Esta edição custará{" "}
+                  <span className="font-semibold text-foreground">
+                    {highQuality ? "2 créditos" : "1 crédito"}
+                  </span>
+                  .
                 </div>
                 <Button
                   type="button"

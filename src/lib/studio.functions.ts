@@ -714,7 +714,13 @@ export const generateCharacter = createServerFn({ method: "POST" })
         faceImproveEnabled: true,
         faceImproveStrength: 7,
         restoreFace: true,
-        cfg: getCfg(data.cfgLevel, data.editModel),
+        detailLevel: data.detailLevel ?? "MEDIUM",
+        cfg:
+          data.detailLevel === "HIGH"
+            ? data.editModel === "REALISM"
+              ? 6
+              : 7
+            : getCfg(data.cfgLevel, data.editModel),
       };
       {
         const pose = buildPosePayload(data.poseId, data.posePrompt, data.poseStrength, data.model);
