@@ -204,63 +204,51 @@ export function SubscriptionTab() {
     : null;
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-[600px] space-y-6">
       {/* ────── State A: Active plan summary ────── */}
       {hasActive && (
         <section
-          className="rounded-2xl border bg-[#0F0F1A] p-5 sm:p-7"
-          style={{ borderColor: "#1a1a2e" }}
+          className="rounded-xl border p-5"
+          style={{ borderColor: "#1f2937", backgroundColor: "#111118" }}
         >
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-1.5">
-              <p
-                className="text-[11px] font-medium uppercase"
-                style={{ color: "#6b7280", letterSpacing: "0.1em" }}
-              >
-                Seu plano
-              </p>
-              <h2
-                className="text-3xl font-semibold sm:text-4xl"
-                style={{ color: "#8B6FFF" }}
-              >
-                {PLANS[activePlanId as PlanId]?.name ?? activePlanId}
-              </h2>
-              {renewLabel && (
-                <p className="text-sm" style={{ color: "#6b7280" }}>
-                  Renova em {renewLabel}
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-3 sm:items-end">
-              <div className="sm:text-right">
-                <p
-                  className="text-2xl font-bold tabular-nums sm:text-3xl"
-                  style={{ color: "#4ade80" }}
-                >
-                  {credits?.balance ?? 0}
-                </p>
-                <p className="text-xs" style={{ color: "#9ca3af" }}>
-                  créditos disponíveis
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2 sm:justify-end">
-                <Button
-                  className="bg-[#6C47FF] hover:bg-[#7d5cff] text-white"
-                  onClick={() => setCreditsOpen(true)}
-                >
-                  Comprar créditos
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => cancel.mutate()}
-                  disabled={cancel.isPending}
-                  style={{ borderColor: "#374151", color: "#9ca3af" }}
-                >
-                  {cancel.isPending ? "Cancelando..." : "Cancelar"}
-                </Button>
-              </div>
-            </div>
+          <p
+            className="text-[11px] font-medium uppercase"
+            style={{ color: "#6b7280", letterSpacing: "0.1em" }}
+          >
+            Plano
+          </p>
+          <h2 className="mt-1 text-3xl font-semibold" style={{ color: "#8B6FFF" }}>
+            {PLANS[activePlanId as PlanId]?.name ?? activePlanId}
+          </h2>
+          {renewLabel && (
+            <p className="mt-1 text-sm" style={{ color: "#6b7280" }}>
+              Renova em {renewLabel}
+            </p>
+          )}
+          <p className="mt-4 text-lg font-bold text-white">
+            <span className="tabular-nums">{credits?.balance ?? 0}</span>{" "}
+            <span className="text-sm font-normal" style={{ color: "#9ca3af" }}>
+              créditos disponíveis
+            </span>
+          </p>
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <Button
+              variant="outline"
+              className="w-full sm:flex-1 bg-transparent hover:bg-[#6C47FF]/10"
+              style={{ borderColor: "#6C47FF", color: "#8B6FFF" }}
+              onClick={() => setCreditsOpen(true)}
+            >
+              Comprar créditos
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full sm:w-auto"
+              onClick={() => cancel.mutate()}
+              disabled={cancel.isPending}
+              style={{ color: "#6b7280" }}
+            >
+              {cancel.isPending ? "Cancelando..." : "Cancelar assinatura"}
+            </Button>
           </div>
         </section>
       )}
