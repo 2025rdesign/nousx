@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { ArrowLeft, Sparkles, Wand2, Compass, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { GridPageSkeleton } from "@/components/route-skeletons";
 import { useTheme } from "@/components/theme-provider";
 import { useRouter } from "@tanstack/react-router";
+import { listPublicCharacters, listPublicProfiles } from "@/lib/studio.functions";
 
 const AGE_KEY = "nousx-age-confirmed";
 const LOGO_DARK =
@@ -54,6 +56,12 @@ function Explore() {
   const queryClient = useQueryClient();
   const { theme } = useTheme();
 
+  // Server functions that use supabaseAdmin — bypass RLS and work for
+  // any visitor (anonymous or authenticated) without needing the
+  // client-side Supabase browser client for these queries.
+  const listCharsFn = useServerFn(listPublicCharacters);
+  const listProfilesFn = useServerFn(listPublicProfiles);
+
   const [confirmed, setConfirmed] = useState(false);
   useEffect(() => {
     setConfirmed(localStorage.getItem(AGE_KEY) === "1");
@@ -85,14 +93,14 @@ function Explore() {
 
   const { data: images = [], isLoading: liImages, error: imagesError } = useQuery({
     queryKey: ["public-characters"],
-    queryFn: fetchPublicCharacters,
+    queryFn: () => listCharsFn(),
     staleTime: 60_000,
     gcTime: 5 * 60_000,
     retry: 1,
   });
   const { data: characters = [], isLoading: liChars, error: charsError } = useQuery({
     queryKey: ["public-profiles"],
-    queryFn: fetchPublicProfiles,
+    queryFn: () => listProfilesFn(),
     staleTime: 60_000,
     gcTime: 5 * 60_000,
     retry: 1,
@@ -461,71 +469,7 @@ function dedupeById<T extends { id: string }>(rows: T[]): T[] {
   return out;
 }
 
-async function attachCreators<T extends { user_id?: string | null }>(
-  rows: T[],
-): Promise<Array<T & { creator_name: string | null }>> {
-  const ids = Array.from(
-    new Set(rows.map((r) => r.user_id).filter(Boolean)),
-  ) as string[];
-  if (ids.length === 0) {
-    return rows.map((r) => ({ ...r, creator_name: null }));
-  }
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, name")
-    .in("id", ids);
-  const map = new Map<string, string | null>(
-    (data || []).map((p: any) => [p.id, p.name ?? null]),
-  );
-  return rows.map((r) => ({
-    ...r,
-    creator_name: r.user_id ? map.get(r.user_id) ?? null : null,
-  }));
-}
-
-async function fetchPublicCharacters() {
-  const { data, error } = await supabase
-    .from("characters")
-    .select("id, name, image_url, created_at, user_id, profile_id")
-    .eq("is_public", true)
-    .eq("is_approved", true)
-    .not("image_url", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(200);
-  if (error) throw new Error(error.message);
-  const rows = dedupeById((data || []) as any[]);
-  const profileIds = Array.from(
-    new Set(rows.map((r: any) => r.profile_id).filter(Boolean)),
-  ) as string[];
-  let profileNameMap = new Map<string, string | null>();
-  if (profileIds.length > 0) {
-    const { data: profs } = await supabase
-      .from("character_profiles")
-      .select("id, name")
-      .in("id", profileIds);
-    profileNameMap = new Map(
-      (profs || []).map((p: any) => [p.id, p.name ?? null]),
-    );
-  }
-  const withTitles = rows.map((r: any) => ({
-    ...r,
-    display_name:
-      (r.profile_id && profileNameMap.get(r.profile_id)) ||
-      r.name ||
-      "Criação AuraIA",
-  }));
-  return await attachCreators(withTitles);
-}
-
-async function fetchPublicProfiles() {
-  const { data, error } = await supabase
-    .from("character_profiles")
-    .select("id, name, appearance, base_image_url, created_at, user_id")
-    .eq("is_public", true)
-    .eq("is_approved", true)
-    .not("base_image_url", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(200);
-  if (error) throw new Error(error.message);
-  return await attachCreators(dedupeById((data || []) as any[]));
-}
+// fetchPublicCharacters and fetchPublicProfiles were replaced by the
+// listPublicCharacters / listPublicProfiles server functions imported from
+// studio.functions.ts. Those use supabaseAdmin (bypasses RLS) and already
+// handle deduplication, creator name attachment and is_approved filtering.
