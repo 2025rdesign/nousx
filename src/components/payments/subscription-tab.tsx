@@ -115,6 +115,7 @@ export function SubscriptionTab() {
   const [openPlan, setOpenPlan] = useState<PlanId | null>(null);
   const [period, setPeriod] = useState<BillingPeriod>("annual");
   const [creditsOpen, setCreditsOpen] = useState(false);
+  const [showAllHistory, setShowAllHistory] = useState(false);
 
   const cancelFn = useServerFn(cancelMySubscription);
   const cancel = useMutation({
@@ -421,7 +422,19 @@ export function SubscriptionTab() {
       )}
 
       {/* ────── Purchase history ────── */}
-      {history && history.length > 0 && (
+      {history && history.length > 0 && (() => {
+        const STATUS_MAP: Record<string, { label: string; color: string }> = {
+          confirmed: { label: "Confirmado", color: "#4ade80" },
+          approved: { label: "Confirmado", color: "#4ade80" },
+          paid: { label: "Confirmado", color: "#4ade80" },
+          failed: { label: "Falhou", color: "#f87171" },
+          rejected: { label: "Falhou", color: "#f87171" },
+          pending: { label: "Pendente", color: "#fbbf24" },
+          cancelled: { label: "Cancelado", color: "#6b7280" },
+          refunded: { label: "Reembolsado", color: "#60a5fa" },
+        };
+        const displayed = showAllHistory ? history : history.slice(0, 5);
+        return (
         <section
           className="rounded-xl border p-5"
           style={{ borderColor: "#1f2937", backgroundColor: "#111118" }}
@@ -430,28 +443,16 @@ export function SubscriptionTab() {
             Histórico de compras
           </h3>
           <ul className="mt-3 divide-y" style={{ borderColor: "#1f2937" }}>
-            {history.map((h) => {
+            {displayed.map((h) => {
               const label =
                 h.type === "subscription"
                   ? "Assinatura"
                   : h.type === "credits"
                     ? "Créditos"
                     : h.type ?? "Pagamento";
-              const isOk =
-                h.status === "approved" ||
-                h.status === "paid" ||
-                h.status === "confirmed";
-              const isPending = h.status === "pending";
-              const statusLabel = isOk
-                ? "Confirmado"
-                : isPending
-                  ? "Pendente"
-                  : "Falhou";
-              const statusColor = isOk
-                ? "#4ade80"
-                : isPending
-                  ? "#fbbf24"
-                  : "#f87171";
+              const s = STATUS_MAP[h.status] ?? { label: h.status, color: "#9ca3af" };
+              const statusLabel = s.label;
+              const statusColor = s.color;
               return (
                 <li
                   key={h.id}
@@ -476,8 +477,22 @@ export function SubscriptionTab() {
               );
             })}
           </ul>
+          {history.length > 5 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-3 w-full"
+              style={{ color: "#8B6FFF" }}
+              onClick={() => setShowAllHistory((v) => !v)}
+            >
+              {showAllHistory
+                ? "Mostrar menos"
+                : `Ver histórico completo (${history.length} no total)`}
+            </Button>
+          )}
         </section>
-      )}
+        );
+      })()}
 
       <p className="text-center text-xs text-muted-foreground">
         Todos os planos incluem o Estúdio de Criação sem censura e sem filtros.
