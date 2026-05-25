@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
-import { ArrowLeft, Sparkles, Wand2, Compass } from "lucide-react";
+import { ArrowLeft, Sparkles, Wand2, Compass, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -83,17 +83,19 @@ function Explore() {
     };
   }, [queryClient]);
 
-  const { data: images = [], isLoading: liImages } = useQuery({
+  const { data: images = [], isLoading: liImages, error: imagesError } = useQuery({
     queryKey: ["public-characters"],
     queryFn: fetchPublicCharacters,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
+    retry: 1,
   });
-  const { data: characters = [], isLoading: liChars } = useQuery({
+  const { data: characters = [], isLoading: liChars, error: charsError } = useQuery({
     queryKey: ["public-profiles"],
     queryFn: fetchPublicProfiles,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
+    retry: 1,
   });
 
   const uniqueImages = useMemo(
@@ -230,7 +232,9 @@ function Explore() {
           </TabsPrimitive.List>
 
           <TabsContent value="images" className="mt-4">
-            {liImages && uniqueImages.length === 0 ? (
+            {imagesError ? (
+              <QueryError message={(imagesError as Error).message} />
+            ) : liImages && uniqueImages.length === 0 ? (
               <SkeletonGrid />
             ) : uniqueImages.length === 0 ? (
               <EmptyExplore />
@@ -250,7 +254,9 @@ function Explore() {
           </TabsContent>
 
           <TabsContent value="characters" className="mt-4">
-            {liChars && uniqueCharacters.length === 0 ? (
+            {charsError ? (
+              <QueryError message={(charsError as Error).message} />
+            ) : liChars && uniqueCharacters.length === 0 ? (
               <SkeletonGrid />
             ) : uniqueCharacters.length === 0 ? (
               <EmptyExplore />
@@ -344,15 +350,22 @@ function Card({
   creatorName?: string | null;
   onCta: () => void;
 }) {
+  const [imgError, setImgError] = useState(false);
+
   return (
     <div className="break-inside-avoid mb-3 group relative rounded-lg overflow-hidden bg-muted">
-      {imageUrl && (
+      {imageUrl && !imgError ? (
         <img
           src={imageUrl}
           alt={title}
           className="w-full h-auto object-cover block"
           loading="lazy"
+          onError={() => setImgError(true)}
         />
+      ) : (
+        <div className="w-full aspect-[3/4] flex items-center justify-center bg-muted/80">
+          <ImageIcon className="size-8 text-muted-foreground/30" />
+        </div>
       )}
 
       {/* Avatar (bottom-left, always visible) */}
@@ -385,6 +398,20 @@ function Card({
           {title}
         </span>
       </div>
+    </div>
+  );
+}
+
+function QueryError({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
+      <ImageIcon className="size-10 text-muted-foreground/40" />
+      <p className="text-sm text-muted-foreground">
+        Não foi possível carregar as criações.
+      </p>
+      {process.env.NODE_ENV === "development" && (
+        <p className="text-xs text-destructive/70 font-mono max-w-md">{message}</p>
+      )}
     </div>
   );
 }
