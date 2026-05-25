@@ -422,60 +422,59 @@ export function SubscriptionTab() {
 
       {/* ────── Purchase history ────── */}
       {history && history.length > 0 && (
-        <section className="space-y-3">
-          <h3
-            className="text-[11px] font-medium uppercase"
-            style={{ color: "#6b7280", letterSpacing: "0.1em" }}
-          >
+        <section
+          className="rounded-xl border p-5"
+          style={{ borderColor: "#1f2937", backgroundColor: "#111118" }}
+        >
+          <h3 className="text-base font-semibold text-white">
             Histórico de compras
           </h3>
-          <ul
-            className="divide-y rounded-xl border"
-            style={{ borderColor: "#1a1a2e", backgroundColor: "#0F0F1A" }}
-          >
-            {history.map((h) => (
-              <li
-                key={h.id}
-                className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
-                style={{ borderColor: "#1a1a2e" }}
-              >
-                <div className="min-w-0">
-                  <p className="text-sm text-white truncate">
-                    {h.type === "subscription"
-                      ? "Assinatura"
-                      : h.type === "credits"
-                        ? "Créditos"
-                        : h.type ?? "Pagamento"}
-                  </p>
-                  <p className="text-xs" style={{ color: "#6b7280" }}>
-                    {new Date(h.created_at).toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                    {" · "}
-                    <span
-                      style={{
-                        color:
-                          h.status === "approved" || h.status === "paid"
-                            ? "#4ade80"
-                            : h.status === "pending"
-                              ? "#f59e0b"
-                              : "#9ca3af",
-                      }}
-                    >
-                      {h.status}
-                    </span>
-                  </p>
-                </div>
-                <p
-                  className="text-sm font-semibold tabular-nums"
-                  style={{ color: "#4ade80" }}
+          <ul className="mt-3 divide-y" style={{ borderColor: "#1f2937" }}>
+            {history.map((h) => {
+              const label =
+                h.type === "subscription"
+                  ? "Assinatura"
+                  : h.type === "credits"
+                    ? "Créditos"
+                    : h.type ?? "Pagamento";
+              const isOk =
+                h.status === "approved" ||
+                h.status === "paid" ||
+                h.status === "confirmed";
+              const isPending = h.status === "pending";
+              const statusLabel = isOk
+                ? "Confirmado"
+                : isPending
+                  ? "Pendente"
+                  : "Falhou";
+              const statusColor = isOk
+                ? "#4ade80"
+                : isPending
+                  ? "#fbbf24"
+                  : "#f87171";
+              return (
+                <li
+                  key={h.id}
+                  className="flex flex-wrap items-center justify-between gap-2 py-3"
+                  style={{ borderColor: "#1f2937" }}
                 >
-                  {fmtBRL(Number(h.amount))}
-                </p>
-              </li>
-            ))}
+                  <div className="min-w-0">
+                    <p className="text-sm text-white truncate">{label}</p>
+                    <p className="text-xs" style={{ color: "#6b7280" }}>
+                      {new Date(h.created_at).toLocaleDateString("pt-BR")}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold tabular-nums text-white">
+                      {fmtBRL(Number(h.amount))}
+                    </p>
+                    <p className="text-xs" style={{ color: statusColor }}>
+                      {statusLabel}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
