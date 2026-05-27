@@ -6,6 +6,9 @@ import { checkAndIncrementImageUsage } from "@/lib/image-usage.server";
 const XAI_ENDPOINT = "https://api.x.ai/v1/images/generations";
 const XAI_IMAGE_MODEL = "grok-imagine-image-quality";
 const DEEPSEEK_ENDPOINT = "https://api.deepseek.com/chat/completions";
+const XAI_TIMEOUT_MS = 30_000;
+
+type ContextMessage = { role: "user" | "assistant"; content: string };
 
 type ImageFormat = "portrait" | "square" | "landscape" | null;
 
@@ -91,16 +94,35 @@ async function rewriteViaGemini(prompt: string): Promise<string | null> {
 }
 
 async function callXai(apiKey: string, prompt: string) {
-  const res = await fetch(XAI_ENDPOINT, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ model: XAI_IMAGE_MODEL, prompt, n: 1 }),
-  });
-  const txt = await res.text();
-  return { status: res.status, ok: res.ok, text: txt };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), XAI_TIMEOUT_MS);
+  try {
+    const res = await fetch(XAI_ENDPOINT, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ model: XAI_IMAGE_MODEL, prompt, n: 1 }),
+      signal: controller.signal,
+    });
+    const txt = await res.text();
+    return { status: res.status, ok: res.ok, text: txt, timedOut: false };
+  } catch (err) {
+    const timedOut = (err as Error)?.name === "AbortError";
+    console.error("[GENERATE-IMAGE] xAI call failed", {
+      timedOut,
+      message: (err as Error)?.message,
+    });
+    return {
+      status: 0,
+      ok: false,
+      text: timedOut ? "timeout" : `network_error: ${(err as Error)?.message ?? "unknown"}`,
+      timedOut,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function isModeration(status: number, text: string) {
@@ -162,11 +184,45 @@ function buildCaption(rawPrompt: string): string {
   return `Aqui está a imagem de ${cleanSubject.replace(/[.!?]+$/, "")}.`;
 }
 
-async function generateTechnicalPrompt(rawPrompt: string, formatSuffix: string) {
+async function generateTechnicalPrompt(
+  rawPrompt: string,
+  formatSuffix: string,
+  contextMessages: ContextMessage[] = [],
+) {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
     throw new Error("DEEPSEEK_API_KEY ausente");
   }
+
+  const trimmedContext = contextMessages
+    .slice(-6)
+    .filter((m) => typeof m?.content === "string" && m.content.trim().length > 0)
+    .map((m) => ({
+      role: m.role === "assistant" ? "assistant" : "user",
+      content: m.content.slice(0, 2000),
+    }));
+
+  const systemPrompt = trimmedContext.length > 0
+    ? "You are an assistant that extracts image generation prompts from conversations. " +
+      "Read the conversation and extract a detailed English prompt describing exactly what image " +
+      "the user wants generated. Return ONLY the image prompt, nothing else. " +
+      "If the user mentioned a character, style, scene or action, include all of it. " +
+      "Be specific and descriptive. Maximum 200 words."
+    : "Transforme o pedido em um prompt técnico para geração de imagem em inglês. Retorne APENAS o prompt, sem explicações.";
+
+  const messages = trimmedContext.length > 0
+    ? [
+        { role: "system", content: systemPrompt },
+        ...trimmedContext,
+        {
+          role: "user",
+          content: `Latest request: ${rawPrompt}\n\nExtract the image prompt now (English, ≤200 words).`,
+        },
+      ]
+    : [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: rawPrompt },
+      ];
 
   const res = await fetch(DEEPSEEK_ENDPOINT, {
     method: "POST",
@@ -178,17 +234,7 @@ async function generateTechnicalPrompt(rawPrompt: string, formatSuffix: string) 
       model: "deepseek-chat",
       temperature: 0.2,
       max_tokens: 300,
-      messages: [
-        {
-          role: "system",
-          content:
-            "Transforme o pedido em um prompt técnico para geração de imagem em inglês. Retorne APENAS o prompt, sem explicações.",
-        },
-        {
-          role: "user",
-          content: rawPrompt,
-        },
-      ],
+      messages,
     }),
   });
 
@@ -288,15 +334,21 @@ export const Route = createFileRoute("/api/generate-image")({
           );
         }
 
-        let body: { prompt?: string };
+        let body: { prompt?: string; contextMessages?: ContextMessage[] };
         try {
-          body = (await request.json()) as { prompt?: string };
+          body = (await request.json()) as {
+            prompt?: string;
+            contextMessages?: ContextMessage[];
+          };
         } catch {
           return json({ error: "Requisição inválida." }, 400);
         }
         const userPrompt = (body.prompt ?? "").trim();
         if (!userPrompt) return json({ error: "Prompt vazio." }, 400);
         if (userPrompt.length > 4000) return json({ error: "Prompt muito longo." }, 400);
+        const contextMessages = Array.isArray(body.contextMessages)
+          ? body.contextMessages.slice(-6)
+          : [];
 
         const apiKey = process.env.XAI_API_KEY;
         if (!apiKey) {
@@ -308,7 +360,39 @@ export const Route = createFileRoute("/api/generate-image")({
           const { format, suffix } = detectRequestedFormat(userPrompt);
           console.log("[GENERATE-IMAGE] requested format:", format ?? "none");
 
-          const technicalPrompt = await generateTechnicalPrompt(userPrompt, suffix);
+          let technicalPrompt: string;
+          try {
+            technicalPrompt = await generateTechnicalPrompt(
+              userPrompt,
+              suffix,
+              contextMessages,
+            );
+          } catch (err) {
+            console.error("[GENERATE-IMAGE] prompt extraction failed", err);
+            return json(
+              {
+                error: "unclear_prompt",
+                code: "unclear_prompt",
+                message: "Pode descrever melhor o que quer ver na imagem?",
+              },
+              422,
+            );
+          }
+
+          // Sanity check: extracted prompt must contain real subject content.
+          const cleaned = technicalPrompt.replace(/[^a-zA-Z0-9]/g, "");
+          if (cleaned.length < 10) {
+            console.warn("[GENERATE-IMAGE] extracted prompt unclear:", technicalPrompt);
+            return json(
+              {
+                error: "unclear_prompt",
+                code: "unclear_prompt",
+                message: "Pode descrever melhor o que quer ver na imagem?",
+              },
+              422,
+            );
+          }
+
           const caption = buildCaption(userPrompt);
 
           console.log("[GENERATE-IMAGE] technical prompt:", technicalPrompt.slice(0, 200));
@@ -342,8 +426,30 @@ export const Route = createFileRoute("/api/generate-image")({
             );
           }
           if (!attempt.ok) {
-            console.error("[GENERATE-IMAGE] upstream", attempt.status, attempt.text.slice(0, 500));
-            return json({ error: "Não foi possível gerar a imagem." }, 500);
+            console.error(
+              "[GENERATE-IMAGE] upstream",
+              attempt.status,
+              attempt.text.slice(0, 500),
+            );
+            if (attempt.timedOut) {
+              return json(
+                {
+                  error: "image_timeout",
+                  code: "image_timeout",
+                  message: "Tempo esgotado ao gerar a imagem. Tente novamente.",
+                },
+                504,
+              );
+            }
+            return json(
+              {
+                error: "image_upstream_error",
+                code: "image_upstream_error",
+                upstreamStatus: attempt.status,
+                message: "Não consegui gerar a imagem agora. Tente descrever novamente.",
+              },
+              502,
+            );
           }
           const data = JSON.parse(attempt.text) as {
             data?: Array<{ url?: string }>;

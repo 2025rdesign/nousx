@@ -419,7 +419,9 @@ export function ChatView({ conversationId }: Props) {
   const GENERIC_ERROR_TEXT =
     "😕 Algo inesperado aconteceu. Tente novamente.";
   const GENERIC_IMG_ERROR_TEXT =
-    "⚡ Algo deu errado na geração. Tente novamente.";
+    "Não consegui gerar a imagem agora. Tente descrever novamente.";
+  const UNCLEAR_IMG_PROMPT_TEXT =
+    "Pode descrever melhor o que quer ver na imagem?";
   const VIDEO_NEED_ULTRA_TEXT =
     "🎬 A **animação de imagens** é exclusiva do plano **Ultra**.\n\n" +
     "Com o Ultra (R$57,90/mês) você anima qualquer imagem gerada no chat — 10 segundos de vídeo por apenas 10 créditos.\n\n" +
@@ -880,13 +882,21 @@ export function ChatView({ conversationId }: Props) {
         const token = sessionData.session?.access_token;
         if (!token) throw new Error("Sessão expirada.");
 
+        // Send the last 6 messages of the conversation so the server can
+        // extract a precise English image prompt from the actual context,
+        // not just the latest single message.
+        const contextMessages = [...baseMessages, userMsg]
+          .slice(-6)
+          .filter((m) => (m.role === "user" || m.role === "assistant") && m.content)
+          .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
         const res = await fetch("/api/generate-image", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ prompt: imagePrompt }),
+          body: JSON.stringify({ prompt: imagePrompt, contextMessages }),
         });
 
         console.log("[CHAT] /api/generate-image status:", res.status);
@@ -932,6 +942,18 @@ export function ChatView({ conversationId }: Props) {
             await appendAssistantMessage({
               convId,
               text: MOD_BLOCK_TEXT,
+              isNew,
+              titleSeed: text,
+              baseMessages,
+              userMsg,
+            });
+            return;
+          }
+          if (res.status === 422 && err.code === "unclear_prompt") {
+            stickyImageRefRef.current = null;
+            await appendAssistantMessage({
+              convId,
+              text: UNCLEAR_IMG_PROMPT_TEXT,
               isNew,
               titleSeed: text,
               baseMessages,
@@ -1267,13 +1289,18 @@ export function ChatView({ conversationId }: Props) {
             ? `${text}\n\nContexto visual da conversa anterior: ${latestImageCtx.description.slice(0, 1200)}`
             : text;
 
+          const fallbackContext = [...baseMessages, userMsg]
+            .slice(-6)
+            .filter((m) => (m.role === "user" || m.role === "assistant") && m.content)
+            .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
           const imgRes = await fetch("/api/generate-image", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ prompt: fallbackPrompt }),
+            body: JSON.stringify({ prompt: fallbackPrompt, contextMessages: fallbackContext }),
           });
 
           if (!imgRes.ok) {
