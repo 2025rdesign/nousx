@@ -10,9 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, Check, Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { notify } from "@/lib/notify";
-import { cn } from "@/lib/utils";
 import {
   createPixPayment,
   getPixStatus,
@@ -26,6 +25,70 @@ import {
   type PlanId,
 } from "@/lib/payments-config";
 
+/* ── Inline SVG icons (no emojis) ─────────────────────────────────── */
+function LockIcon({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+      style={{ flexShrink: 0 }}
+    >
+      <rect x="3" y="7" width="10" height="8" rx="1.5" stroke={color} strokeWidth="1.5" />
+      <path
+        d="M5.5 7V5.5a2.5 2.5 0 0 1 5 0V7"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <circle cx="8" cy="11" r="1" fill={color} />
+    </svg>
+  );
+}
+
+function ZapIcon({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      style={{ flexShrink: 0 }}
+    >
+      <polygon
+        points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function CopyIcon({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <rect x="9" y="9" width="13" height="13" rx="2" stroke={color} strokeWidth="2" />
+      <path
+        d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+        stroke={color}
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+
+/* ── Types & helpers ──────────────────────────────────────────────── */
 export type PixModalProps = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -58,6 +121,7 @@ type PixData = {
   description: string;
 };
 
+/* ── Component ─────────────────────────────────────────────────────── */
 export function MpPixModal(props: PixModalProps) {
   const { open, onOpenChange, kind, id, name, amount, couponCode, billingPeriod, onPaid } = props;
   const qc = useQueryClient();
@@ -75,7 +139,7 @@ export function MpPixModal(props: PixModalProps) {
   const [copied, setCopied] = useState(false);
   const [now, setNow] = useState(Date.now());
 
-  // reset when reopened
+  // reset on close
   useEffect(() => {
     if (!open) {
       setPix(null);
@@ -84,7 +148,7 @@ export function MpPixModal(props: PixModalProps) {
     }
   }, [open]);
 
-  // tick timer
+  // tick countdown timer
   useEffect(() => {
     if (!pix) return;
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -134,7 +198,8 @@ export function MpPixModal(props: PixModalProps) {
     enabled: !!pix && !expired,
     refetchInterval: (q) => {
       const s = q.state.data?.status;
-      if (s === "approved" || s === "rejected" || s === "cancelled" || s === "refunded") return false;
+      if (s === "approved" || s === "rejected" || s === "cancelled" || s === "refunded")
+        return false;
       if (typeof document !== "undefined" && document.hidden) return false;
       return 5000;
     },
@@ -142,7 +207,6 @@ export function MpPixModal(props: PixModalProps) {
 
   const isPaid = statusQ.data?.status === "approved";
 
-  // Quantos créditos foram adicionados (pack one-shot ou plano).
   const creditsAdded = useMemo(() => {
     if (kind === "credit") return CREDIT_PACKS[id as CreditPackId]?.credits ?? 0;
     if (kind === "subscription") return PLANS[id as PlanId]?.credits ?? 0;
@@ -161,7 +225,6 @@ export function MpPixModal(props: PixModalProps) {
     qc.invalidateQueries({ queryKey: ["my-subscription"] });
     onPaid?.();
 
-    // Count-up animation
     setCount(0);
     const start = performance.now();
     const duration = 1500;
@@ -187,7 +250,7 @@ export function MpPixModal(props: PixModalProps) {
       await navigator.clipboard.writeText(pix.qrCode);
       setCopied(true);
       notify.success("Código PIX copiado!");
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 1500);
     } catch {
       notify.error("Não foi possível copiar.");
     }
@@ -212,183 +275,322 @@ export function MpPixModal(props: PixModalProps) {
   }, [open, savedCpf]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[min(640px,95vw)] sm:max-w-[min(640px,95vw)] bg-[#0A0A0F] border-border p-4 sm:p-6 max-h-[92vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-white">Pagar com PIX</DialogTitle>
-          <p className="text-[13px] text-[#888] mt-0.5">
-            {name} · <span className="text-zinc-300">{formatBRL(amount)}</span>
-          </p>
-        </DialogHeader>
+    <>
+      {/* Keyframe for CSS spinner */}
+      <style>{`@keyframes pixSpin { to { transform: rotate(360deg); } }`}</style>
+      {/* Keyframe for paid checkmark pop */}
+      <style>{`@keyframes mp-pop { 0% { transform: scale(0); opacity: 0 } 60% { transform: scale(1.15); opacity: 1 } 100% { transform: scale(1) } }`}</style>
 
-        {/* CPF step */}
-        {!pix && (
-          <div className="space-y-4 mt-4">
-            {cpfQ.isLoading ? (
-              <div className="py-10 flex justify-center">
-                <Loader2 className="size-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : savedCpf ? (
-              <div className="py-10 flex flex-col items-center gap-2 text-zinc-400 text-sm">
-                <Loader2 className="size-6 animate-spin" />
-                Gerando QR Code...
-              </div>
-            ) : (
-              <form onSubmit={submitCpf} className="space-y-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs uppercase tracking-wide text-zinc-400">
-                    CPF do pagador
-                  </label>
-                  <Input
-                    inputMode="numeric"
-                    placeholder="000.000.000-00"
-                    value={cpfInput}
-                    onChange={(e) => setCpfInput(maskCpf(e.target.value))}
-                    className="bg-[#13131A] border-[#1E1E2E] text-white"
-                    maxLength={14}
-                    autoFocus
-                  />
-                  <p className="text-[11px] text-zinc-500">Exigido pelo banco para emitir o PIX.</p>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        {/*
+          Close button overrides:
+          - bg-transparent! removes the data-[state=open]:bg-accent fill
+          - opacity + hover give the subtle feel the spec asks for
+        */}
+        <DialogContent className="max-w-[min(640px,95vw)] sm:max-w-[min(640px,95vw)] bg-[#0A0A0F] border-border p-4 sm:p-6 max-h-[92vh] overflow-y-auto [&>button:last-child]:bg-transparent! [&>button:last-child]:opacity-50 [&>button:last-child]:hover:opacity-100 [&>button:last-child]:transition-opacity">
+          <DialogHeader>
+            <DialogTitle className="text-white">Pagar com PIX</DialogTitle>
+            <p className="text-[13px] text-[#888] mt-0.5">
+              {name} · <span className="text-zinc-300">{formatBRL(amount)}</span>
+            </p>
+          </DialogHeader>
+
+          {/* ── CPF step ─────────────────────────────────────────────── */}
+          {!pix && (
+            <div className="space-y-4 mt-4">
+              {cpfQ.isLoading ? (
+                <div className="py-10 flex justify-center">
+                  <Loader2 className="size-6 animate-spin text-muted-foreground" />
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full bg-[#6C47FF] hover:bg-[#7d5cff] text-white"
-                  disabled={create.isPending}
-                >
-                  {create.isPending ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin mr-2" /> Gerando QR Code...
-                    </>
-                  ) : (
-                    "Gerar QR Code"
-                  )}
-                </Button>
-              </form>
-            )}
-          </div>
-        )}
-
-        {/* PIX display */}
-        {pix && !isPaid && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
-            <div className="flex flex-col items-center gap-3">
-              <div className="rounded-xl p-3 bg-white border-2 border-[#6C47FF]/30 w-full max-w-[240px]">
-                {pix.qrCodeBase64 ? (
-                  <img
-                    src={`data:image/png;base64,${pix.qrCodeBase64}`}
-                    alt="QR Code PIX"
-                    className="w-full h-auto"
-                  />
-                ) : (
-                  <div className="aspect-square flex items-center justify-center text-zinc-400">
-                    QR indisponível
-                  </div>
-                )}
-              </div>
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] tabular-nums",
-                  expired
-                    ? "bg-red-500/10 text-red-400"
-                    : "bg-[#1a1a22] text-zinc-400",
-                )}
-              >
-                {expired ? "Expirado" : `Expira em ${mmss}`}
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-3 min-w-0">
-              <p className="text-sm text-zinc-300">
-                Abra seu banco, escaneie o QR Code ou copie o código.
-              </p>
-
-              <div className="flex items-stretch rounded-md bg-[#111118] border border-[#2a2a3a] overflow-hidden">
-                <div className="flex-1 min-w-0 px-3 py-2 text-xs text-zinc-400 font-mono truncate">
-                  {pix.qrCode}
+              ) : savedCpf ? (
+                <div className="py-10 flex flex-col items-center gap-2 text-zinc-400 text-sm">
+                  <Loader2 className="size-6 animate-spin" />
+                  Gerando QR Code...
                 </div>
-                <button
-                  type="button"
-                  onClick={copy}
-                  disabled={!!expired}
-                  className="shrink-0 px-3 flex items-center justify-center border-l border-[#2a2a3a] text-zinc-300 hover:text-white hover:bg-[#6C47FF]/10 disabled:opacity-50"
-                  aria-label="Copiar código PIX"
-                >
-                  {copied ? <Check className="size-4 text-emerald-400" /> : <Copy className="size-4" />}
-                </button>
-              </div>
-
-              {expired ? (
-                <Button
-                  className="w-full bg-[#6C47FF] hover:bg-[#7d5cff] text-white"
-                  onClick={() => {
-                    setPix(null);
-                    if (savedCpf) create.mutate(savedCpf);
-                  }}
-                  disabled={create.isPending}
-                >
-                  {create.isPending ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin mr-2" /> Gerando...
-                    </>
-                  ) : (
-                    "Gerar novo QR Code"
-                  )}
-                </Button>
               ) : (
-                <div className="flex items-center justify-center gap-2 text-[12px] text-[#6C47FF]">
-                  <Loader2 className="size-3 animate-spin" />
-                  Aguardando pagamento — confirmamos automaticamente
+                <form onSubmit={submitCpf} className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs uppercase tracking-wide text-zinc-400">
+                      CPF do pagador
+                    </label>
+                    <Input
+                      inputMode="numeric"
+                      placeholder="000.000.000-00"
+                      value={cpfInput}
+                      onChange={(e) => setCpfInput(maskCpf(e.target.value))}
+                      className="bg-[#13131A] border-[#1E1E2E] text-white"
+                      maxLength={14}
+                      autoFocus
+                    />
+                    <p className="text-[11px] text-zinc-500">
+                      Exigido pelo banco para emitir o PIX.
+                    </p>
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full bg-[#6C47FF] hover:bg-[#7d5cff] text-white"
+                    disabled={create.isPending}
+                  >
+                    {create.isPending ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin mr-2" /> Gerando QR Code...
+                      </>
+                    ) : (
+                      "Gerar QR Code"
+                    )}
+                  </Button>
+                </form>
+              )}
+            </div>
+          )}
+
+          {/* ── PIX display (waiting) ─────────────────────────────────── */}
+          {pix && !isPaid && (
+            <div className="mt-4 space-y-0">
+              {/* Trust notice */}
+              <div
+                style={{
+                  background: "#0f0f17",
+                  border: "1px solid #1e1e2e",
+                  borderRadius: 8,
+                  padding: "12px 14px",
+                  fontSize: 12,
+                  color: "#888",
+                  marginBottom: 20,
+                  lineHeight: 1.55,
+                }}
+              >
+                O pagamento é processado pelo Mercado Pago. Ao pagar, você verá o nome do
+                responsável pela plataforma — isso é esperado e sua compra está segura.
+              </div>
+
+              {/* Two-column layout */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Left — QR Code */}
+                <div className="flex flex-col items-center gap-3">
+                  <div
+                    style={{
+                      background: "white",
+                      borderRadius: 12,
+                      padding: 12,
+                      width: "100%",
+                      maxWidth: 240,
+                    }}
+                  >
+                    {pix.qrCodeBase64 ? (
+                      <img
+                        src={`data:image/png;base64,${pix.qrCodeBase64}`}
+                        alt="QR Code PIX"
+                        className="w-full h-auto"
+                      />
+                    ) : (
+                      <div className="aspect-square flex items-center justify-center text-zinc-400 text-sm">
+                        QR indisponível
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Expiry pill */}
+                  <span
+                    style={{
+                      display: "inline-block",
+                      padding: "3px 10px",
+                      borderRadius: 999,
+                      background: "#1a1a22",
+                      color: expired ? "#ef4444" : "#555",
+                      fontSize: 11,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {expired ? "Expirado" : `Expira em ${mmss}`}
+                  </span>
+                </div>
+
+                {/* Right — instructions + copia e cola + status + trust */}
+                <div className="flex flex-col gap-3 min-w-0">
+                  <p style={{ color: "#aaa", fontSize: 13, lineHeight: 1.5 }}>
+                    Abra seu banco, escaneie o QR Code ou copie o código.
+                  </p>
+
+                  {/* Copia e cola */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      height: 40,
+                      border: "1px solid #2a2a3a",
+                      background: "#0f0f17",
+                      borderRadius: 8,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        padding: "0 12px",
+                        fontSize: 11,
+                        color: "#777",
+                        fontFamily: "monospace",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {pix.qrCode}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={copy}
+                      disabled={!!expired}
+                      style={{
+                        flexShrink: 0,
+                        width: 40,
+                        height: 40,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderLeft: "1px solid #2a2a3a",
+                        background: "transparent",
+                        cursor: expired ? "not-allowed" : "pointer",
+                        transition: "color 0.15s",
+                        opacity: expired ? 0.4 : 1,
+                      }}
+                      aria-label="Copiar código PIX"
+                    >
+                      {copied ? (
+                        <Check size={15} style={{ color: "#34d399" }} />
+                      ) : (
+                        <CopyIcon size={15} color="#888" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Status row */}
+                  {!expired ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        color: "#6C47FF",
+                        fontSize: 12,
+                      }}
+                    >
+                      {/* Pure CSS spinner — no emoji, no gif */}
+                      <div
+                        style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: "50%",
+                          border: "2px solid rgba(108,71,255,0.2)",
+                          borderTopColor: "#6C47FF",
+                          animation: "pixSpin 1s linear infinite",
+                          flexShrink: 0,
+                        }}
+                      />
+                      Aguardando pagamento — confirmamos automaticamente
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPix(null);
+                        if (savedCpf) create.mutate(savedCpf);
+                      }}
+                      disabled={create.isPending}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        padding: 0,
+                        color: "#6C47FF",
+                        fontSize: 13,
+                        cursor: "pointer",
+                        textAlign: "left",
+                        opacity: create.isPending ? 0.6 : 1,
+                      }}
+                    >
+                      {create.isPending ? "Gerando..." : "Gerar novo código →"}
+                    </button>
+                  )}
+
+                  {/* Trust signals — SVG icons, no emojis */}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                      marginTop: 4,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        color: "#555",
+                        fontSize: 12,
+                      }}
+                    >
+                      <LockIcon size={16} color="#555" />
+                      <span>Pagamento processado com segurança</span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        color: "#555",
+                        fontSize: 12,
+                      }}
+                    >
+                      <ZapIcon size={16} color="#555" />
+                      <span>Créditos liberados em até 1 minuto após confirmação</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Paid / success state ─────────────────────────────────── */}
+          {isPaid && (
+            <div className="py-8 text-center space-y-4">
+              <div
+                className="mx-auto size-16 rounded-full bg-emerald-500/15 flex items-center justify-center"
+                style={{ animation: "mp-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
+              >
+                <Check className="size-9 text-emerald-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-white">Pagamento confirmado!</h3>
+
+              {creditsAdded > 0 && (
+                <div className="space-y-1">
+                  <div
+                    className="text-5xl font-extrabold tabular-nums"
+                    style={{ color: "#9B7BFF" }}
+                  >
+                    +{count}
+                  </div>
+                  <p className="text-sm text-zinc-300">
+                    +{creditsAdded} créditos adicionados à sua conta
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    Seus créditos já estão disponíveis no Estúdio de Criação.
+                  </p>
                 </div>
               )}
 
-              <div className="mt-2 space-y-1 text-[12px] text-[#555]">
-                <p>🔒 Pagamento processado com segurança</p>
-                <p>⚡ Créditos liberados em até 1 minuto após confirmação</p>
-              </div>
+              <Button
+                onClick={() => onOpenChange(false)}
+                className="bg-[#6C47FF] hover:bg-[#7d5cff] text-white mt-2"
+              >
+                Continuar
+              </Button>
             </div>
-          </div>
-        )}
-
-        {isPaid && (
-          <div className="py-8 text-center space-y-4">
-            <div
-              className="mx-auto size-16 rounded-full bg-emerald-500/15 flex items-center justify-center"
-              style={{
-                animation: "mp-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
-              }}
-            >
-              <Check className="size-9 text-emerald-400" />
-            </div>
-            <h3 className="text-2xl font-bold text-white">Pagamento confirmado!</h3>
-
-            {creditsAdded > 0 && (
-              <div className="space-y-1">
-                <div
-                  className="text-5xl font-extrabold tabular-nums"
-                  style={{ color: "#9B7BFF" }}
-                >
-                  +{count}
-                </div>
-                <p className="text-sm text-zinc-300">
-                  +{creditsAdded} créditos adicionados à sua conta
-                </p>
-                <p className="text-xs text-zinc-500">
-                  Seus créditos já estão disponíveis no Estúdio de Criação.
-                </p>
-              </div>
-            )}
-
-            <Button
-              onClick={() => onOpenChange(false)}
-              className="bg-[#6C47FF] hover:bg-[#7d5cff] text-white mt-2"
-            >
-              Continuar
-            </Button>
-
-            <style>{`@keyframes mp-pop { 0% { transform: scale(0); opacity: 0 } 60% { transform: scale(1.15); opacity: 1 } 100% { transform: scale(1) } }`}</style>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

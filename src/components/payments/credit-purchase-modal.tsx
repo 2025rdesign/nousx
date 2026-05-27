@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -8,16 +8,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Gem,
-  Clock,
-  ShieldCheck,
-  Zap,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { CREDIT_PACKS, applyDiscount, type CreditPackId } from "@/lib/payments-config";
+import { Gem, Clock, ShieldCheck, Zap } from "lucide-react";
+import { CREDIT_PACKS, type CreditPackId } from "@/lib/payments-config";
 import { getCredits } from "@/lib/credits.functions";
-import { CouponField, type AppliedCoupon } from "./coupon-field";
 import { MpPixModal } from "./mp-pix-modal";
 
 const PACK_META: Record<CreditPackId, { expiresDays: number | null; isPopular?: boolean }> = {
@@ -42,18 +35,11 @@ export function CreditPurchaseModal({
   onOpenChange: (v: boolean) => void;
 }) {
   const [packId, setPackId] = useState<CreditPackId>("popular");
-  const [coupon, setCoupon] = useState<AppliedCoupon>(null);
   const [pixOpen, setPixOpen] = useState(false);
-  const [couponOpen, setCouponOpen] = useState(false);
 
   const pack = CREDIT_PACKS[packId];
-  const finalPrice = useMemo(
-    () => (coupon ? applyDiscount(pack.price, coupon.discountPercent) : pack.price),
-    [pack.price, coupon],
-  );
 
   const fetchCredits = useServerFn(getCredits);
-
   const creditsQ = useQuery({
     queryKey: ["credits"],
     queryFn: () => fetchCredits(),
@@ -139,50 +125,76 @@ export function CreditPurchaseModal({
             <p className="text-sm text-zinc-400">Créditos maiores = menor custo por imagem</p>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
+          {/* Card grid — flex + items-end so Popular is physically taller */}
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
             {(Object.keys(CREDIT_PACKS) as CreditPackId[]).map((id) => {
               const p = CREDIT_PACKS[id];
               const meta = PACK_META[id];
               const perImg = pricePerImage(p);
               const active = packId === id;
               const isPopular = !!meta.isPopular;
+
               return (
-                <div key={id} className="flex flex-col">
+                <div key={id} style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                  {/* "MAIS ESCOLHIDO" label — only Popular has visible text */}
                   <p
-                    className={cn(
-                      "text-center mb-1.5 text-[11px] uppercase tracking-[0.08em] font-medium",
-                      isPopular ? "text-[#6C47FF]" : "text-transparent select-none",
-                    )}
+                    style={{
+                      textAlign: "center",
+                      marginBottom: 8,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                      color: isPopular ? "#6C47FF" : "transparent",
+                      userSelect: "none",
+                    }}
                   >
-                    {isPopular ? "Mais escolhido" : "·"}
+                    MAIS ESCOLHIDO
                   </p>
+
                   <button
                     type="button"
                     onClick={() => setPackId(id)}
-                    style={
-                      isPopular
-                        ? { boxShadow: "0 0 0 1px #6C47FF, 0 0 20px rgba(108,71,255,0.15)" }
-                        : undefined
-                    }
-                    className={cn(
-                      "group relative text-left rounded-xl border bg-[#111118] p-5 transition-all flex-1 flex flex-col",
-                      "hover:border-[#4a4a6a] hover:brightness-110",
-                      isPopular
-                        ? "border-[#6C47FF]"
-                        : "border-[#2a2a3a]",
-                      active && !isPopular && "border-[#6C47FF]/70",
-                    )}
+                    style={{
+                      padding: isPopular ? "28px 24px" : "20px",
+                      background: active ? "#13111f" : "#0f0f17",
+                      border: active ? "2px solid #6C47FF" : "1.5px solid #1e1e2e",
+                      boxShadow: active
+                        ? "0 0 0 1px #6C47FF, 0 0 24px rgba(108,71,255,0.18)"
+                        : undefined,
+                      opacity: active ? 1 : 0.55,
+                      borderRadius: 12,
+                      textAlign: "left",
+                      cursor: "pointer",
+                      transition: "opacity 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease",
+                      width: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
                   >
-                    <p className="text-[14px] font-medium text-white">{p.name}</p>
-                    <p className="mt-3 text-[28px] font-bold text-white leading-none">
+                    <span style={{ fontSize: 14, fontWeight: 500, color: "white" }}>
+                      {p.name}
+                    </span>
+                    <span
+                      style={{
+                        display: "block",
+                        marginTop: 12,
+                        fontSize: isPopular ? 30 : 22,
+                        fontWeight: 700,
+                        color: "white",
+                        lineHeight: 1,
+                      }}
+                    >
                       {formatBRL(p.price)}
-                    </p>
-                    <p className="mt-3 text-[13px] text-[#888]">
+                    </span>
+                    <span
+                      style={{ display: "block", marginTop: 12, fontSize: 13, color: "#888" }}
+                    >
                       {p.credits} créditos
-                    </p>
-                    <p className="mt-1 text-[12px] text-[#666]">
+                    </span>
+                    <span style={{ display: "block", marginTop: 4, fontSize: 12, color: "#666" }}>
                       {formatBRL(perImg)} por imagem
-                    </p>
+                    </span>
                   </button>
                 </div>
               );
@@ -193,26 +205,12 @@ export function CreditPurchaseModal({
             Starter expira em 10 dias · Popular expira em 30 dias · Pro nunca expira
           </p>
 
-          <div className="pt-1">
-            {couponOpen || coupon ? (
-              <CouponField value={coupon} onApply={setCoupon} />
-            ) : (
-              <button
-                type="button"
-                onClick={() => setCouponOpen(true)}
-                className="text-[13px] text-[#6C47FF] hover:underline"
-              >
-                Tem um cupom?
-              </button>
-            )}
-          </div>
-
           <Button
             onClick={() => setPixOpen(true)}
             className="w-full bg-[#6C47FF] hover:bg-[#7d5cff] text-white font-semibold"
             style={{ height: 52, borderRadius: 10 }}
           >
-            {`Pagar com PIX — ${formatBRL(finalPrice)}`}
+            {`Pagar com PIX — ${formatBRL(pack.price)}`}
           </Button>
 
           <p className="text-center text-[11px] text-[#444]">
@@ -220,14 +218,15 @@ export function CreditPurchaseModal({
           </p>
         </div>
       </DialogContent>
+
       <MpPixModal
         open={pixOpen}
         onOpenChange={setPixOpen}
         kind="credit"
         id={packId}
         name={`${pack.name} — ${pack.credits} créditos`}
-        amount={finalPrice}
-        couponCode={coupon?.code ?? null}
+        amount={pack.price}
+        couponCode={null}
         onPaid={() => onOpenChange(false)}
       />
     </Dialog>
