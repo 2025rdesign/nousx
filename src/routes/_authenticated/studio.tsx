@@ -1444,33 +1444,29 @@ function StudioInner() {
                   Tela cheia
                 </Button>
                 </div>
-                {resultId && (() => {
-                  const item = history.find((h) => h.id === resultId);
-                  if (!item || !item.media_id || !item.image_url) return null;
-                  return (
-                    <Button
-                      variant="outline"
-                      className="w-full border-primary text-primary hover:bg-primary/10 hover:text-primary"
-                      onClick={() => {
-                        setEditingImage({
-                          id: item.id,
-                          url: item.image_url!,
-                          mediaId: item.media_id!,
-                          promptId: (item as any).prompt_id ?? null,
-                          profileId: item.profile_id ?? null,
-                        });
-                        setAppearance("");
-                        setMobileTab("criar");
-                        requestAnimationFrame(() => {
-                          formScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-                        });
-                      }}
-                    >
-                      <Wand2 className="size-4" />
-                      Editar esta imagem
-                    </Button>
-                  );
-                })()}
+                {lastGenerated && lastGenerated.url === result && (
+                  <Button
+                    variant="outline"
+                    className="w-full border-primary text-primary hover:bg-primary/10 hover:text-primary"
+                    onClick={() => {
+                      setEditingImage({
+                        id: lastGenerated.galleryId ?? "fresh",
+                        url: lastGenerated.url,
+                        mediaId: lastGenerated.mediaId,
+                        promptId: lastGenerated.promptId,
+                        profileId: lastGenerated.profileId,
+                      });
+                      setAppearance("");
+                      setMobileTab("criar");
+                      requestAnimationFrame(() => {
+                        formScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+                      });
+                    }}
+                  >
+                    <Wand2 className="size-4" />
+                    Editar esta imagem
+                  </Button>
+                )}
               </div>
             )}
 
@@ -1485,15 +1481,13 @@ function StudioInner() {
                   {history.map((c, index) => (
                     <HistoryThumb
                       key={c.id}
-                      src={c.image_url ?? null}
-                      alt={c.name || "Variação"}
+                      src={c.image_url}
+                      alt={c.prompt ?? "Imagem do estúdio"}
                       index={index}
                       onClick={() => {
-                        if (c.image_url) {
-                          setResult(c.image_url);
-                          setResultId(c.id);
-                          setMobileTab("resultado");
-                        }
+                        setResult(c.image_url);
+                        setResultId(c.id);
+                        setMobileTab("resultado");
                       }}
                     >
                       <Button
@@ -1503,8 +1497,27 @@ function StudioInner() {
                         title={c.is_public ? "Tornar privada" : "Publicar"}
                         onClick={async (e) => {
                           e.stopPropagation();
-                          await toggleFn({ data: { id: c.id, isPublic: !c.is_public } });
-                          qc.invalidateQueries({ queryKey: ["my-characters"] });
+                          // Optimistic update
+                          qc.setQueryData(HISTORY_KEY, (old: typeof historyData) =>
+                            old
+                              ? {
+                                  ...old,
+                                  items: old.items.map((it) =>
+                                    it.kind === "image" && it.id === c.id
+                                      ? { ...it, is_public: !c.is_public }
+                                      : it,
+                                  ),
+                                }
+                              : old,
+                          );
+                          try {
+                            await toggleFn({ data: { id: c.id, isPublic: !c.is_public } });
+                          } catch (err) {
+                            qc.invalidateQueries({ queryKey: HISTORY_KEY });
+                            notify.error(err instanceof Error ? err.message : "Erro ao atualizar.");
+                            return;
+                          }
+                          qc.invalidateQueries({ queryKey: HISTORY_KEY });
                           notify.success(c.is_public ? "Tornada privada." : "Publicada.");
                         }}
                       >
@@ -1518,8 +1531,26 @@ function StudioInner() {
                         onClick={async (e) => {
                           e.stopPropagation();
                           if (!confirm("Excluir esta imagem?")) return;
-                          await deleteFn({ data: { id: c.id } });
-                          qc.invalidateQueries({ queryKey: ["my-characters"] });
+                          // Optimistic remove
+                          const prev = qc.getQueryData<typeof historyData>(HISTORY_KEY);
+                          qc.setQueryData(HISTORY_KEY, (old: typeof historyData) =>
+                            old
+                              ? { ...old, items: old.items.filter((it) => it.id !== c.id) }
+                              : old,
+                          );
+                          if (resultId === c.id) {
+                            setResult(null);
+                            setResultId(null);
+                          }
+                          try {
+                            await deleteFn({ data: { kind: "image", id: c.id } });
+                          } catch (err) {
+                            qc.setQueryData(HISTORY_KEY, prev);
+                            notify.error(err instanceof Error ? err.message : "Erro ao excluir.");
+                            return;
+                          }
+                          qc.invalidateQueries({ queryKey: HISTORY_KEY });
+                          qc.invalidateQueries({ queryKey: ["gallery-v2"] });
                         }}
                       >
                         <Trash2 className="size-3.5" />
