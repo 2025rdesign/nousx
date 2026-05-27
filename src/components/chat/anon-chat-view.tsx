@@ -6,7 +6,6 @@ import {
   Settings,
   Wand2,
   Image as ImageIcon,
-  Compass,
   Menu,
   PanelLeft,
   LogIn,
