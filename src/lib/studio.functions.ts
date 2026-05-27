@@ -757,7 +757,7 @@ export const generateCharacter = createServerFn({ method: "POST" })
           ? data.profileId ?? null
           : null;
 
-    // Persistência: não deve falhar a geração se houver erro.
+    // Persist character_profiles (best-effort, profile metadata only).
     try {
       if (data.mode === "new" && data.createProfile && data.name) {
         const { data: existing } = await supabase
@@ -792,28 +792,43 @@ export const generateCharacter = createServerFn({ method: "POST" })
           profileId = inserted?.id ?? null;
         }
       }
+    } catch (profileErr) {
+      console.error("[studio] character_profiles persist failed (ignored)", profileErr);
+    }
 
-      await supabase.from("characters").insert({
-        user_id: userId,
-        profile_id: profileId,
-        name: data.name || null,
-        media_id: mediaId,
-        image_url: mediaUrl,
-        prompt_id: promptId,
-        status: "completed",
+    // CRITICAL: gallery is the source of truth for the user's history.
+    // The insert MUST succeed before we return mediaUrl to the UI, otherwise
+    // the image would render but never appear in history.
+    const { error: galleryErr } = await supabase.from("gallery").insert({
+      user_id: userId,
+      image_url: mediaUrl,
+      source: "studio",
+      prompt: (data.appearance || data.name || "").slice(0, 2000),
+    });
+    if (galleryErr) {
+      console.error("[studio] gallery insert FAILED", {
+        userId,
+        mediaUrl,
+        code: galleryErr.code,
+        message: galleryErr.message,
+        details: galleryErr.details,
+        hint: galleryErr.hint,
       });
-      try {
-        await supabase.from("gallery").insert({
-          user_id: userId,
-          image_url: mediaUrl,
-          source: "studio",
-          prompt: (data.appearance || data.name || "").slice(0, 2000),
-        });
-      } catch (galleryErr) {
-        console.warn("[studio] gallery insert failed (ignored)", galleryErr);
-      }
-    } catch (persistErr) {
-      console.error("[studio] persistence failed (ignored)", persistErr);
+      throw new Error("Imagem gerada mas não foi possível salvá-la na sua galeria. Tente novamente.");
+    }
+
+    // Best-effort: characters table powers the in-studio history panel.
+    const { error: charErr } = await supabase.from("characters").insert({
+      user_id: userId,
+      profile_id: profileId,
+      name: data.name || null,
+      media_id: mediaId,
+      image_url: mediaUrl,
+      prompt_id: promptId,
+      status: "completed",
+    });
+    if (charErr) {
+      console.error("[studio] characters insert failed (non-fatal)", charErr);
     }
 
     try {
