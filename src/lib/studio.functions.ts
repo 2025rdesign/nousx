@@ -290,38 +290,6 @@ export const listMyCharacters = createServerFn({ method: "GET" })
     return rows || [];
   });
 
-function dedupeById<T extends { id: string }>(rows: T[]): T[] {
-  const seen = new Set<string>();
-  const out: T[] = [];
-  for (const r of rows) {
-    if (seen.has(r.id)) continue;
-    seen.add(r.id);
-    out.push(r);
-  }
-  return out;
-}
-
-async function attachCreator<T extends { user_id?: string | null }>(
-  admin: any,
-  rows: T[],
-): Promise<Array<T & { creator_name: string | null }>> {
-  const ids = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean))) as string[];
-  if (ids.length === 0) {
-    return rows.map((r) => ({ ...r, creator_name: null }));
-  }
-  const { data } = await admin
-    .from("profiles")
-    .select("id, name")
-    .in("id", ids);
-  const map = new Map<string, string | null>(
-    (data || []).map((p: any) => [p.id, p.name ?? null]),
-  );
-  return rows.map((r) => ({
-    ...r,
-    creator_name: r.user_id ? map.get(r.user_id) ?? null : null,
-  }));
-}
-
 export const togglePublic = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string; isPublic: boolean }) => d)
