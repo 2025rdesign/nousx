@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, Check, Loader2, ShieldCheck, Clock, Info } from "lucide-react";
+import { Copy, Check, Loader2 } from "lucide-react";
 import { notify } from "@/lib/notify";
+import { cn } from "@/lib/utils";
 import {
   createPixPayment,
   getPixStatus,
@@ -214,34 +215,11 @@ export function MpPixModal(props: PixModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[min(640px,95vw)] sm:max-w-[min(640px,95vw)] bg-[#0A0A0F] border-border p-4 sm:p-6 max-h-[92vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Pagar com PIX</DialogTitle>
+          <DialogTitle className="text-white">Pagar com PIX</DialogTitle>
+          <p className="text-[13px] text-[#888] mt-0.5">
+            {name} · <span className="text-zinc-300">{formatBRL(amount)}</span>
+          </p>
         </DialogHeader>
-
-        {/* Header summary */}
-        <div className="rounded-lg bg-[#13131A] border border-[#1E1E2E] p-3 flex items-center justify-between">
-          <div className="min-w-0">
-            <p className="text-xs uppercase tracking-wide text-zinc-500">Você está adquirindo</p>
-            <p className="text-sm font-semibold text-white truncate">{name}</p>
-          </div>
-          <p className="text-lg font-bold text-white shrink-0">{formatBRL(amount)}</p>
-        </div>
-
-        {/* Aviso responsável pelo recebimento */}
-        {!isPaid && (
-          <div
-            className="mt-3 flex items-start gap-2 rounded-lg p-3 border"
-            style={{
-              backgroundColor: "rgba(108, 71, 255, 0.08)",
-              borderColor: "rgba(108, 71, 255, 0.2)",
-            }}
-          >
-            <Info className="size-4 shrink-0 mt-0.5" style={{ color: "rgba(108, 71, 255, 0.9)" }} />
-            <p className="text-[13px] leading-relaxed text-zinc-300">
-              Os valores são recebidos pelo responsável pela plataforma.
-              Isso é padrão e não afeta a segurança da sua compra.
-            </p>
-          </div>
-        )}
 
         {/* CPF step */}
         {!pix && (
@@ -307,46 +285,36 @@ export function MpPixModal(props: PixModalProps) {
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="size-4 text-[#9B7BFF]" />
-                <span
-                  className={
-                    expired
-                      ? "text-red-400 font-semibold"
-                      : "text-[#9B7BFF] font-semibold tabular-nums"
-                  }
-                >
-                  {expired ? "Expirado" : `Expira em ${mmss}`}
-                </span>
-              </div>
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] tabular-nums",
+                  expired
+                    ? "bg-red-500/10 text-red-400"
+                    : "bg-[#1a1a22] text-zinc-400",
+                )}
+              >
+                {expired ? "Expirado" : `Expira em ${mmss}`}
+              </span>
             </div>
 
             <div className="flex flex-col gap-3 min-w-0">
               <p className="text-sm text-zinc-300">
-                Abra o app do seu banco e escaneie o QR Code, ou use o código copia e cola abaixo.
+                Abra seu banco, escaneie o QR Code ou copie o código.
               </p>
 
-              <div className="space-y-2 min-w-0">
-                <p className="text-xs uppercase tracking-wide text-zinc-500">Código copia e cola</p>
-                <code className="block w-full max-h-24 overflow-auto break-all rounded-md bg-[#13131A] border border-[#1E1E2E] px-3 py-2 text-xs text-zinc-300">
+              <div className="flex items-stretch rounded-md bg-[#111118] border border-[#2a2a3a] overflow-hidden">
+                <div className="flex-1 min-w-0 px-3 py-2 text-xs text-zinc-400 font-mono truncate">
                   {pix.qrCode}
-                </code>
-                <Button
+                </div>
+                <button
+                  type="button"
                   onClick={copy}
-                  variant="outline"
-                  className="w-full border-[#6C47FF]/50 hover:bg-[#6C47FF]/10"
                   disabled={!!expired}
+                  className="shrink-0 px-3 flex items-center justify-center border-l border-[#2a2a3a] text-zinc-300 hover:text-white hover:bg-[#6C47FF]/10 disabled:opacity-50"
+                  aria-label="Copiar código PIX"
                 >
-                  {copied ? (
-                    <>
-                      <Check className="size-4 mr-2" /> Copiado!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="size-4 mr-2" /> Copiar código PIX
-                    </>
-                  )}
-                </Button>
+                  {copied ? <Check className="size-4 text-emerald-400" /> : <Copy className="size-4" />}
+                </button>
               </div>
 
               {expired ? (
@@ -367,17 +335,15 @@ export function MpPixModal(props: PixModalProps) {
                   )}
                 </Button>
               ) : (
-                <div className="flex items-center gap-2 text-xs text-zinc-500">
+                <div className="flex items-center justify-center gap-2 text-[12px] text-[#6C47FF]">
                   <Loader2 className="size-3 animate-spin" />
                   Aguardando pagamento — confirmamos automaticamente
                 </div>
               )}
 
-              <div className="flex items-start gap-2 text-[11px] text-zinc-500 mt-1">
-                <ShieldCheck className="size-3.5 shrink-0 mt-0.5 text-emerald-400/80" />
-                <span>
-                  Pagamento processado com segurança. Seus dados financeiros não são armazenados pela AuraIA.
-                </span>
+              <div className="mt-2 space-y-1 text-[12px] text-[#555]">
+                <p>🔒 Pagamento processado com segurança</p>
+                <p>⚡ Créditos liberados em até 1 minuto após confirmação</p>
               </div>
             </div>
           </div>

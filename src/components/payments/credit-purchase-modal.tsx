@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
-  Sparkles,
   Gem,
   Clock,
   ShieldCheck,
@@ -21,23 +20,10 @@ import { getCredits } from "@/lib/credits.functions";
 import { CouponField, type AppliedCoupon } from "./coupon-field";
 import { MpPixModal } from "./mp-pix-modal";
 
-const PACK_META: Record<
-  CreditPackId,
-  {
-    expiresDays: number | null;
-    badge?: { label: string; tone: "purple" | "gold" };
-    tag?: { label: string; tone: "muted" | "green" };
-    accent: "muted" | "purple" | "gold";
-  }
-> = {
-  starter: { expiresDays: 10, tag: { label: "Para experimentar", tone: "muted" }, accent: "muted" },
-  popular: { expiresDays: 30, badge: { label: "MAIS POPULAR", tone: "purple" }, accent: "purple" },
-  pro: {
-    expiresDays: null,
-    badge: { label: "MELHOR VALOR", tone: "gold" },
-    tag: { label: "Sem expiração", tone: "green" },
-    accent: "gold",
-  },
+const PACK_META: Record<CreditPackId, { expiresDays: number | null; isPopular?: boolean }> = {
+  starter: { expiresDays: 10 },
+  popular: { expiresDays: 30, isPopular: true },
+  pro: { expiresDays: null },
 };
 
 const formatBRL = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
@@ -58,6 +44,7 @@ export function CreditPurchaseModal({
   const [packId, setPackId] = useState<CreditPackId>("popular");
   const [coupon, setCoupon] = useState<AppliedCoupon>(null);
   const [pixOpen, setPixOpen] = useState(false);
+  const [couponOpen, setCouponOpen] = useState(false);
 
   const pack = CREDIT_PACKS[packId];
   const finalPrice = useMemo(
@@ -157,98 +144,79 @@ export function CreditPurchaseModal({
               const p = CREDIT_PACKS[id];
               const meta = PACK_META[id];
               const perImg = pricePerImage(p);
-              const starterPer = pricePerImage(CREDIT_PACKS.starter);
-              const savings = id === "starter" ? 0 : Math.round((1 - perImg / starterPer) * 100);
               const active = packId === id;
-              const isPopular = meta.accent === "purple";
-              const isPro = meta.accent === "gold";
+              const isPopular = !!meta.isPopular;
               return (
-                <button
-                  type="button"
-                  key={id}
-                  onClick={() => setPackId(id)}
-                  className={cn(
-                    "relative text-left rounded-2xl border bg-[#13131A] p-4 pt-5 transition-all flex flex-col hover:-translate-y-0.5",
-                    isPopular && "md:scale-[1.03] md:-my-1",
-                    active && isPopular && "border-[#6C47FF] ring-2 ring-[#6C47FF]/40 shadow-lg shadow-[#6C47FF]/20",
-                    active && isPro && "border-[#F59E0B] ring-2 ring-[#F59E0B]/30 shadow-lg shadow-[#F59E0B]/10",
-                    active && meta.accent === "muted" && "border-zinc-400 ring-1 ring-zinc-400/30",
-                    !active && isPopular && "border-[#6C47FF]/60",
-                    !active && isPro && "border-[#F59E0B]/40",
-                    !active && meta.accent === "muted" && "border-[#1E1E2E]",
-                  )}
-                >
-                  {meta.badge && (
-                    <span
-                      className={cn(
-                        "absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wider",
-                        meta.badge.tone === "purple"
-                          ? "bg-[#6C47FF] text-white"
-                          : "bg-[#F59E0B] text-black",
-                      )}
-                    >
-                      {meta.badge.label}
-                    </span>
-                  )}
-
-                  <p className="text-sm font-medium text-zinc-300">{p.name}</p>
-                  <p className="mt-2 text-2xl font-bold text-white">{formatBRL(p.price)}</p>
-                  <p className="mt-2 flex items-center gap-1.5 text-sm text-white">
-                    <Sparkles className="size-3.5 text-[#6C47FF]" />
-                    <span className="font-semibold">{p.credits}</span>
-                    <span className="text-zinc-400">créditos</span>
-                  </p>
-                  <p className="mt-1 text-xs text-zinc-400">
-                    {formatBRL(perImg)} por imagem
-                    {savings > 0 && (
-                      <span className="ml-1 text-emerald-400 font-medium">(-{savings}% vs Starter)</span>
+                <div key={id} className="flex flex-col">
+                  <p
+                    className={cn(
+                      "text-center mb-1.5 text-[11px] uppercase tracking-[0.08em] font-medium",
+                      isPopular ? "text-[#6C47FF]" : "text-transparent select-none",
                     )}
+                  >
+                    {isPopular ? "Mais escolhido" : "·"}
                   </p>
-
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {meta.expiresDays != null ? (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300">
-                        <Clock className="size-3" /> Expiram em {meta.expiresDays} dias
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-300">
-                        <ShieldCheck className="size-3" /> Nunca expiram
-                      </span>
+                  <button
+                    type="button"
+                    onClick={() => setPackId(id)}
+                    style={
+                      isPopular
+                        ? { boxShadow: "0 0 0 1px #6C47FF, 0 0 20px rgba(108,71,255,0.15)" }
+                        : undefined
+                    }
+                    className={cn(
+                      "group relative text-left rounded-xl border bg-[#111118] p-5 transition-all flex-1 flex flex-col",
+                      "hover:border-[#4a4a6a] hover:brightness-110",
+                      isPopular
+                        ? "border-[#6C47FF]"
+                        : "border-[#2a2a3a]",
+                      active && !isPopular && "border-[#6C47FF]/70",
                     )}
-                  </div>
-                </button>
+                  >
+                    <p className="text-[14px] font-medium text-white">{p.name}</p>
+                    <p className="mt-3 text-[28px] font-bold text-white leading-none">
+                      {formatBRL(p.price)}
+                    </p>
+                    <p className="mt-3 text-[13px] text-[#888]">
+                      {p.credits} créditos
+                    </p>
+                    <p className="mt-1 text-[12px] text-[#666]">
+                      {formatBRL(perImg)} por imagem
+                    </p>
+                  </button>
+                </div>
               );
             })}
           </div>
 
-          <CouponField value={coupon} onApply={setCoupon} />
-
-          <div className="rounded-lg bg-[#13131A] border border-[#1E1E2E] p-3 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-white">{pack.name}</p>
-              <p className="text-xs text-zinc-400">{pack.credits} créditos</p>
-            </div>
-            <div className="text-right">
-              {coupon && (
-                <p className="text-xs text-zinc-500 line-through">{formatBRL(pack.price)}</p>
-              )}
-              <p className="text-lg font-bold text-white">{formatBRL(finalPrice)}</p>
-            </div>
-          </div>
-
-          <p className="text-xs text-zinc-500 leading-relaxed">
-            Pagamento processado com segurança. Seus dados financeiros não são armazenados pela AuraIA.
+          <p className="text-center text-[11px] text-[#555] -mt-2">
+            Starter expira em 10 dias · Popular expira em 30 dias · Pro nunca expira
           </p>
 
+          <div className="pt-1">
+            {couponOpen || coupon ? (
+              <CouponField value={coupon} onApply={setCoupon} />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setCouponOpen(true)}
+                className="text-[13px] text-[#6C47FF] hover:underline"
+              >
+                Tem um cupom?
+              </button>
+            )}
+          </div>
+
           <Button
-            className="w-full bg-[#6C47FF] hover:bg-[#7d5cff] text-white"
             onClick={() => setPixOpen(true)}
+            className="w-full bg-[#6C47FF] hover:bg-[#7d5cff] text-white font-semibold"
+            style={{ height: 52, borderRadius: 10 }}
           >
             {`Pagar com PIX — ${formatBRL(finalPrice)}`}
           </Button>
 
-          <p className="text-xs text-zinc-500 text-center">
-            Após confirmar o pagamento, seus créditos serão liberados automaticamente.
+          <p className="text-center text-[11px] text-[#444]">
+            Pagamento seguro via Mercado Pago · Créditos liberados automaticamente
           </p>
         </div>
       </DialogContent>
