@@ -6,7 +6,6 @@ import {
   Settings,
   Wand2,
   Image as ImageIcon,
-  Compass,
   Menu,
   PanelLeft,
   LogIn,
@@ -280,7 +279,6 @@ export function AnonChatView() {
     () => [
       { label: "Estúdio", icon: Wand2 },
       { label: "Galeria", icon: ImageIcon },
-      { label: "Explorar", icon: Compass },
       { label: "Planos", icon: CreditCard },
     ],
     [],

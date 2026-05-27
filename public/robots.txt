@@ -1,7 +1,6 @@
 User-agent: *
 Allow: /
 Allow: /planos
-Allow: /explorar
 Allow: /termos
 Allow: /privacidade
 Disallow: /api/

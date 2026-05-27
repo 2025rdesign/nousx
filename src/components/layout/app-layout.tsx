@@ -31,7 +31,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   // Sidebar aparece em todas as rotas autenticadas (não só chat).
   // Em rotas que não são chat escondemos a lista de conversas, mas a
-  // navegação (Estúdio / Galeria / Explorar / Configurações) continua acessível.
+  // navegação (Estúdio / Galeria / Configurações) continua acessível.
   const isChatRoute = pathname === "/" || pathname.startsWith("/c/");
   const showSidebar = true;
   void isChatRoute;
