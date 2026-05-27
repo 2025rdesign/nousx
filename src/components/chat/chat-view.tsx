@@ -419,7 +419,9 @@ export function ChatView({ conversationId }: Props) {
   const GENERIC_ERROR_TEXT =
     "😕 Algo inesperado aconteceu. Tente novamente.";
   const GENERIC_IMG_ERROR_TEXT =
-    "⚡ Algo deu errado na geração. Tente novamente.";
+    "Não consegui gerar a imagem agora. Tente descrever novamente.";
+  const UNCLEAR_IMG_PROMPT_TEXT =
+    "Pode descrever melhor o que quer ver na imagem?";
   const VIDEO_NEED_ULTRA_TEXT =
     "🎬 A **animação de imagens** é exclusiva do plano **Ultra**.\n\n" +
     "Com o Ultra (R$57,90/mês) você anima qualquer imagem gerada no chat — 10 segundos de vídeo por apenas 10 créditos.\n\n" +
