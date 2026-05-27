@@ -27,13 +27,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { CharacterCard } from "@/components/studio/character-card";
 import {
   listMyProfiles,
-  listMyCharacters,
   generateCharacter,
   improvePrompt,
-  togglePublic,
-  deleteCharacter,
   deleteProfile,
 } from "@/lib/studio.functions";
+import {
+  listGallery,
+  deleteGalleryItem,
+  setGalleryItemPublic,
+} from "@/lib/gallery.functions";
 import { cn } from "@/lib/utils";
 import { CreditPurchaseModal } from "@/components/payments/credit-purchase-modal";
 import { getCredits } from "@/lib/credits.functions";
@@ -186,10 +188,10 @@ function CreditsPill({
 function StudioInner() {
   const qc = useQueryClient();
   const fetchProfiles = useServerFn(listMyProfiles);
-  const fetchChars = useServerFn(listMyCharacters);
+  const fetchHistory = useServerFn(listGallery);
   const genFn = useServerFn(generateCharacter);
-  const toggleFn = useServerFn(togglePublic);
-  const deleteFn = useServerFn(deleteCharacter);
+  const toggleFn = useServerFn(setGalleryItemPublic);
+  const deleteFn = useServerFn(deleteGalleryItem);
   const deleteProfileFn = useServerFn(deleteProfile);
   const fetchCredits = useServerFn(getCredits);
   const { data: creditsData, isLoading: creditsLoading } = useQuery({
@@ -212,11 +214,40 @@ function StudioInner() {
     [profiles, activeProfileId],
   );
 
-  const { data: history = [] } = useQuery({
-    queryKey: ["my-characters", activeProfileId],
-    queryFn: () => fetchChars({ data: { profileId: activeProfileId } }),
-    staleTime: 60_000,
+  // Studio history reads EXCLUSIVELY from the gallery table
+  // (user_id = current user, source = 'studio'), ordered by created_at DESC.
+  // The `characters` table is reserved for saved character profiles.
+  const HISTORY_KEY = ["studio-history"] as const;
+  const { data: historyData } = useQuery({
+    queryKey: HISTORY_KEY,
+    queryFn: () => fetchHistory({ data: { filter: "studio", page: 0 } }),
+    staleTime: 30_000,
   });
+  const history = useMemo(
+    () =>
+      (historyData?.items ?? []).flatMap((it) =>
+        it.kind === "image" && it.image_url
+          ? [{
+              id: it.id,
+              image_url: it.image_url,
+              is_public: it.is_public,
+              prompt: it.prompt,
+              created_at: it.created_at,
+            }]
+          : [],
+      ),
+    [historyData],
+  );
+
+  // Track the most recently generated image so "Edit this image" still works
+  // for fresh results (needs mediaId/promptId which gallery does not store).
+  const [lastGenerated, setLastGenerated] = useState<{
+    galleryId: string | null;
+    mediaId: string;
+    promptId: string | null;
+    profileId: string | null;
+    url: string;
+  } | null>(null);
 
   // shared form state
   const [aspect, setAspect] = useState<Ratio>("4:5");
