@@ -882,13 +882,21 @@ export function ChatView({ conversationId }: Props) {
         const token = sessionData.session?.access_token;
         if (!token) throw new Error("Sessão expirada.");
 
+        // Send the last 6 messages of the conversation so the server can
+        // extract a precise English image prompt from the actual context,
+        // not just the latest single message.
+        const contextMessages = [...baseMessages, userMsg]
+          .slice(-6)
+          .filter((m) => (m.role === "user" || m.role === "assistant") && m.content)
+          .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
         const res = await fetch("/api/generate-image", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ prompt: imagePrompt }),
+          body: JSON.stringify({ prompt: imagePrompt, contextMessages }),
         });
 
         console.log("[CHAT] /api/generate-image status:", res.status);
@@ -934,6 +942,18 @@ export function ChatView({ conversationId }: Props) {
             await appendAssistantMessage({
               convId,
               text: MOD_BLOCK_TEXT,
+              isNew,
+              titleSeed: text,
+              baseMessages,
+              userMsg,
+            });
+            return;
+          }
+          if (res.status === 422 && err.code === "unclear_prompt") {
+            stickyImageRefRef.current = null;
+            await appendAssistantMessage({
+              convId,
+              text: UNCLEAR_IMG_PROMPT_TEXT,
               isNew,
               titleSeed: text,
               baseMessages,
