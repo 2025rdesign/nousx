@@ -422,7 +422,17 @@ function StudioInner() {
     },
     onSuccess: (res) => {
       setResult(res.mediaUrl);
-      qc.invalidateQueries({ queryKey: ["my-characters"] });
+      // Remember fresh generation so "Edit this image" works for it
+      // (gallery rows don't carry mediaId/promptId).
+      setLastGenerated({
+        galleryId: null,
+        mediaId: res.mediaId,
+        promptId: res.promptId ?? null,
+        profileId: activeProfileId,
+        url: res.mediaUrl,
+      });
+      setResultId(null);
+      qc.invalidateQueries({ queryKey: ["studio-history"] });
       qc.invalidateQueries({ queryKey: ["my-profiles"] });
       qc.invalidateQueries({ queryKey: ["credits"] });
       notify.success("Imagem pronta.");
