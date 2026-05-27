@@ -14,8 +14,6 @@ import {
   Trash2,
   AudioLines,
   Wand2,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -41,7 +39,6 @@ import { downloadAsset } from "@/lib/download";
 import {
   listGallery,
   deleteGalleryItem,
-  setGalleryItemPublic,
   type GalleryItem,
 } from "@/lib/gallery.functions";
 import { GridPageSkeleton } from "@/components/route-skeletons";
@@ -106,7 +103,6 @@ function Gallery() {
   const queryClient = useQueryClient();
   const fetchList = useServerFn(listGallery);
   const delFn = useServerFn(deleteGalleryItem);
-  const togglePublicFn = useServerFn(setGalleryItemPublic);
   const [filter, setFilter] = useState<Filter>(() => {
     if (typeof window === "undefined") return "all";
     const search = new URLSearchParams(window.location.search);
@@ -142,7 +138,11 @@ function Gallery() {
     [query.data],
   );
   const images = useMemo(
-    () => items.filter((i): i is Extract<GalleryItem, { kind: "image" }> => i.kind === "image"),
+    () =>
+      items.filter(
+        (i): i is Extract<GalleryItem, { kind: "image" }> =>
+          i.kind === "image" && !!i.image_url,
+      ),
     [items],
   );
   const audios = useMemo(
@@ -160,34 +160,6 @@ function Gallery() {
     },
     onError: () => notify.error("Não foi possível excluir."),
   });
-
-  const togglePublic = async (img: Extract<GalleryItem, { kind: "image" }>) => {
-    const next = !img.is_public;
-    // optimistic update across all gallery-v2 caches
-    queryClient.setQueriesData<{ pages: { items: GalleryItem[]; hasMore: boolean }[] } | undefined>(
-      { queryKey: ["gallery-v2"] },
-      (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          pages: old.pages.map((p) => ({
-            ...p,
-            items: p.items.map((it) =>
-              it.kind === "image" && it.id === img.id ? { ...it, is_public: next } : it,
-            ),
-          })),
-        };
-      },
-    );
-    try {
-      await togglePublicFn({ data: { id: img.id, isPublic: next } });
-      notify.success(next ? "Imagem tornada pública." : "Imagem tornada privada.");
-    } catch {
-      // revert
-      queryClient.invalidateQueries({ queryKey: ["gallery-v2"] });
-      notify.error("Não foi possível atualizar a visibilidade.");
-    }
-  };
 
   const showAudios = filter === "audio";
   const exitSelectMode = () => {
@@ -379,7 +351,7 @@ function Gallery() {
         {!showAudios && images.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {images.map((img, idx) => (
-              <div key={img.id} className="space-y-1.5">
+              <div key={img.id} className="space-y-1.5" data-card>
                 <div
                   className={cn(
                     "group relative aspect-square rounded-lg overflow-hidden bg-muted",
@@ -404,9 +376,13 @@ function Gallery() {
                   >
                     <img
                       src={img.image_url}
-                      alt={img.prompt || "Imagem"}
+                      alt="Imagem"
                       loading="lazy"
                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      onError={(e) => {
+                        const card = e.currentTarget.closest("[data-card]") as HTMLElement | null;
+                        if (card) card.style.display = "none";
+                      }}
                     />
                   </button>
                   {isVideoItem(img) && !selectMode && (
@@ -470,21 +446,6 @@ function Gallery() {
                       aria-label="Baixar"
                     >
                       <Download className="size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void togglePublic(img);
-                      }}
-                      className={cn(
-                        "pointer-events-auto inline-flex items-center justify-center size-9 rounded-full bg-background/90 hover:bg-background",
-                        img.is_public ? "text-emerald-500" : "text-foreground",
-                      )}
-                      title={img.is_public ? "Tornar privada" : "Tornar pública"}
-                      aria-label={img.is_public ? "Tornar privada" : "Tornar pública"}
-                    >
-                      {img.is_public ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
                     </button>
                     <button
                       type="button"
@@ -633,11 +594,6 @@ function Gallery() {
                     {formatDate(lightboxItem.created_at)}
                   </span>
                 </div>
-                {lightboxItem.prompt && (
-                  <p className="text-sm text-foreground/80 whitespace-pre-wrap">
-                    {lightboxItem.prompt}
-                  </p>
-                )}
               </div>
             </div>
           )}
@@ -659,16 +615,6 @@ function Gallery() {
           </SheetHeader>
           {actionSheetItem && (
             <div className="mt-3 flex flex-col gap-2">
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-3 min-h-[52px] text-base"
-                onClick={() => {
-                  void togglePublic(actionSheetItem);
-                  setActionSheetIdx(null);
-                }}
-              >
-                {actionSheetItem.is_public ? "🙈 Tornar privada" : "🌐 Tornar pública"}
-              </Button>
               <Button
                 variant="outline"
                 className="w-full justify-start gap-3 min-h-[52px] text-base"

@@ -211,23 +211,36 @@ function SignupForm() {
         data: { name: name.trim() },
       },
     });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       console.error("[signUp] error:", error);
       notify.error(translateAuthError(error.message));
       return;
     }
     console.log("[signUp] success:", signUpData);
 
+    // Wait for the Supabase session to be fully established (SIGNED_IN event)
+    // before processing the referral — the session may not be available
+    // immediately after signUp() resolves. An 8-second safety fallback
+    // prevents the form from hanging forever if the event never fires.
+    await new Promise<void>((resolve) => {
+      const fallback = setTimeout(resolve, 8000);
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_IN") {
+          clearTimeout(fallback);
+          subscription.unsubscribe();
+          resolve();
+        }
+      });
+    });
+
     // Attach referral code captured from ?ref= on landing.
-    // Credits are only given when a valid referral is attached —
-    // attachReferral() grants 5 welcome credits on the server side.
+    // Credits are awarded server-side only via attachReferral() —
+    // SECURITY: never insert directly into the credits table from client code.
     let referralAttached = false;
     try {
       const code = localStorage.getItem("auraia-ref-code");
       if (code) {
-        // Wait briefly for the Supabase session to propagate.
-        await new Promise((r) => setTimeout(r, 400));
         const res = await attachReferral({ data: { code } });
         localStorage.removeItem("auraia-ref-code");
         if (res && (res as { ok?: boolean }).ok) {
@@ -239,6 +252,7 @@ function SignupForm() {
       localStorage.removeItem("auraia-ref-code");
     }
 
+    setLoading(false);
     if (referralAttached) {
       notify.success("Bem-vindo! Você ganhou 5 créditos de boas-vindas.");
     } else {

@@ -1,11 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Plus,
   Settings,
-  Wand2,
-  Image as ImageIcon,
   Menu,
   PanelLeft,
   LogIn,
@@ -275,15 +273,6 @@ export function AnonChatView() {
     }
   }
 
-  const navItems = useMemo(
-    () => [
-      { label: "Estúdio", icon: Wand2 },
-      { label: "Galeria", icon: ImageIcon },
-      { label: "Planos", icon: CreditCard },
-    ],
-    [],
-  );
-
   const sidebar = (
     <div className="flex flex-col h-full w-full bg-sidebar">
       <div className="p-3 border-b border-border">
@@ -311,17 +300,6 @@ export function AnonChatView() {
           <CreditCard className="size-4" />
           Planos
         </Link>
-        {navItems.slice(0, 3).map((it) => (
-          <button
-            key={it.label}
-            type="button"
-            onClick={handleRestrictedNav}
-            className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground/80 hover:bg-secondary/60 hover:text-foreground transition-colors"
-          >
-            <it.icon className="size-4" />
-            {it.label}
-          </button>
-        ))}
       </nav>
 
       <ScrollArea className="flex-1 px-2">
