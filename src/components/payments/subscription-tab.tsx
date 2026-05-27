@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Dialog,
   DialogContent,
@@ -91,6 +92,7 @@ const PLAN_RANK: Record<string, number> = { free: 0, plus: 1, ultra: 2 };
 
 export function SubscriptionTab() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const fetchSub = useServerFn(getMySubscription);
   const fetchLatestSub = useServerFn(getMyLatestSubscription);
   const fetchCredits = useServerFn(getCredits);
@@ -98,18 +100,22 @@ export function SubscriptionTab() {
   const { data: sub, isLoading } = useQuery({
     queryKey: ["my-subscription"],
     queryFn: () => fetchSub(),
+    enabled: !!user,
   });
   const { data: latestSub } = useQuery({
     queryKey: ["my-subscription-latest"],
     queryFn: () => fetchLatestSub(),
+    enabled: !!user,
   });
   const { data: credits } = useQuery({
     queryKey: ["my-credits"],
     queryFn: () => fetchCredits(),
+    enabled: !!user,
   });
   const { data: history } = useQuery({
     queryKey: ["my-payment-history"],
     queryFn: () => fetchHistory(),
+    enabled: !!user,
   });
 
   const [openPlan, setOpenPlan] = useState<PlanId | null>(null);
