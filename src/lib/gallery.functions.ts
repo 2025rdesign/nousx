@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 12;
 
 const listSchema = z.object({
   filter: z.enum(["all", "chat", "studio", "audio", "video"]).default("all"),
@@ -61,6 +61,9 @@ export const listGallery = createServerFn({ method: "POST" })
       .from("gallery")
       .select("id, image_url, source, prompt, is_public, created_at")
       .eq("user_id", userId)
+      // Only fetch rows with a real image URL — null/empty rows produce dark empty slots
+      .not("image_url", "is", null)
+      .neq("image_url", "")
       .order("created_at", { ascending: false })
       .range(from, to);
 
@@ -70,6 +73,14 @@ export const listGallery = createServerFn({ method: "POST" })
 
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
+    console.log("[gallery] listGallery query", {
+      userId,
+      filter: data.filter,
+      page: data.page,
+      rowCount: rows?.length ?? 0,
+      hasMore: (rows?.length ?? 0) === PAGE_SIZE,
+      sampleUrls: (rows ?? []).slice(0, 3).map((r) => (r as { image_url?: string }).image_url?.slice(0, 60)),
+    });
     const items: GalleryItem[] = (rows ?? []).map((r) => ({
       kind: "image" as const,
       id: r.id,

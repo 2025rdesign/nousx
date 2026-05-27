@@ -92,25 +92,33 @@ function HistoryThumb({
   alt,
   index,
   onClick,
+  onImageError,
   children,
 }: {
   src: string | null;
   alt: string;
   index: number;
   onClick: () => void;
+  onImageError?: () => void;
   children: React.ReactNode;
 }) {
   const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  // If the image failed (expired CDN URL, etc.) hide the card entirely
+  if (failed) return null;
+
   return (
     <div
       onClick={onClick}
-      className="relative group rounded-lg overflow-hidden cursor-pointer bg-[#1a1a2e] animate-in fade-in h-[120px] md:h-[140px]"
+      className="relative group rounded-lg overflow-hidden cursor-pointer animate-in fade-in h-[120px] md:h-[140px]"
       style={{
         animationDelay: `${index * 50}ms`,
         animationFillMode: "both",
+        background: loaded ? "transparent" : "#1a1a2e",
       }}
     >
-      {!loaded && (
+      {!loaded && !failed && (
         <div className="absolute inset-0 bg-[#1a1a2e] animate-pulse" />
       )}
       {src && (
@@ -119,6 +127,10 @@ function HistoryThumb({
           alt={alt}
           loading="lazy"
           onLoad={() => setLoaded(true)}
+          onError={() => {
+            setFailed(true);
+            onImageError?.();
+          }}
           className="block w-full h-full object-cover transition-opacity duration-300 group-hover:scale-[1.03]"
           style={{ opacity: loaded ? 1 : 0 }}
         />
@@ -1488,6 +1500,30 @@ function StudioInner() {
                         setResult(c.image_url);
                         setResultId(c.id);
                         setMobileTab("resultado");
+                      }}
+                      onImageError={() => {
+                        // URL expired or broken — remove from UI immediately and clean up the DB row
+                        qc.setQueryData(HISTORY_KEY, (old: typeof historyData) =>
+                          old
+                            ? { ...old, items: old.items.filter((it) => it.id !== c.id) }
+                            : old,
+                        );
+                        qc.setQueriesData(
+                          { queryKey: ["gallery-v2"] },
+                          (old: any) => {
+                            if (!old?.pages) return old;
+                            return {
+                              ...old,
+                              pages: old.pages.map((p: any) => ({
+                                ...p,
+                                items: p.items.filter((it: any) => it.id !== c.id),
+                              })),
+                            };
+                          },
+                        );
+                        deleteFn({ data: { kind: "image", id: c.id } }).catch((err) => {
+                          console.warn("[studio] auto-cleanup of expired image failed", err);
+                        });
                       }}
                     >
                       <Button

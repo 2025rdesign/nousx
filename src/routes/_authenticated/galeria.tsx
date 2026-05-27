@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Image as ImageIcon,
+  Loader2,
   Play,
   Pause,
   Copy,
@@ -490,8 +491,16 @@ function Gallery() {
               variant="outline"
               onClick={() => query.fetchNextPage()}
               disabled={query.isFetchingNextPage}
+              className="gap-2"
             >
-              {query.isFetchingNextPage ? "Carregando…" : "Carregar mais"}
+              {query.isFetchingNextPage ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Carregando…
+                </>
+              ) : (
+                "Carregar mais"
+              )}
             </Button>
           </div>
         )}
