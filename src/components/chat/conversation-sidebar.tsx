@@ -186,7 +186,7 @@ export function ConversationSidebar({
   const groups = groupByDate(unpinned);
 
   const navItems: Array<{
-    to: "/studio" | "/galeria" | "/explorar";
+    to: "/studio" | "/galeria";
     label: string;
     icon: any;
     prefetch: () => Promise<unknown>;
@@ -203,12 +203,6 @@ export function ConversationSidebar({
       icon: ImageIcon,
       prefetch: () => import("@/routes/_authenticated/galeria"),
     },
-    {
-      to: "/explorar",
-      label: "Explorar",
-      icon: Compass,
-      prefetch: () => import("@/routes/explorar"),
-    },
   ];
 
   // Eager prefetch of primary routes (code chunks + loaders) shortly after
@@ -224,7 +218,6 @@ export function ConversationSidebar({
       const targets: Array<{ to: any }> = [
         { to: "/studio" },
         { to: "/galeria" },
-        { to: "/explorar" },
         { to: "/configuracoes" },
       ];
       targets.forEach((t) => {
