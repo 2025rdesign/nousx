@@ -181,7 +181,7 @@ function Gallery() {
     );
     try {
       await togglePublicFn({ data: { id: img.id, isPublic: next } });
-      notify.success(next ? "Imagem publicada no Explorar." : "Imagem removida do Explorar.");
+      notify.success(next ? "Imagem tornada pública." : "Imagem tornada privada.");
     } catch {
       // revert
       queryClient.invalidateQueries({ queryKey: ["gallery-v2"] });
@@ -481,8 +481,8 @@ function Gallery() {
                         "pointer-events-auto inline-flex items-center justify-center size-9 rounded-full bg-background/90 hover:bg-background",
                         img.is_public ? "text-emerald-500" : "text-foreground",
                       )}
-                      title={img.is_public ? "Remover do Explorar" : "Tornar pública"}
-                      aria-label={img.is_public ? "Remover do Explorar" : "Tornar pública"}
+                      title={img.is_public ? "Tornar privada" : "Tornar pública"}
+                      aria-label={img.is_public ? "Tornar privada" : "Tornar pública"}
                     >
                       {img.is_public ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
                     </button>
@@ -667,7 +667,7 @@ function Gallery() {
                   setActionSheetIdx(null);
                 }}
               >
-                {actionSheetItem.is_public ? "🙈 Remover do Explorar" : "🌐 Tornar pública"}
+                {actionSheetItem.is_public ? "🙈 Tornar privada" : "🌐 Tornar pública"}
               </Button>
               <Button
                 variant="outline"
