@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Gallery select public approved" ON public.gallery;
