@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Copy, Check, Loader2 } from "lucide-react";
 import { notify } from "@/lib/notify";
+import { cn } from "@/lib/utils";
 import {
   createPixPayment,
   getPixStatus,
