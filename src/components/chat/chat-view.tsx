@@ -1289,13 +1289,18 @@ export function ChatView({ conversationId }: Props) {
             ? `${text}\n\nContexto visual da conversa anterior: ${latestImageCtx.description.slice(0, 1200)}`
             : text;
 
+          const fallbackContext = [...baseMessages, userMsg]
+            .slice(-6)
+            .filter((m) => (m.role === "user" || m.role === "assistant") && m.content)
+            .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
           const imgRes = await fetch("/api/generate-image", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ prompt: fallbackPrompt }),
+            body: JSON.stringify({ prompt: fallbackPrompt, contextMessages: fallbackContext }),
           });
 
           if (!imgRes.ok) {
