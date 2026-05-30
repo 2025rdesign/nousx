@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,10 @@ import { getCredits } from "@/lib/credits.functions";
 import { CreditPurchaseModal } from "./credit-purchase-modal";
 import { CouponField, type AppliedCoupon } from "./coupon-field";
 import { MpPixModal } from "./mp-pix-modal";
+import {
+  PAYMENTS_UNDER_MAINTENANCE,
+  notifyPaymentsMaintenance,
+} from "@/lib/constants";
 
 const formatBRL = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
 const fmtBRL = formatBRL;
@@ -532,6 +536,19 @@ export function PlanCheckoutDialog({
   const plan = PLANS[planId];
   const [coupon, setCoupon] = useState<AppliedCoupon>(null);
   const [pixOpen, setPixOpen] = useState(false);
+
+  const notifiedRef = useRef(false);
+  useEffect(() => {
+    if (PAYMENTS_UNDER_MAINTENANCE && open) {
+      if (!notifiedRef.current) {
+        notifiedRef.current = true;
+        notifyPaymentsMaintenance();
+      }
+      onOpenChange(false);
+    }
+    if (!open) notifiedRef.current = false;
+  }, [open, onOpenChange]);
+  if (PAYMENTS_UNDER_MAINTENANCE) return null;
 
   const basePrice = planPriceFor(planId, billingPeriod);
   const finalPrice = useMemo(
