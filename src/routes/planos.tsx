@@ -1,4 +1,8 @@
 import { useState } from "react";
+import {
+  PAYMENTS_UNDER_MAINTENANCE,
+  notifyPaymentsMaintenance,
+} from "@/lib/constants";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { useActivePlan } from "@/hooks/use-active-plan";
@@ -121,6 +125,10 @@ function PlanosPage() {
   });
 
   const handlePaidCta = (id: PlanId) => {
+    if (PAYMENTS_UNDER_MAINTENANCE) {
+      notifyPaymentsMaintenance();
+      return;
+    }
     if (!user) {
       navigate({ to: "/auth", search: { tab: "login" } as any });
       return;
