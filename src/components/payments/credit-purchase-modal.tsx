@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -12,6 +12,10 @@ import { Gem, Clock, ShieldCheck, Zap } from "lucide-react";
 import { CREDIT_PACKS, type CreditPackId } from "@/lib/payments-config";
 import { getCredits } from "@/lib/credits.functions";
 import { MpPixModal } from "./mp-pix-modal";
+import {
+  PAYMENTS_UNDER_MAINTENANCE,
+  notifyPaymentsMaintenance,
+} from "@/lib/constants";
 
 const PACK_META: Record<CreditPackId, { expiresDays: number | null; isPopular?: boolean }> = {
   starter: { expiresDays: 10 },
@@ -36,6 +40,20 @@ export function CreditPurchaseModal({
 }) {
   const [packId, setPackId] = useState<CreditPackId>("popular");
   const [pixOpen, setPixOpen] = useState(false);
+
+  // Maintenance gate: never let the modal actually open.
+  const notifiedRef = useRef(false);
+  useEffect(() => {
+    if (PAYMENTS_UNDER_MAINTENANCE && open) {
+      if (!notifiedRef.current) {
+        notifiedRef.current = true;
+        notifyPaymentsMaintenance();
+      }
+      onOpenChange(false);
+    }
+    if (!open) notifiedRef.current = false;
+  }, [open, onOpenChange]);
+  if (PAYMENTS_UNDER_MAINTENANCE) return null;
 
   const pack = CREDIT_PACKS[packId];
 
