@@ -4,6 +4,10 @@ import { Link } from "@tanstack/react-router";
 import { Sparkles } from "lucide-react";
 import { getCredits } from "@/lib/credits.functions";
 import { cn } from "@/lib/utils";
+import {
+  PAYMENTS_UNDER_MAINTENANCE,
+  PAYMENTS_MAINTENANCE_TOOLTIP,
+} from "@/lib/constants";
 
 export function CreditsBadge({ className }: { className?: string }) {
   const fetchCredits = useServerFn(getCredits);
@@ -40,6 +44,7 @@ export function CreditsBadge({ className }: { className?: string }) {
         className,
       )}
       aria-label={`${balance} créditos`}
+      title={PAYMENTS_UNDER_MAINTENANCE ? PAYMENTS_MAINTENANCE_TOOLTIP : undefined}
     >
       <Sparkles className="size-3.5 text-accent" />
       <span>{balance}</span>
