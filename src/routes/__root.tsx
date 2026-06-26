@@ -259,21 +259,80 @@ function RootComponent() {
     }
   }, []);
 
+  void queryClient;
+  return <MaintenanceScreen />;
+}
+
+function MaintenanceScreen() {
   return (
-    <AppErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <FaviconTheme />
-          <AuthProvider>
-            <VideoJobsWatcher />
-            <Outlet />
-            <Toaster position="top-center" richColors />
-            <FloatingAudioPlayer />
-            <SwRegister />
-          </AuthProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </AppErrorBoundary>
+    <div
+      style={{
+        minHeight: "100vh",
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "24px",
+        background:
+          "radial-gradient(circle at 30% 20%, #2a1a4a 0%, #0a0a1f 60%, #050510 100%)",
+        color: "#F0F0FF",
+        fontFamily:
+          "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        textAlign: "center",
+      }}
+    >
+      <div style={{ maxWidth: 520 }}>
+        <div style={{ fontSize: 56, marginBottom: 16 }}>🛠️</div>
+        <h1
+          style={{
+            fontSize: 28,
+            fontWeight: 800,
+            marginBottom: 12,
+            lineHeight: 1.2,
+          }}
+        >
+          Site em atualização
+        </h1>
+        <p
+          style={{
+            fontSize: 16,
+            lineHeight: 1.6,
+            color: "#A8A8C0",
+            marginBottom: 28,
+          }}
+        >
+          Estamos passando por uma atualização importante. Enquanto isso, use
+          nossa IA gratuita, sem filtros e sem cadastro:
+        </p>
+        <a
+          href="https://zedoblack.com.br"
+          rel="noopener noreferrer"
+          style={{
+            display: "inline-block",
+            background: "linear-gradient(135deg, #6C47FF 0%, #B845FF 100%)",
+            color: "#fff",
+            padding: "16px 32px",
+            borderRadius: 12,
+            fontSize: 17,
+            fontWeight: 700,
+            textDecoration: "none",
+            boxShadow: "0 8px 24px rgba(108, 71, 255, 0.4)",
+          }}
+        >
+          Acessar IA grátis sem filtro →
+        </a>
+        <p
+          style={{
+            marginTop: 24,
+            fontSize: 13,
+            color: "#7878A0",
+            wordBreak: "break-all",
+          }}
+        >
+          zedoblack.com.br
+        </p>
+      </div>
+    </div>
   );
 }
 
