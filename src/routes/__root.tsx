@@ -207,14 +207,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
               billingIncrement: "P1M",
             },
           ],
-          contactPoint: {
-            "@type": "ContactPoint",
-            contactType: "customer support",
-            availableLanguage: "Portuguese",
-          },
-          inLanguage: "pt-BR",
-          countriesSupported: "BR",
-        }),
+  return (
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <FaviconTheme />
+          <AuthProvider>
+            <VideoJobsWatcher />
+            <Outlet />
+            <Toaster position="top-center" richColors />
+            <FloatingAudioPlayer />
+            <SwRegister />
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </AppErrorBoundary>
+  );
       },
     ],
   }),
@@ -223,6 +231,45 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
+
+function RootComponent() {
+  const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    installChunkReloadHandler();
+  }, []);
+
+  // Capture ?ref=CODE into localStorage so it can be attached on signup
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get("ref");
+      if (ref && /^[A-Za-z0-9]{4,16}$/.test(ref)) {
+        localStorage.setItem("auraia-ref-code", ref.toUpperCase());
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  return (
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <FaviconTheme />
+          <AuthProvider>
+            <VideoJobsWatcher />
+            <Outlet />
+            <Toaster position="top-center" richColors />
+            <FloatingAudioPlayer />
+            <SwRegister />
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </AppErrorBoundary>
+  );
+}
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
@@ -260,7 +307,7 @@ function RootComponent() {
   }, []);
 
   void queryClient;
-  return <MaintenanceScreen />;
+  return <Outlet />;
 }
 
 function MaintenanceScreen() {
