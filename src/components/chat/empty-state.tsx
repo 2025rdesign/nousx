@@ -68,7 +68,7 @@ export function EmptyState({ onSuggest }: { onSuggest?: (text: string) => void }
         draggable={false}
       />
       <p className="mt-6 text-base md:text-lg lg:text-xl text-muted-foreground text-center">
-        Analise o projeto inteiro e surgiram redesenho completo e profissional visando otimização layout mais profissional e Limpo
+        No que posso ajudar?
       </p>
       {info && (
         <p className="mt-2 text-xs text-muted-foreground/70 text-center">{info}</p>
